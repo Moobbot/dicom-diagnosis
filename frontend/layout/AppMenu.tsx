@@ -5,14 +5,19 @@ import AppMenuitem from './AppMenuitem';
 import { LayoutContext } from './context/layoutcontext';
 import { MenuProvider } from './context/menucontext';
 import { AppMenuItem } from '@/types';
-import RBAC from '@/app/api/RBAC';
 import { Permissions } from '@/enums/permissions.enums';
+import { useUserContext } from './context/usercontext';
 
 const AppMenu = () => {
     // Lấy danh sách quyền của người dùng
-    let permissions = RBAC();
+    const { user } = useUserContext();
 
     const { layoutConfig } = useContext(LayoutContext);
+
+    // Hàm kiểm tra quyền
+    const hasPermission = (permissions: Permissions[]) => {
+        return user && (user.grantAll || permissions.every(permission => user.permissions.includes(permission)));
+    };
 
     // Xây dựng danh sách menu
     const model: AppMenuItem[] = [
@@ -20,13 +25,11 @@ const AppMenu = () => {
             label: 'HOME',
             items: [
                 { label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' },
-                ...(permissions.includes(Permissions.LIST_ALL_PERMISSIONS)
-                    ? [
-                        { label: 'Nhật kí hoạt động', icon: 'pi pi-fw pi-circle', to: '/logs' }
-                    ]
-                    : []),
-                ...(permissions.includes(Permissions.LIST_ALL_USERS) ? [{ label: 'Quản lý người dùng', icon: 'pi pi-fw pi-user', to: '/crud' }] : []),
-                ...(permissions.includes(Permissions.LIST_ALL_ROLES) ? [{ label: 'Quản lý vai trò', icon: 'pi pi-fw pi-circle', to: '/permission' }] : [])
+                ...[
+                    { label: 'Nhật kí hoạt động', icon: 'pi pi-fw pi-circle', to: '/logs', requiredPermissions: [Permissions.LIST_ALL_ACCESS_HISTORY] },
+                    { label: 'Quản lý người dùng', icon: 'pi pi-fw pi-user', to: '/users', requiredPermissions: [Permissions.LIST_ALL_USERS] },
+                    { label: 'Quản lý vai trò & quyền', icon: 'pi pi-fw pi-circle', to: '/role-permissions', requiredPermissions: [Permissions.LIST_ALL_ROLES, Permissions.LIST_ALL_PERMISSIONS] }
+                ].filter(item => !item.requiredPermissions || hasPermission(item.requiredPermissions))
             ]
         }
     ];

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
+import { Form, Field } from 'react-final-form';
 import { useRouter } from 'next/navigation';
 import { classNames } from 'primereact/utils';
 import { Toast } from 'primereact/toast';
@@ -7,62 +8,51 @@ import { Checkbox } from 'primereact/checkbox';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Password } from 'primereact/password';
-import { useUser } from '../../../../layout/context/usercontext';
-import axios from 'axios';
-import { setCookie } from 'cookies-next';
-import { getCookie } from 'cookies-next/client';
-
-const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+import { useUserContext } from '../../../../layout/context/usercontext';
+import AuthService from '../../../../modules/admin/service/AuthService';
+import { AxiosError } from 'axios';
 
 const LoginPage = () => {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
+    const authService = new AuthService();
+    const [formData, setFormData] = useState({});
     const [checked, setChecked] = useState(false);
-    const [avatar, setAvatar] = useState<string | null>(null);
-    const { setUser } = useUser();
+    const { user, setUser } = useUserContext();
     const router = useRouter();
     const toast = useRef<Toast>(null);
 
     const containerClassName = classNames('surface-ground flex align-items-center justify-content-center min-h-screen min-w-screen overflow-hidden');
 
-    const handleLogin = async (e: React.MouseEvent<HTMLButtonElement>) => {
-        try {
-            const response = await axios.post(`${NEXT_PUBLIC_API_BASE_URL}/auth/login`, {
-                username,
-                password
-            }, {
-                withCredentials: true,
-            });
+    const validate = (data: any) => {
+        let errors: any = {};
 
-            if (response.data.success) {
-                const data = response.data;
-
-                // Lưu cookie
-                setCookie('accessToken', data.accessToken, { maxAge: 60 * 5 });
-                setCookie('permissions', JSON.stringify(data.data.permissions), { maxAge: 60 * 60 * 24 });
-                setCookie('grantAll', data.data.grantAll, { maxAge: 60 * 60 * 24 });
-
-                const refreshToken = getCookie('refreshToken');
-                if (refreshToken) {
-                    localStorage.setItem('refreshToken', refreshToken as string);
-                }
-
-                localStorage.setItem('avatar', data.data.detail_user.avatar);
-
-                setUser(data.data.user);
-
-                router.push('/');
-            } else {
-                const detailMessage = response.data.message === 'User does not exist' ? 'Người dùng không tồn tại' :
-                    response.data.message === 'Invalid credentials' ? 'Tên đăng nhập hoặc mật khẩu không chính xác' :
-                        'Đăng nhập thất bại';
-
-                toast.current?.show({ severity: 'error', summary: 'Lỗi', detail: detailMessage });
-            }
-        } catch (error) {
-            console.error('Login error:', error);
-            toast.current?.show({ severity: 'error', summary: 'Lỗi', detail: 'Đã xảy ra lỗi, vui lòng thử lại sau' });
+        if (!data.username) {
+            errors.username = 'Name is required.';
         }
+
+        if (!data.password) {
+            errors.password = 'Password is required.';
+        }
+
+        return errors;
+    };
+
+    const onSubmit = async (data: any, form: any) => {
+        setFormData(data);
+
+        console.log(data);
+
+        const response = await authService.login(data.username, data.password);
+        const accessToken = response.accessToken;
+        localStorage.setItem('accessToken', accessToken);
+        setUser(response.data);
+        router.push('/');
+
+        // form.restart();
+    };
+
+    const isFormFieldValid = (meta: any) => !!(meta.touched && meta.error);
+    const getFormErrorMessage = (meta: any) => {
+        return isFormFieldValid(meta) && <div className="p-error -mt-4 mb-5">{meta.error}</div>;
     };
 
     return (
@@ -78,37 +68,57 @@ const LoginPage = () => {
                 >
                     <div className="w-full surface-card py-8 px-5 sm:px-8" style={{ borderRadius: '53px' }}>
                         <div className="text-center mb-5">
-                            <img
-                                src={avatar ?? '/layout/images/logo.png'}
-                                alt="logo"
-                                className="mb-3"
-                                style={{ height: '80px', width: '80px', borderRadius: '50%' }}
-                            />
+                            <img src={user?.detail_user.avatar ?? '/layout/images/logo.png'} alt="logo" className="mb-3" style={{ height: '80px', width: '80px', borderRadius: '50%' }} />
                             <div className="text-900 text-3xl font-medium mb-3">Welcome!</div>
                             <span className="text-600 font-medium">Sign in to continue</span>
                         </div>
-                        <div>
-                            <label htmlFor="username1" className="block text-900 text-xl font-medium mb-2">
-                                Username
-                            </label>
-                            <InputText id="username1" type="text" placeholder="Username" className="w-full md:w-30rem mb-5" style={{ padding: '1rem' }} value={username} onChange={(e) => setUsername(e.target.value)} />
+                        <Form
+                            onSubmit={onSubmit}
+                            initialValues={{ username: '', password: '' }}
+                            validate={validate}
+                            render={({ handleSubmit }) => (
+                                <form onSubmit={handleSubmit} className="flex flex-column gap-5">
+                                    <div>
+                                        <Field
+                                            name="username"
+                                            render={({ input, meta }) => (
+                                                <>
+                                                    <label htmlFor="username" className={classNames('block text-900 text-xl font-medium mb-2', { 'p-error': isFormFieldValid(meta) })}>
+                                                        Username
+                                                    </label>
+                                                    <InputText id="username" {...input} autoFocus className={classNames('w-full md:w-30rem mb-5', { 'p-invalid': isFormFieldValid(meta) })} />
+                                                    {getFormErrorMessage(meta)}
+                                                </>
+                                            )}
+                                        />
 
-                            <label htmlFor="password1" className="block text-900 font-medium text-xl mb-2">
-                                Password
-                            </label>
-                            <Password inputId="password1" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" toggleMask className="w-full mb-5" inputClassName="w-full p-3 md:w-30rem" />
+                                        <Field
+                                            name="password"
+                                            render={({ input, meta }) => (
+                                                <>
+                                                    <label htmlFor="password" className={classNames('block text-900 font-medium text-xl mb-2', { 'p-error': isFormFieldValid(meta) })}>
+                                                        Password
+                                                    </label>
+                                                    <Password id="password" {...input} toggleMask className={classNames('w-full mb-5', { 'p-invalid': isFormFieldValid(meta) })} inputClassName="w-full p-3 md:w-30rem" feedback={false} />
+                                                    {getFormErrorMessage(meta)}
+                                                </>
+                                            )}
+                                        />
 
-                            <div className="flex align-items-center justify-content-between mb-5 gap-5">
-                                <div className="flex align-items-center">
-                                    <Checkbox inputId="rememberme1" checked={checked} onChange={(e) => setChecked(e.checked ?? false)} className="mr-2"></Checkbox>
-                                    <label htmlFor="rememberme1">Remember me</label>
-                                </div>
-                                <a className="font-medium no-underline ml-2 text-right cursor-pointer" style={{ color: 'var(--primary-color)' }}>
-                                    Forgot password?
-                                </a>
-                            </div>
-                            <Button label="Sign In" className="w-full p-3 text-xl" onClick={handleLogin}></Button>
-                        </div>
+                                        <div className="flex align-items-center justify-content-between mb-5 gap-5">
+                                            <div className="flex align-items-center">
+                                                <Checkbox inputId="rememberme1" checked={checked} onChange={(e) => setChecked(e.checked ?? false)} className="mr-2"></Checkbox>
+                                                <label htmlFor="rememberme1">Remember me</label>
+                                            </div>
+                                            <a className="font-medium no-underline ml-2 text-right cursor-pointer" style={{ color: 'var(--primary-color)' }}>
+                                                Forgot password?
+                                            </a>
+                                        </div>
+                                        <Button type="submit" label="Sign In" className="w-full p-3 text-xl"></Button>
+                                    </div>
+                                </form>
+                            )}
+                        />
                     </div>
                 </div>
             </div>

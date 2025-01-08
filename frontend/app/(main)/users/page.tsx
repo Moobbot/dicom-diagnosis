@@ -21,12 +21,13 @@ import DeleteButton from '@/layout/components/DeleteButton';
 import NewButton from '@/layout/components/NewButton';
 import SaveButton from '@/layout/components/SaveButton';
 import { Permissions } from '@/enums/permissions.enums';
-import RBAC from '@/app/api/RBAC';
 import { format, isValid } from 'date-fns';
 import Box from '@mui/material/Box';
 import { FiGrid, FiUser, FiUserPlus, FiUsers } from 'react-icons/fi';
+import { useUserContext } from '@/layout/context/usercontext';
+import { withPermissions } from '../withPermissions';
 
-const Crud = () => {
+const UserManagement = () => {
     let emptyUser: Base.User = {
         _id: '',
         username: '',
@@ -42,9 +43,13 @@ const Crud = () => {
             name: '',
             birth_date: '',
             address: '',
-            gender: ''
+            gender: '',
+            avatar: null
         }
     };
+
+    const { user: currentUser } = useUserContext();
+    const permissions = currentUser?.permissions || [];
 
     const [users, setUsers] = useState<Base.User[] | null>(null);
     const [userDialog, setUserDialog] = useState(false);
@@ -64,9 +69,9 @@ const Crud = () => {
     const userService = new UserService();
     const roleService = new RoleService();
     const breadcrumbHome = { icon: 'pi pi-home', to: '/' };
-    const breadcrumbItems = [{ label: 'Quản lý người dùng'}];
+    const breadcrumbItems = [{ label: 'Quản lý người dùng' }];
 
-    let permissions = RBAC();
+    // let permissions = RBAC();
     useEffect(() => {
         const fetchUsers = async (page: number, rows: number) => {
             try {
@@ -124,7 +129,7 @@ const Crud = () => {
                     password: user.password,
                     roles: user.roles.map((role: Base.Role) => role._id)
                 });
-                const updatedUsers = users?.map(u => (u._id === updatedUser._id ? updatedUser : u));
+                const updatedUsers = users?.map((u) => (u._id === updatedUser._id ? updatedUser : u));
                 setUsers(updatedUsers || null);
                 setUserDialog(false);
                 setUser(emptyUser);
@@ -174,10 +179,12 @@ const Crud = () => {
         }
     };
 
-    {/* const onPage = (event) => {
+    {
+        /* const onPage = (event) => {
         setPage(event.page + 1); // Cập nhật state page khi người dùng thay đổi trang
         setRows(event.rows); // Cập nhật state rows khi người dùng thay đổi số lượng hàng mỗi trang
-    }; */}
+    }; */
+    }
 
     const editUser = (user: Base.User) => {
         const activeRoles = user.roles.filter((role: any) => role.status === true);
@@ -193,7 +200,7 @@ const Crud = () => {
     const changeUserStatus = async () => {
         try {
             await userService.changeUserStatus(user._id.toString(), false);
-            let _users = users?.map(val => val._id === user._id ? { ...val, status: false } : val);
+            let _users = users?.map((val) => (val._id === user._id ? { ...val, status: false } : val));
             setUsers(_users || null);
             setDeleteUserDialog(false);
             setUser(emptyUser);
@@ -229,11 +236,7 @@ const Crud = () => {
                         return { ...user, status: false };
                     })
                 );
-                setUsers((prevUsers) =>
-                    prevUsers?.map((user) =>
-                        updatedUsers.find((updatedUser) => updatedUser._id === user._id) || user
-                    ) || null
-                );
+                setUsers((prevUsers) => prevUsers?.map((user) => updatedUsers.find((updatedUser) => updatedUser._id === user._id) || user) || null);
                 toast.current?.show({ severity: 'success', summary: 'Successful', detail: 'Users Status Changed', life: 3000 });
             } catch (error) {
                 toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Failed to change user status' });
@@ -242,7 +245,7 @@ const Crud = () => {
     };
 
     const deleteSelectedUsers = async () => {
-        let _users = users?.filter(val => !selectedUsers?.includes(val));
+        let _users = users?.filter((val) => !selectedUsers?.includes(val));
         setUsers(_users || null);
         setDeleteUsersDialog(false);
         setSelectedUsers(null);
@@ -285,7 +288,7 @@ const Crud = () => {
                 operator: FilterOperator.OR,
                 constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }]
             },
-            activity: { value: null, matchMode: FilterMatchMode.BETWEEN },
+            activity: { value: null, matchMode: FilterMatchMode.BETWEEN }
         });
         setGlobalFilter('');
     };
@@ -337,12 +340,7 @@ const Crud = () => {
             <h5 className="mx-0 my-1">Manage Users</h5>
             <span className="p-input-icon-left">
                 <i className="pi pi-search" />
-                <InputText
-                    type="search"
-                    value={globalFilter || ''}
-                    onChange={onGlobalFilterChange}
-                    placeholder="Search..."
-                />
+                <InputText type="search" value={globalFilter || ''} onChange={onGlobalFilterChange} placeholder="Search..." />
             </span>
         </div>
     );
@@ -360,17 +358,7 @@ const Crud = () => {
     };
 
     const rolesBodyTemplate = (rowData: Base.User) => {
-        return (
-            <div>
-                {Array.isArray(rowData.roles) ? (
-                    rowData.roles.map((role: Base.Role) => (
-                        <Badge key={role._id} value={role.name} severity="info" className="mr-2" />
-                    ))
-                ) : (
-                    <span>No roles assigned</span>
-                )}
-            </div>
-        );
+        return <div>{Array.isArray(rowData.roles) ? rowData.roles.map((role: Base.Role) => <Badge key={role._id} value={role.name} severity="info" className="mr-2" />) : <span>No roles assigned</span>}</div>;
     };
 
     const UpdateByBodyTemplate = (rowData: Base.User) => {
@@ -382,11 +370,7 @@ const Crud = () => {
                     </span>
                 ));
             } else if (rowData.updatedBy) {
-                return (
-                    <span className="mr-2">
-                        {(rowData.updatedBy as Base.User).username ?? 'Unknown'}
-                    </span>
-                );
+                return <span className="mr-2">{(rowData.updatedBy as Base.User).username ?? 'Unknown'}</span>;
             }
             return 'N/A';
         };
@@ -394,13 +378,14 @@ const Crud = () => {
         return <div>{renderUpdatedBy()}</div>;
     };
 
-
     const CreateByBodyTemplate = (rowData: Base.User) => {
         return (
             <div>
                 {Array.isArray(rowData.createdBy) ? (
                     rowData.createdBy.map((createdBy: any, index: number) => (
-                        <span key={createdBy._id || index} className="mr-2">{createdBy.username}</span>
+                        <span key={createdBy._id || index} className="mr-2">
+                            {createdBy.username}
+                        </span>
                     ))
                 ) : rowData.createdBy ? (
                     <span className="mr-2">{(rowData.createdBy as any).username}</span>
@@ -410,7 +395,7 @@ const Crud = () => {
             </div>
         );
     };
- 
+
     const actionBodyTemplate = (rowData: Base.User) => {
         return (
             <React.Fragment>
@@ -432,35 +417,35 @@ const Crud = () => {
         <div className="layout-main">
             <div className="col-12">
                 <BreadCrumb home={breadcrumbHome} model={breadcrumbItems} />
-                <div className="card"
+                <div
+                    className="card"
                     style={{
-                        width: "100%",
-                        height: "100%",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "10px",
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px'
                     }}
-                    >
+                >
                     {/* Phần chứa tiêu đề */}
-                <Box
-                    sx={{
-                        display: "flex",
-                        alignItems: "center", // Căn giữa theo trục dọc
-                        gap: "10px",
-                    }}
-                >
-                    <FiUsers size={50} />
-                    <h2>Quản lý người dùng</h2>
-                </Box>
-                <Box
-                    sx={{
-                        display: "flex",
-                        alignItems: "center", // Căn giữa theo trục dọc
-                        gap: "10px",
-                    }}
-                >
-                </Box>
-                        
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center', // Căn giữa theo trục dọc
+                            gap: '10px'
+                        }}
+                    >
+                        <FiUsers size={50} />
+                        <h2>Quản lý người dùng</h2>
+                    </Box>
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center', // Căn giữa theo trục dọc
+                            gap: '10px'
+                        }}
+                    ></Box>
+
                     <Toast ref={toast} />
                     <Toolbar className="" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
 
@@ -479,17 +464,16 @@ const Crud = () => {
                         header={header}
                         responsiveLayout="scroll"
                         removableSort
-                    // onPage={onPage} 
+                        // onPage={onPage}
                     >
                         <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
-                        <Column field="_id" header="ID" filter sortable style={{ minWidth: '12rem' }}></Column>
                         <Column field="username" header="Username" filter sortable style={{ minWidth: '12rem' }}></Column>
+                        <Column field="roles" header="Roles" filter body={rolesBodyTemplate} sortable style={{ minWidth: '12rem' }}></Column>
+                        <Column field="status" header="Status" filter body={statusBodyTemplate} sortable style={{ minWidth: '12rem' }}></Column>
                         <Column field="createdBy" header="Created By" sortable body={CreateByBodyTemplate} style={{ minWidth: '12rem' }}></Column>
                         <Column field="createdAt" header="Created At" sortable body={(rowData) => formatDate(rowData.createdAt)} />
                         <Column field="updatedBy" header="Updated By" sortable body={UpdateByBodyTemplate} style={{ minWidth: '12rem' }}></Column>
                         <Column field="updatedAt" header="Updated At" sortable body={(rowData) => formatDate(rowData.updatedAt)} />
-                        <Column field="roles" header="Roles" filter body={rolesBodyTemplate} sortable style={{ minWidth: '12rem' }}></Column>
-                        <Column field="status" header="Status" filter body={statusBodyTemplate} sortable style={{ minWidth: '12rem' }}></Column>
                         <Column header="Thao tác" body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                     </DataTable>
                 </div>
@@ -509,21 +493,18 @@ const Crud = () => {
 
                     <div className="field">
                         <label htmlFor="role">Role</label>
-                        <MultiSelect
-                            id="roles"
-                            value={user.roles}
-                            options={roles}
-                            onChange={(e) => setUser({ ...user, roles: e.value })}
-                            optionLabel="label"
-                            placeholder="Select Roles"
-                            display="chip" />
+                        <MultiSelect id="roles" value={user.roles} options={roles} onChange={(e) => setUser({ ...user, roles: e.value })} optionLabel="label" placeholder="Select Roles" display="chip" />
                     </div>
                 </Dialog>
 
                 <Dialog visible={deleteUserDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteUserDialogFooter} onHide={hideDeleteUserDialog}>
                     <div className="confirmation-content">
                         <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                        {user && <span>Are you sure you want to change <b>{user.username}</b>'s status?</span>}
+                        {user && (
+                            <span>
+                                Are you sure you want to change <b>{user.username}</b>'s status?
+                            </span>
+                        )}
                     </div>
                 </Dialog>
 
@@ -538,4 +519,4 @@ const Crud = () => {
     );
 };
 
-export default Crud;
+export default withPermissions(UserManagement, [Permissions.LIST_ALL_USERS]);
