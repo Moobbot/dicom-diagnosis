@@ -9,6 +9,7 @@ import React, { useContext, useEffect, useRef, useState } from 'react';
 import { LayoutContext } from '../../layout/context/layoutcontext';
 import Link from 'next/link';
 import { ChartData, ChartOptions } from 'chart.js';
+import { withPermissions } from './withPermissions';
 
 const Dashboard = () => {
     return (
@@ -18,4 +19,4 @@ const Dashboard = () => {
     );
 };
 
-export default Dashboard;
+export default withPermissions(Dashboard, []);

@@ -7,10 +7,12 @@ const UserContext = createContext<{
     user: User | null;
     setUser: (user: User | null) => void;
     isAuthenticated: boolean;
+    isLoading: boolean;
 }>({
     user: null,
     setUser: () => {},
-    isAuthenticated: false
+    isAuthenticated: false,
+    isLoading: true
 });
 
 export const useUserContext = () => {
@@ -21,6 +23,7 @@ export const useUserContext = () => {
 export default function UserProvider({ children }: { children: React.ReactNode }) {
     const [user, setUserState] = useState<User | null>(() => null);
     const isAuthenticated = Boolean(user);
+    const [isLoading, setIsLoading] = useState(true);
     const setUser = useCallback(
         (user: User | null) => {
             setUserState(user);
@@ -32,6 +35,7 @@ export default function UserProvider({ children }: { children: React.ReactNode }
     useEffect(() => {
         const _user = localStorage.getItem('user');
         setUserState(_user ? JSON.parse(_user) : null);
+        setIsLoading(false);
     }, [setUserState]);
 
     if (!user) {
@@ -43,7 +47,8 @@ export default function UserProvider({ children }: { children: React.ReactNode }
             value={{
                 user,
                 setUser,
-                isAuthenticated
+                isAuthenticated,
+                isLoading
             }}
         >
             {children}

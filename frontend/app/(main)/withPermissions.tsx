@@ -4,16 +4,26 @@ import { useUserContext } from '@/layout/context/usercontext';
 
 export const withPermissions = (WrappedComponent: any, requiredPermissions: string[]) => {
     return (props: any) => {
-        const { user } = useUserContext();
+        const { user, isLoading } = useUserContext();
         const router = useRouter();
 
         useEffect(() => {
-            const hasPermission = user && (user.grantAll || requiredPermissions.every((permission) => user.permissions.includes(permission)));
+            if (isLoading) {
+                if (!user) {
+                    router.push('/auth/login');
+                }
 
-            if (!hasPermission) {
-                router.push('/auth/access');
+                const hasPermission = user && (user.grantAll || requiredPermissions.every((permission) => user.permissions.includes(permission)));
+
+                if (!hasPermission) {
+                    router.push('/auth/access');
+                }
             }
         }, [user, requiredPermissions, router]);
+
+        if (!user) {
+            return null;
+        }
 
         const hasPermission = user && (user.grantAll || requiredPermissions.every((permission) => user.permissions.includes(permission)));
 
