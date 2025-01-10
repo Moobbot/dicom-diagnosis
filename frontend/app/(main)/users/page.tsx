@@ -22,9 +22,6 @@ import NewButton from '@/layout/components/NewButton';
 import SaveButton from '@/layout/components/SaveButton';
 import { Permissions } from '@/enums/permissions.enums';
 import { format, isValid } from 'date-fns';
-import Box from '@mui/material/Box';
-import { FiGrid, FiUser, FiUserPlus, FiUsers } from 'react-icons/fi';
-import { useUserContext } from '@/layout/context/usercontext';
 import { withPermissions } from '../withPermissions';
 
 const UserManagement = () => {
@@ -47,9 +44,6 @@ const UserManagement = () => {
             avatar: null
         }
     };
-
-    const { user: currentUser } = useUserContext();
-    const permissions = currentUser?.permissions || [];
 
     const [users, setUsers] = useState<Base.User[] | null>(null);
     const [userDialog, setUserDialog] = useState(false);
@@ -296,8 +290,8 @@ const UserManagement = () => {
     const leftToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <NewButton permissions={permissions} onClick={openNew} label="New" />
-                <DeleteButton permissions={permissions} onclick={confirmDeleteSelected} selected={selectedUsers || []} label="Delete" />
+                <NewButton permissions={[Permissions.ADD_USER]} onClick={openNew} label="New" />
+                <DeleteButton permissions={[Permissions.CHANGE_STATUS_USER]} onclick={confirmDeleteSelected} selected={selectedUsers || []} label="Delete" />
             </React.Fragment>
         );
     };
@@ -336,11 +330,10 @@ const UserManagement = () => {
     };
 
     const header = (
-        <div className="table-header">
-            <h5 className="mx-0 my-1">Manage Users</h5>
+        <div className="flex justify-content-end">
             <span className="p-input-icon-left">
                 <i className="pi pi-search" />
-                <InputText type="search" value={globalFilter || ''} onChange={onGlobalFilterChange} placeholder="Search..." />
+                <InputText value={globalFilter || ''} onChange={(e) => setGlobalFilter(e.target.value)} placeholder="Search..." />
             </span>
         </div>
     );
@@ -417,37 +410,15 @@ const UserManagement = () => {
         <div className="layout-main">
             <div className="col-12">
                 <BreadCrumb home={breadcrumbHome} model={breadcrumbItems} />
-                <div
-                    className="card"
-                    style={{
-                        width: '100%',
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '10px'
-                    }}
-                >
-                    {/* Phần chứa tiêu đề */}
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center', // Căn giữa theo trục dọc
-                            gap: '10px'
-                        }}
-                    >
-                        <FiUsers size={50} />
+                <div className="card w-full h-full flex flex-column gap-3">
+                    {/* Header section with icon and title */}
+                    <div className="flex align-items-center gap-3">
+                        <i className="pi pi-users text-5xl"></i>
                         <h2>Quản lý người dùng</h2>
-                    </Box>
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center', // Căn giữa theo trục dọc
-                            gap: '10px'
-                        }}
-                    ></Box>
+                    </div>
 
                     <Toast ref={toast} />
-                    <Toolbar className="" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
+                    <Toolbar className="mb-4" start={leftToolbarTemplate} end={rightToolbarTemplate}></Toolbar>
 
                     <DataTable
                         ref={dt}
@@ -459,12 +430,11 @@ const UserManagement = () => {
                         showGridlines
                         rows={rows}
                         rowsPerPageOptions={[5, 10, 25]}
-                        globalFilterFields={['username', 'name', 'roles.name']}
-                        globalFilter={globalFilter}
-                        header={header}
+                        // globalFilterFields={['username', 'name', 'roles.name']}
+                        // globalFilter={globalFilter}
+                        // header={header}
                         responsiveLayout="scroll"
                         removableSort
-                        // onPage={onPage}
                     >
                         <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
                         <Column field="username" header="Username" filter sortable style={{ minWidth: '12rem' }}></Column>
@@ -478,28 +448,36 @@ const UserManagement = () => {
                     </DataTable>
                 </div>
 
+                {/* User Dialog */}
                 <Dialog visible={userDialog} style={{ width: '450px' }} header="User Details" modal className="p-fluid" footer={userDialogFooter} onHide={hideDialog}>
                     <div className="field">
-                        <label htmlFor="username">Tên đăng nhập</label>
+                        <label htmlFor="username" className="font-bold">
+                            Tên đăng nhập
+                        </label>
                         <InputText id="username" value={user.username} onChange={(e) => onInputChange(e, 'username')} required className={classNames({ 'p-invalid': submitted && !user.username })} />
                         {submitted && !user.username && <small className="p-error">Tên đăng nhập là bắt buộc.</small>}
                     </div>
 
                     <div className="field">
-                        <label htmlFor="password">Mật khẩu</label>
+                        <label htmlFor="password" className="font-bold">
+                            Mật khẩu
+                        </label>
                         <InputText id="password" value={user.password} onChange={(e) => onInputChange(e, 'password')} required className={classNames({ 'p-invalid': submitted && !user.password })} />
                         {submitted && !user.password && <small className="p-error">Mật khẩu là bắt buộc</small>}
                     </div>
 
                     <div className="field">
-                        <label htmlFor="role">Role</label>
+                        <label htmlFor="role" className="font-bold">
+                            Role
+                        </label>
                         <MultiSelect id="roles" value={user.roles} options={roles} onChange={(e) => setUser({ ...user, roles: e.value })} optionLabel="label" placeholder="Select Roles" display="chip" />
                     </div>
                 </Dialog>
 
+                {/* Delete User Dialog */}
                 <Dialog visible={deleteUserDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteUserDialogFooter} onHide={hideDeleteUserDialog}>
-                    <div className="confirmation-content">
-                        <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                    <div className="flex align-items-center gap-2">
+                        <i className="pi pi-exclamation-triangle text-5xl" />
                         {user && (
                             <span>
                                 Are you sure you want to change <b>{user.username}</b>'s status?
@@ -508,9 +486,10 @@ const UserManagement = () => {
                     </div>
                 </Dialog>
 
+                {/* Delete Users Dialog */}
                 <Dialog visible={deleteUsersDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteUsersDialogFooter} onHide={hideDeleteUsersDialog}>
-                    <div className="confirmation-content">
-                        <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
+                    <div className="flex align-items-center gap-2">
+                        <i className="pi pi-exclamation-triangle text-5xl" />
                         {selectedUsers && <span>Are you sure you want to delete the selected users?</span>}
                     </div>
                 </Dialog>
