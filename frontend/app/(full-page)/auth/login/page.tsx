@@ -10,7 +10,7 @@ import { InputText } from 'primereact/inputtext';
 import { Password } from 'primereact/password';
 import { useUserContext } from '../../../../layout/context/usercontext';
 import AuthService from '../../../../modules/admin/service/AuthService';
-import { AxiosError } from 'axios';
+import axios, { AxiosError } from 'axios';
 
 const LoginPage = () => {
     const authService = new AuthService();
@@ -38,15 +38,14 @@ const LoginPage = () => {
 
     const onSubmit = async (data: any, form: any) => {
         setFormData(data);
-
-        console.log(data);
-
-        const response = await authService.login(data.username, data.password);
-        const accessToken = response.accessToken;
-        localStorage.setItem('accessToken', accessToken);
-        setUser(response.data);
-        router.push('/');
-
+        try {
+            const response = await authService.login(data.username, data.password);
+            localStorage.setItem('accessToken', response.accessToken);
+            setUser(response.data);
+            router.push('/');
+        } catch (error: any) {
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: error.response?.data.message });
+        }
         // form.restart();
     };
 

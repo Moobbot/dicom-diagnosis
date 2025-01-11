@@ -15,7 +15,6 @@ import AppConfig from './AppConfig';
 
 import { LayoutContext } from './context/layoutcontext';
 import { ChildContainerProps, LayoutState, AppTopbarRef } from '@/types';
-import WithAuth from '../layout/context/WithAuth';
 
 const Layout = ({ children }: ChildContainerProps) => {
     const { layoutConfig, layoutState, setLayoutState } = useContext(LayoutContext);

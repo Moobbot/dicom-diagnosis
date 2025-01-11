@@ -38,10 +38,6 @@ export default function UserProvider({ children }: { children: React.ReactNode }
         setIsLoading(false);
     }, [setUserState]);
 
-    if (!user) {
-        return null;
-    }
-
     return (
         <UserContext.Provider
             value={{

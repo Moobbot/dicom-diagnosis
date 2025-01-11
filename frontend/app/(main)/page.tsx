@@ -19,4 +19,4 @@ const Dashboard = () => {
     );
 };
 
-export default withPermissions(Dashboard, []);
+export default Dashboard;

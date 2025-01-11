@@ -14,7 +14,9 @@ class AuthService {
                 username,
                 password
             },
-            { withCredentials: true }
+            {
+                withCredentials: true
+            }
         );
 
         return response.data;
