@@ -1,0 +1,116 @@
+frontend
+ ┣ app
+ ┃ ┣ (full-page)
+ ┃ ┃ ┣ auth
+ ┃ ┃ ┃ ┣ access
+ ┃ ┃ ┃ ┃ ┗ page.tsx
+ ┃ ┃ ┃ ┣ error
+ ┃ ┃ ┃ ┃ ┗ page.tsx
+ ┃ ┃ ┃ ┗ login
+ ┃ ┃ ┃ ┃ ┗ page.tsx
+ ┃ ┃ ┣ landing
+ ┃ ┃ ┃ ┗ page.tsx
+ ┃ ┃ ┣ pages
+ ┃ ┃ ┃ ┗ notfound
+ ┃ ┃ ┃ ┃ ┗ page.tsx
+ ┃ ┃ ┗ layout.tsx
+ ┃ ┣ (main)
+ ┃ ┃ ┣ logs
+ ┃ ┃ ┃ ┗ page.tsx
+ ┃ ┃ ┣ role-permissions
+ ┃ ┃ ┃ ┗ page.tsx
+ ┃ ┃ ┣ user-info
+ ┃ ┃ ┃ ┗ page.tsx
+ ┃ ┃ ┣ users
+ ┃ ┃ ┃ ┗ page.tsx
+ ┃ ┃ ┣ layout.tsx
+ ┃ ┃ ┣ page.tsx
+ ┃ ┃ ┗ withPermissions.tsx
+ ┃ ┣ api
+ ┃ ┃ ┣ authApi.tsx
+ ┃ ┃ ┣ DeviceApi.tsx
+ ┃ ┃ ┣ SampleTypeApi.tsx
+ ┃ ┃ ┣ upload.ts
+ ┃ ┃ ┗ WorkstationApi.tsx
+ ┃ ┣ favicon.ico
+ ┃ ┗ layout.tsx
+ ┣ config
+ ┃ ┗ env.config.ts
+ ┣ enums
+ ┃ ┗ permissions.enums.ts
+ ┣ layout
+ ┃ ┣ components
+ ┃ ┃ ┣ CancelButton.tsx
+ ┃ ┃ ┣ ContentHeader.tsx
+ ┃ ┃ ┣ DeleteButton.tsx
+ ┃ ┃ ┣ EditButton.tsx
+ ┃ ┃ ┣ ExportButton.tsx
+ ┃ ┃ ┣ NewButton.tsx
+ ┃ ┃ ┣ NotificationItem.tsx
+ ┃ ┃ ┣ SaveButton.tsx
+ ┃ ┃ ┣ SettingMenu.tsx
+ ┃ ┃ ┣ UserField.tsx
+ ┃ ┃ ┗ UserMenu.tsx
+ ┃ ┣ context
+ ┃ ┃ ┣ layoutcontext.tsx
+ ┃ ┃ ┣ menucontext.tsx
+ ┃ ┃ ┗ usercontext.tsx
+ ┃ ┣ forms
+ ┃ ┣ AppConfig.tsx
+ ┃ ┣ AppFooter.tsx
+ ┃ ┣ AppMenu.tsx
+ ┃ ┣ AppMenuitem.tsx
+ ┃ ┣ AppSidebar.tsx
+ ┃ ┣ AppTopbar.tsx
+ ┃ ┗ layout.tsx
+ ┣ modules
+ ┃ ┣ admin
+ ┃ ┃ ┣ components
+ ┃ ┃ ┃ ┗ BlockViewer.tsx
+ ┃ ┃ ┣ service
+ ┃ ┃ ┃ ┣ api.tsx
+ ┃ ┃ ┃ ┣ AuthService.tsx
+ ┃ ┃ ┃ ┣ PermissionService.tsx
+ ┃ ┃ ┃ ┣ RoleService.tsx
+ ┃ ┃ ┃ ┗ UserService.tsx
+ ┃ ┃ ┗ styles
+ ┃ ┃ ┃ ┣ flags
+ ┃ ┃ ┃ ┃ ┣ flags.css
+ ┃ ┃ ┃ ┃ ┗ flags_responsive.png
+ ┃ ┃ ┃ ┣ admin.scss
+ ┃ ┃ ┃ ┣ badges.scss
+ ┃ ┃ ┃ ┣ BlockViewer.scss
+ ┃ ┃ ┃ ┣ code.scss
+ ┃ ┃ ┃ ┣ LisAdmin.scss
+ ┃ ┃ ┃ ┣ request.scss
+ ┃ ┃ ┃ ┣ RolePermissionTable.scss
+ ┃ ┃ ┃ ┗ Timeline.scss
+ ┃ ┗ base
+ ┃ ┃ ┣ service
+ ┃ ┃ ┃ ┗ ProductService.tsx
+ ┃ ┃ ┗ styles
+ ┃ ┃ ┃ ┗ TimelineDemo.scss
+ ┣ styles
+ ┃ ┗ layout
+ ┃ ┃ ┣ layout.scss
+ ┃ ┃ ┗ _variables.scss
+ ┣ types
+ ┃ ┣ base.d.ts
+ ┃ ┣ index.d.ts
+ ┃ ┣ layout.d.ts
+ ┃ ┗ noti.d.ts
+ ┣ validation
+ ┃ ┗ env.validation.ts
+ ┣ .env
+ ┣ .env.example
+ ┣ .gitignore
+ ┣ .prettierignore
+ ┣ .prettierrc.json
+ ┣ CHANGELOG.md
+ ┣ LICENSE.md
+ ┣ next-env.d.ts
+ ┣ next.config.js
+ ┣ package-lock.json
+ ┣ package.json
+ ┣ README.md
+ ┗ tsconfig.json
