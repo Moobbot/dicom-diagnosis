@@ -10,6 +10,17 @@ const nextConfig = {
      
         return config;
     },
+    async rewrites() {
+        return [
+            {
+                source: '/dicom/files',
+                destination: 'http://localhost:5000/dicom/files', // Proxy đến backend
+            },
+        ];
+    },
+    experimental: {
+      proxyTimeout: 600000,
+    }
 }
 
 module.exports = nextConfig

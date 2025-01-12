@@ -11,7 +11,7 @@ import { Tag } from 'primereact/tag';
 
 interface PredictionResponse {
     data: {
-        predictions: Array<number>; // Assuming predictions is an array of numbers
+        predictions: any;
     };
     metadata: Record<string, any>; // Freeform JSON object
     message: string | null; // Informational or error message
@@ -81,9 +81,9 @@ const Dashboard: React.FC = () => {
             formData.append('dicom', selectedFile);
             formData.append('return_attentions', 'true');
 
-            const response = await fetch('http://localhost:5000/dicom/files', {
+            const response = await fetch('/dicom/files', {
                 method: 'POST',
-                body: formData,
+                body: formData
             });
 
             if (!response.ok) {
@@ -199,20 +199,13 @@ const Dashboard: React.FC = () => {
                     )}
                     {!loading && predictionResult && (
                         <div className="flex flex-column gap-3">
+                            {predictionResult.data.predictions[0][0].map((value: number, index: number) => (
+                                <div>
+                                    <strong>Năm {index + 1}:</strong> {value}
+                                </div>
+                            ))}
                             <div>
-                                <strong>Status Code:</strong> {predictionResult.statusCode}
-                            </div>
-                            <div>
-                                <strong>Message:</strong> {predictionResult.message || 'No message'}
-                            </div>
-                            <div>
-                                <strong>Predictions:</strong> {predictionResult.data.predictions.join(', ')}
-                            </div>
-                            <div>
-                                <strong>Runtime:</strong> {predictionResult.runtime}
-                            </div>
-                            <div>
-                                <strong>Metadata:</strong> {JSON.stringify(predictionResult.metadata, null, 2)}
+                                <strong>Thời gian chạy:</strong> {predictionResult.runtime}
                             </div>
                         </div>
                     )}
