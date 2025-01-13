@@ -16,7 +16,7 @@ export function middleware(request: NextRequest) {
     }
 
     // Nếu public path và có token thì chuyển hướng về trang chính
-    if (PUBLIC_PATHS.some((path) => pathname.startsWith(path)) && token) {
+    if (pathname.startsWith('/auth/login') && token) {
         const mainUrl = new URL('/', request.url);
         return NextResponse.redirect(mainUrl);
     }
