@@ -8,7 +8,7 @@ export const withPermissions = (WrappedComponent: any, requiredPermissions: stri
         const router = useRouter();
 
         useEffect(() => {
-            if (isLoading) {
+            if (!isLoading) {
                 const hasPermission = user && (user.grantAll || requiredPermissions.every((permission) => user.permissions.includes(permission)));
 
                 if (!hasPermission) {

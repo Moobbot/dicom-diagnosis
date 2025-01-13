@@ -28,6 +28,7 @@ export default function UserProvider({ children }: { children: React.ReactNode }
         (user: User | null) => {
             setUserState(user);
             localStorage.setItem('user', JSON.stringify(user));
+            setIsLoading(false);
         },
         [setUserState]
     );
@@ -35,7 +36,6 @@ export default function UserProvider({ children }: { children: React.ReactNode }
     useEffect(() => {
         const _user = localStorage.getItem('user');
         setUserState(_user ? JSON.parse(_user) : null);
-        setIsLoading(false);
     }, [setUserState]);
 
     return (
