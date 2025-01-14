@@ -185,7 +185,7 @@ const Dashboard: React.FC = () => {
                             emptyTemplate={emptyTemplate}
                             itemTemplate={itemTemplate}
                         />
-                        {selectedFile && <div id="layerGroup0"></div>}
+                        {selectedFile && <div id="layerGroup0" className="layerGroup"></div>}
                     </div>
                 </div>
             </div>
