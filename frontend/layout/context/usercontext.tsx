@@ -1,31 +1,53 @@
-import { log } from 'node:console';
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Base } from '@/types/base';
+import { Base } from '@/types';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
-// Định nghĩa kiểu UserContext
-interface UserContextType {
-  user: Base.User | null; // User hoặc null nếu chưa đăng nhập
-  setUser: React.Dispatch<React.SetStateAction<Base.User | null>>;
-  isAuthenticated: boolean;
+type User = Base.LoggedInUser;
+
+const UserContext = createContext<{
+    user: User | null;
+    setUser: (user: User | null) => void;
+    isAuthenticated: boolean;
+    isLoading: boolean;
+}>({
+    user: null,
+    setUser: () => {},
+    isAuthenticated: false,
+    isLoading: true
+});
+
+export const useUserContext = () => {
+    const context = useContext(UserContext);
+    return context;
+};
+
+export default function UserProvider({ children }: { children: React.ReactNode }) {
+    const [user, setUserState] = useState<User | null>(() => null);
+    const isAuthenticated = Boolean(user);
+    const [isLoading, setIsLoading] = useState(true);
+    const setUser = useCallback(
+        (user: User | null) => {
+            setUserState(user);
+            localStorage.setItem('user', JSON.stringify(user));
+            setIsLoading(false);
+        },
+        [setUserState]
+    );
+
+    useEffect(() => {
+        const _user = localStorage.getItem('user');
+        setUserState(_user ? JSON.parse(_user) : null);
+    }, [setUserState]);
+
+    return (
+        <UserContext.Provider
+            value={{
+                user,
+                setUser,
+                isAuthenticated,
+                isLoading
+            }}
+        >
+            {children}
+        </UserContext.Provider>
+    );
 }
-
-const UserContext = createContext<UserContextType | undefined>(undefined);
-
-export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<Base.User | null>(null);
-  const isAuthenticated = !!user;
-
-  return (
-    <UserContext.Provider value={{ user, setUser, isAuthenticated }}>
-      {children}
-    </UserContext.Provider>
-  );
-};
-
-export const useUser = (): UserContextType => {
-  const context = useContext(UserContext);
-  if (!context) {
-    throw new Error('useUser must be used within a UserProvider');
-  }
-  return context;
-};

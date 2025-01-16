@@ -76,7 +76,7 @@ declare namespace Base {
     interface DetailUser {
         user_code: string;
         name: string;
-        avatar: string;
+        avatar: string | null;
         birth_date: string; // ISODate hoặc string (tùy cách sử dụng)
         address: string;
         gender: string; // Có thể là "male", "female", hoặc giá trị khác
@@ -86,12 +86,20 @@ declare namespace Base {
         username: string;
         password: string; // Mã hóa
         roles: Role[];
-        createdBy: CreatedBy[] | null;
-        updatedBy: UpdatedBy[] | null;
+        createdBy: CreatedBy | null;
+        updatedBy: UpdatedBy | null;
         status: boolean;
         createdAt: string; // ISODate
         updatedAt: string; // ISODate
-        detail_user: DetailUser[];
+        detail_user: DetailUser;
+    }
+
+    export interface LoggedInUser {
+        _id: string;
+        username: string;
+        grantAll: boolean;
+        permissions: string[];
+        detail_user: DetailUser;
     }
 
     type UserStatus = 'active' | 'inactive';

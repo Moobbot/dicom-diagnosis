@@ -11,21 +11,6 @@ export const validateEnv = () => {
         const envVars: EnvConfig = EnvSchema.parse(process.env);
         // console.log("✅ Environment variables loaded and validated:", envVars);
 
-        // Normalize expiration times
-        const normalizeExpiration = (expiration: string): number => {
-            const unit = expiration.slice(-1);
-            const value = parseInt(expiration.slice(0, -1), 10);
-            switch (unit) {
-                case "m":
-                    return value * 60;
-                case "h":
-                    return value * 60 * 60;
-                case "d":
-                    return value * 24 * 60 * 60;
-                default:
-                    throw new Error(`Invalid expiration format: ${expiration}`);
-            }
-        };
 
         return {
             port: +envVars.PORT || 3000,
@@ -33,7 +18,6 @@ export const validateEnv = () => {
             debug: envVars.NEXT_PUBLIC_DEBUG,
             apiBaseUrl: envVars.NEXT_PUBLIC_API_BASE_URL,
             loginPage: envVars.NEXT_PUBLIC_LOGIN_PAGE,
-            tokenExpiration: normalizeExpiration(envVars.NEXT_PUBLIC_TOKEN_EXPIRATION),
         };
     } catch (error) {
         if (error instanceof ZodError) {

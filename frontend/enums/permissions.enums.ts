@@ -25,5 +25,9 @@ export enum Permissions {
     ADD_USER = 'user.add',
     EDIT_USER = 'user.edit',
     EDIT_MANY_USERS = 'user.edit_many',
-    CHANGE_STATUS_USER = 'user.change_status'
+    CHANGE_STATUS_USER = 'user.change_status',
+
+    // Access History Resources
+    LIST_ALL_ACCESS_HISTORY = "access_history.list_all",
+    GET_ACCESS_HISTORY = "access_history.get",
 }

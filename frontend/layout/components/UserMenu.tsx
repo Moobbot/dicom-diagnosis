@@ -5,22 +5,22 @@ import axios from 'axios';
 import { Button } from 'primereact/button';
 import { logout } from '@/app/api/authApi';
 import UserService from '../../modules/admin/service/UserService';
+import AuthService from '@/modules/admin/service/AuthService';
+import { useUserContext } from '../context/usercontext';
 
 const UserMenu = () => {
     const router = useRouter();
-    const avatar = localStorage.getItem('avatar');
+    const authService = new AuthService();
+    const { user } = useUserContext();
 
     const handleLogout = async () => {
         try {
-            await UserService.logout(); // Use the logout method from UserService
-            console.log('Logout successful'); // Debug: Hiển thị khi logout thành công
-
-            // Redirect to login page or home page after logout
-            router.push('/auth/login');
+            await authService.logout();
+            localStorage.removeItem('accessToken');
+            window.location.href = 'auth/login';
         } catch (error) {
             console.error('Error during logout:', error);
         }
-        // logout();
     };
 
     return (
@@ -62,11 +62,7 @@ const UserMenu = () => {
                     onMouseEnter={(e) => (e.currentTarget.style.background = '#f9f9f9')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                    <img
-                        src={avatar || 'frontend/public/layout/images/logo.svg'} 
-                        alt="User Information"
-                        style={{ width: '20px', height: '20px', borderRadius: '50%' }}
-                    />
+                    <img src={user?.detail_user.avatar || '/layout/images/logo.png'} alt="User Information" style={{ width: '20px', height: '20px', borderRadius: '50%' }} />
                     <a href="/user-info" style={{ textDecoration: 'none', color: '#333' }}>
                         Thông tin người dùng
                     </a>
