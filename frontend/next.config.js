@@ -2,25 +2,21 @@
 const nextConfig = {
     reactStrictMode: true,
     // swcMinify: true,
+
     webpack: (config) => {
+        // resolve fs for one of the dependencies
+        config.resolve.fallback = {
+          fs: false,
+        }
+    
+        // loading our wasm files as assets
         config.module.rules.push({
-          test: /\.node/,
-          use: 'raw-loader',
-        });
-     
-        return config;
+          test: /\.wasm/,
+          type: "asset/resource",
+        })
+    
+        return config
     },
-    async rewrites() {
-        return [
-            {
-                source: '/dicom/files',
-                destination: 'http://localhost:5000/dicom/files', // Proxy đến backend
-            },
-        ];
-    },
-    experimental: {
-      proxyTimeout: 600000,
-    }
 }
 
 module.exports = nextConfig
