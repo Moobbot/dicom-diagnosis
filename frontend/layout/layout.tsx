@@ -2,10 +2,10 @@
 'use client';
 
 import React, { useContext, useEffect, useRef } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 import { classNames } from 'primereact/utils';
-import { useEventListener, useMountEffect, useUnmountEffect } from 'primereact/hooks';
+import { useEventListener, useUnmountEffect } from 'primereact/hooks';
 import { PrimeReactContext } from 'primereact/api';
 
 import AppFooter from './AppFooter';

@@ -2,20 +2,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FileUpload } from 'primereact/fileupload';
 import { Button } from 'primereact/button';
-import { Toolbar } from 'primereact/toolbar';
 import { Toast } from 'primereact/toast';
-import * as cornerstone from '@cornerstonejs/core';
-import { RenderingEngine, Enums, type Types, volumeLoader } from '@cornerstonejs/core';
-import * as cornerstoneTools from '@cornerstonejs/tools';
-import { ZoomTool, PanTool, WindowLevelTool, StackScrollTool, LengthTool } from '@cornerstonejs/tools';
 import cornerstoneDICOMImageLoader from '@cornerstonejs/dicom-image-loader';
-import { TiZoom } from 'react-icons/ti';
-import { CiRuler } from 'react-icons/ci';
-import { IoIosMove } from 'react-icons/io';
-import { ImContrast } from 'react-icons/im';
-import { RiResetLeftFill } from 'react-icons/ri';
-import { set } from 'date-fns';
-import DCMViewer from './DCMViewer';
+import DCMViewer from '@/layout/DICOMview/cornerstone';
 
 interface FolderType {
     id: string;
@@ -139,8 +128,7 @@ const DCMPage = () => {
                         <div
                             key={folder.id}
                             onClick={() => selectFolder(folder)}
-                            className={`cursor-pointer p-3 border-round hover:surface-200 
-                ${selectedFolder?.id === folder.id ? 'surface-200' : ''}`}
+                            className={`cursor-pointer p-3 border-round hover:surface-200  ${selectedFolder?.id === folder.id ? 'surface-200' : ''}`}
                         >
                             <i className="pi pi-folder text-4xl flex justify-content-center" />
                             <div className="text-center mt-2">{folder.name}</div>
