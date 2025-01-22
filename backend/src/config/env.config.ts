@@ -27,6 +27,7 @@ export const validateEnv = () => {
             //     mail: envVars.SMTP_MAIL,
             //     password: envVars.SMTP_PASSWORD,
             //   },
+            sybilModelBaseUrl: envVars.SYBIL_MODEL_BASE_URL
         };
     } catch (error) {
         if (error instanceof ZodError) {
