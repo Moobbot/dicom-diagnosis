@@ -252,6 +252,57 @@ const DcmViewer = () => {
         showToast('success', 'Success', `Uploaded ${dicomFiles.length} DICOM files from folder "${folderName}"`);
     };
 
+    const handleReset = () => {
+        if (!viewport || !toolGroup) return;
+
+        try {
+            // Reset the viewport to its initial state
+            viewport.reset();
+            
+            // Reset camera position and zoom
+            viewport.resetCamera();
+            
+            // Reset window level to default
+            // viewport.resetWindowLevel();
+
+            // Disable active tool if any
+            if (activeTool) {
+                switch (activeTool) {
+                    case 'Length':
+                        toolGroup.setToolDisabled(LengthTool.toolName);
+                        break;
+                    case 'Zoom':
+                        toolGroup.setToolDisabled(ZoomTool.toolName);
+                        break;
+                    case 'Pan':
+                        toolGroup.setToolDisabled(PanTool.toolName);
+                        break;
+                    case 'WindowLevel':
+                        toolGroup.setToolDisabled(WindowLevelTool.toolName);
+                        break;
+                }
+                setActiveTool(null);
+            }
+
+            // Re-render the viewport
+            viewport.render();
+
+            toast.current?.show({
+                severity: 'success',
+                summary: 'Reset Success',
+                detail: 'View has been reset to default',
+                life: 3000
+            });
+        } catch (error) {
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Reset Failed',
+                detail: 'Failed to reset view',
+                life: 3000
+            });
+        }
+    };
+
     const selectFolder = (folder: FolderType) => {
         console.log(selectedFolder?.id);
         console.log(folder.id);
@@ -350,7 +401,7 @@ const DcmViewer = () => {
                                 <Button rounded severity={activeTool === 'WindowLevel' ? 'success' : 'secondary'} onClick={() => handleToolClick('WindowLevel')} className={activeTool === 'WindowLevel' ? 'shadow-4' : ''}>
                                     <ImContrast />
                                 </Button>
-                                <Button rounded>
+                                <Button rounded onClick={() => handleReset()} className="shadow-4">
                                     <RiResetLeftFill />
                                 </Button>
                             </div>
