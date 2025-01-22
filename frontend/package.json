@@ -10,19 +10,23 @@
         "lint": "next lint"
     },
     "dependencies": {
+        "@cornerstonejs/core": "^2.15.4",
+        "@cornerstonejs/dicom-image-loader": "^2.15.4",
+        "@cornerstonejs/nifti-volume-loader": "^2.15.4",
+        "@cornerstonejs/tools": "^2.15.4",
         "@emotion/react": "^11.13.5",
         "@emotion/styled": "^11.13.5",
+        "@icr/polyseg-wasm": "^0.4.0",
         "@mui/material": "^6.1.10",
         "@types/node": "20.3.1",
         "@types/react": "18.2.12",
         "@types/react-dom": "18.2.5",
         "axios": "^1.7.7",
-        "canvas": "^3.0.1",
         "chart.js": "4.2.1",
         "cookies-next": "^5.0.2",
         "date-fns": "^4.1.0",
+        "dicomweb-client": "^0.10.4",
         "dotenv": "^16.4.7",
-        "dwv": "^0.34.1",
         "final-form": "^4.20.10",
         "framer-motion": "^11.14.4",
         "next": "^15.0.3",
@@ -42,7 +46,6 @@
         "eslint": "8.43.0",
         "eslint-config-next": "^13.5.7",
         "prettier": "^2.8.8",
-        "raw-loader": "^4.0.2",
         "sass": "^1.63.4"
     }
 }
