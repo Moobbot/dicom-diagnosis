@@ -202,6 +202,8 @@ const DcmViewer = () => {
             return;
         }
 
+        (files as File[]).sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name));
+
         const newFolder: FolderType = {
             id: Date.now().toString(),
             name: `Folder ${folders.length + 1}`,
@@ -225,6 +227,7 @@ const DcmViewer = () => {
         }
 
         const files = Array.from(event.target.files);
+        files.sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name));
         const dicomFiles = files.filter((file) => file.name.toLowerCase().endsWith('.dcm'));
 
         if (dicomFiles.length === 0) {
@@ -259,10 +262,10 @@ const DcmViewer = () => {
         try {
             // Reset the viewport to its initial state
             viewport.reset();
-            
+
             // Reset camera position and zoom
             viewport.resetCamera();
-            
+
             // Reset window level to default
             // viewport.resetWindowLevel();
 
@@ -326,7 +329,7 @@ const DcmViewer = () => {
                 imageId: cornerstoneDICOMImageLoader.wadouri.fileManager.add(file)
             };
             setSelectedFile(preview);
-            const fileIndex = selectedFolder?.files.findIndex(f => f.name === file.name);
+            const fileIndex = selectedFolder?.files.findIndex((f) => f.name === file.name);
             if (fileIndex === -1) return;
 
             // Set current stack index
@@ -337,7 +340,7 @@ const DcmViewer = () => {
             showToast('info', 'File Selected', `Selected file: ${file.name}`);
         }
 
-        viewport?.setImageIdIndex
+        viewport?.setImageIdIndex;
     };
 
     return (
