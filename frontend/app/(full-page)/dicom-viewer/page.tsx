@@ -46,6 +46,7 @@ const DcmViewer = () => {
     const [toolGroup, setToolGroup] = useState<cornerstoneTools.Types.IToolGroup | null>(null);
     const toolGroupId = 'ctToolGroup';
     const [activeTool, setActiveTool] = useState<ToolName>(null);
+    const [currentStackIndex, setCurrentStackIndex] = useState<number>(0);
 
     const elementRef = useRef<HTMLDivElement>(null);
     const running = useRef(false);
@@ -304,14 +305,13 @@ const DcmViewer = () => {
     };
 
     const selectFolder = (folder: FolderType) => {
-        console.log(selectedFolder?.id);
-        console.log(folder.id);
         if (selectedFolder?.id !== folder.id) {
             setSelectedFolder(folder);
             setSelectedFile(null);
             showToast('info', 'Folder Selected', `Selected folder: ${folder.name}`);
 
             viewport?.setStack(folder.imageIds);
+            setCurrentStackIndex(0);
 
             viewport?.render();
         }
@@ -326,8 +326,18 @@ const DcmViewer = () => {
                 imageId: cornerstoneDICOMImageLoader.wadouri.fileManager.add(file)
             };
             setSelectedFile(preview);
+            const fileIndex = selectedFolder?.files.findIndex(f => f.name === file.name);
+            if (fileIndex === -1) return;
+
+            // Set current stack index
+            // @ts-ignore
+            setCurrentStackIndex(fileIndex);
+            // @ts-ignore
+            viewport?.setImageIdIndex(fileIndex);
             showToast('info', 'File Selected', `Selected file: ${file.name}`);
         }
+
+        viewport?.setImageIdIndex
     };
 
     return (
