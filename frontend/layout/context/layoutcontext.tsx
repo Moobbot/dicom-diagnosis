@@ -14,7 +14,7 @@ export const LayoutProvider = ({ children }: ChildContainerProps) => {
     });
 
     const [layoutState, setLayoutState] = useState<LayoutState>({
-        staticMenuDesktopInactive: true,
+        staticMenuDesktopInactive: false,
         overlayMenuActive: false,
         profileSidebarVisible: false,
         configSidebarVisible: false,

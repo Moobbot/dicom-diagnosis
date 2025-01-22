@@ -25,6 +25,7 @@ const AppMenu = () => {
             label: 'HOME',
             items: [
                 { label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' },
+                { label: "Trình xem DICOM", icon: 'pi pi-fw pi-image', to: '/dicom-viewer' },
                 ...[
                     { label: 'Nhật kí hoạt động', icon: 'pi pi-fw pi-circle', to: '/logs', requiredPermissions: [Permissions.LIST_ALL_ACCESS_HISTORY] },
                     { label: 'Quản lý người dùng', icon: 'pi pi-fw pi-user', to: '/users', requiredPermissions: [Permissions.LIST_ALL_USERS] },
