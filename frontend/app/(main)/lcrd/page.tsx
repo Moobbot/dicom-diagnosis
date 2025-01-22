@@ -72,6 +72,12 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
             return;
         }
 
+        const dicomFiles = event.files.filter(file => file.name.toLowerCase().endsWith('.dcm'));
+        if (!dicomFiles.length) {
+            showToast('warn', 'Warning', 'No DICOM files found');
+            return;
+        }
+
         const sortedFiles = [...event.files].sort((a, b) =>
             new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name)
         );
@@ -153,7 +159,7 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
                 </div>
 
                 <div className="card-body p-card-content">
-                    <Splitter className="h-full">
+                    <Splitter className="flex w-full h-full">
                         <SplitterPanel size={20} minSize={10}>
                             <div className="flex flex-column h-full overflow-y-auto">
                                 {folders.map((folder) => (
@@ -170,14 +176,11 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
                         </SplitterPanel>
 
                         <SplitterPanel size={80} minSize={10}>
-                            <TabMenu model={wizardItems} activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)} />
-                            {pathname === '/demo/uikit/menu' ? (
-                                <div className="flex align-items-center py-5 px-3">
-                                    <i className="pi pi-fw pi-user mr-2 text-2xl" />
-                                </div>
-                            ) : (
-                                children
-                            )}
+                            <div className="block w-full h-full">
+                                <TabMenu model={wizardItems} activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)} />
+                                <div className="h-full overflow-y-auto">
+                                    {wizardItems[activeIndex]?.command()}
+                                </div></div>
                         </SplitterPanel>
                     </Splitter>
                 </div>

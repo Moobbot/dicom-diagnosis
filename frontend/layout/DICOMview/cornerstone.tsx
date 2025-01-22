@@ -225,13 +225,13 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     };
 
     return (
-        <div className="flex h-screen w-full overflow-hidden">
+        <div className="flex w-full h-full overflow-hidden">
             <Toast ref={toast} />
 
             {/* File Preview Panel */}
             <div className="border-right-1">
                 {selectedFolder && (
-                    <div className="overflow-y-auto h-full">
+                    <div className="h-full overflow-y-auto">
                         {selectedFolder.imageIds.map((imageId, index) => (
                             <div
                                 key={index}
@@ -248,11 +248,12 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
             </div>
 
             {/* Tools and Viewer Panel */}
-            <div className="flex-1 flex flex-column">
+            {/* flex-1 flex flex-column */}
+            <div className="flex flex-1 flex-column">
                 {/* Toolbar */}
-                <div className="p-4 border-bottom-1">
+                <div className="border-bottom-1">
                     <Toolbar
-                        className="p-3"
+                        className="p-1 pl-2"
                         start={
                             <div className="flex gap-2">
                                 <Button rounded severity={activeTool === 'Length' ? 'success' : 'secondary'} onClick={() => handleToolClick(LengthTool.toolName)}>
@@ -276,7 +277,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                 </div>
 
                 {/* DICOM Viewer */}
-                <div className="flex-1 p-4">
+                <div className="flex-1">
                     <div className="h-full flex align-items-center justify-content-center" ref={elementRef}></div>
                     {!selectedFile && <div className="h-full flex align-items-center justify-content-center text-500">Select a file to view</div>}
                 </div>
