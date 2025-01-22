@@ -1,0 +1,84 @@
+@media screen and (min-width: 1960px) {
+
+    .layout-main,
+    .landing-wrapper {
+        width: 100%;
+    }
+
+    .content-full {
+        height: 50rem;
+    }
+
+    .card-custom {
+        .card-body {
+            min-height: 50rem;
+        }
+    }
+}
+
+@media (min-width: 992px) {
+    .layout-wrapper.layout-static.layout-static-inactive .layout-main-container {
+        padding: 5rem 1rem 1rem 1rem;
+    }
+}
+
+.content-full {
+    padding: 0.25rem;
+    min-height: 84vh;
+    display: flex;
+    flex-direction: column;
+
+    .card-custom {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        flex-grow: 1;
+        padding: 1rem;
+
+        .card-header {
+            padding: 0.5rem 1rem;
+        }
+
+        .card-body {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            width: 100%;
+            max-height: none;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            height: calc(84vh - 9rem);
+        }
+    }
+}
+
+.flex-col-grow-1 {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.flex-grow-1 {
+    flex-grow: 1;
+}
+
+.dicom-panel {
+    height: calc(84vh - 9rem);
+
+    .file-preview-panel {
+        max-height: 100%;
+        overflow-y: auto;
+        border-right: 1px solid #3F4B5B;
+    }
+
+    .tool-viewer-panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        height: 100%;
+    }
+
+}

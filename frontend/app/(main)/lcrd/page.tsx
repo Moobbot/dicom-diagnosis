@@ -129,9 +129,9 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
     };
 
     return (
-        <div className="content-full col-12">
+        <div className="content-full">
             <Toast ref={toast} />
-            <div className="card p-card card-custom h-full">
+            <div className="card p-card card-custom overflow-hidden">
                 <div className="card-header flex align-items-center">
                     <FileUpload
                         ref={fileUploadRef}
@@ -159,9 +159,9 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
                 </div>
 
                 <div className="card-body p-card-content">
-                    <Splitter className="flex w-full h-full">
-                        <SplitterPanel size={20} minSize={10}>
-                            <div className="flex flex-column h-full overflow-y-auto">
+                    <Splitter className="dicom-panel flex-grow-1">
+                        <SplitterPanel size={10} minSize={5} className="overflow-auto">
+                            <div className="overflow-auto">
                                 {folders.map((folder) => (
                                     <div
                                         key={folder.id}
@@ -174,14 +174,15 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
                                 ))}
                             </div>
                         </SplitterPanel>
-
-                        <SplitterPanel size={80} minSize={10}>
-                            <div className="block w-full h-full">
-                                <TabMenu model={wizardItems} activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)} />
-                                <div className="h-full overflow-y-auto">
+                        <SplitterPanel size={90} minSize={10}>
+                            <div className="w-full h-full">
+                                <TabMenu className="" model={wizardItems} activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)} />
+                                <div className="w-full h-full max-h-full">
                                     {wizardItems[activeIndex]?.command()}
-                                </div></div>
+                                </div>
+                            </div>
                         </SplitterPanel>
+
                     </Splitter>
                 </div>
             </div>
