@@ -7,7 +7,7 @@ interface AppLayoutProps {
 }
 
 export const metadata: Metadata = {
-    title: 'Dicome - Diagnostic',
+    title: 'Newlife LCRD - Lung Cancer Risk Diagnosis',
     description: 'Moobbot Team to develop this application. The ultimate collection of design-agnostic, flexible and accessible React UI Components.',
     robots: { index: false, follow: false },
     openGraph: {
@@ -33,7 +33,7 @@ export const viewport = {
 export default function AppLayout({ children }: AppLayoutProps) {
     return (
         <Suspense fallback={<div>Loading...</div>}>
-            <Layout>{children}</Layout>;
+            <Layout>{children}</Layout>
         </Suspense>
     );
 }
