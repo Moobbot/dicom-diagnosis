@@ -20,12 +20,14 @@ interface FolderType {
     id: string;
     name: string;
     files: File[];
+    imageIds: string[];
 }
 
 interface PreviewFile {
     id: string;
     name: string;
     url: string;
+    imageId: string;
 }
 
 type ToolName = 'Length' | 'Zoom' | 'Pan' | 'WindowLevel' | null;
@@ -202,7 +204,8 @@ const DcmViewer = () => {
         const newFolder: FolderType = {
             id: Date.now().toString(),
             name: `Folder ${folders.length + 1}`,
-            files: files
+            files: files,
+            imageIds: (files as File[]).map((file) => cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
         };
 
         setFolders([...folders, newFolder]);
@@ -235,7 +238,8 @@ const DcmViewer = () => {
         const newFolder: FolderType = {
             id: Date.now().toString(),
             name: folderName,
-            files: dicomFiles
+            files: dicomFiles,
+            imageIds: dicomFiles.map((file) => cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
         };
 
         setFolders([...folders, newFolder]);
@@ -249,26 +253,30 @@ const DcmViewer = () => {
     };
 
     const selectFolder = (folder: FolderType) => {
-        setSelectedFolder(folder);
-        setSelectedFile(null);
-        showToast('info', 'Folder Selected', `Selected folder: ${folder.name}`);
+        console.log(selectedFolder?.id);
+        console.log(folder.id);
+        if (selectedFolder?.id !== folder.id) {
+            setSelectedFolder(folder);
+            setSelectedFile(null);
+            showToast('info', 'Folder Selected', `Selected folder: ${folder.name}`);
 
-        // Load the selected file
-        const imageIds = folder.files.map((file) => cornerstoneDICOMImageLoader.wadouri.fileManager.add(file));
+            viewport?.setStack(folder.imageIds);
 
-        viewport?.setStack(imageIds);
-
-        viewport?.render();
+            viewport?.render();
+        }
     };
 
     const selectFile = (file: File) => {
-        const preview: PreviewFile = {
-            id: Date.now().toString(),
-            name: file.name,
-            url: URL.createObjectURL(file)
-        };
-        setSelectedFile(preview);
-        showToast('info', 'File Selected', `Selected file: ${file.name}`);
+        if (file.name !== selectedFile?.name) {
+            const preview: PreviewFile = {
+                id: Date.now().toString(),
+                name: file.name,
+                url: URL.createObjectURL(file),
+                imageId: cornerstoneDICOMImageLoader.wadouri.fileManager.add(file)
+            };
+            setSelectedFile(preview);
+            showToast('info', 'File Selected', `Selected file: ${file.name}`);
+        }
     };
 
     return (
