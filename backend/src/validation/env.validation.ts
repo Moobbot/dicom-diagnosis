@@ -25,6 +25,7 @@ export const EnvSchema = z.object({
     JWT_REFRESH_EXPIRATION: z.string({
         required_error: "JWT_REFRESH_EXPIRATION is required (e.g., '7d')",
     }),
+    SYBIL_MODEL_BASE_URL: z.string({ required_error: "SYBIL_MODEL_BASE_URL is required" }),
 });
 
 export type EnvConfig = z.infer<typeof EnvSchema>;
