@@ -25,12 +25,12 @@ const AppMenu = () => {
             label: 'HOME',
             items: [
                 { label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' },
-                { label: "Trình xem DICOM 1", icon: 'pi pi-fw pi-image', to: '/dicom-viewer' },
-                { label: "Trình xem DICOM 2", icon: 'pi pi-fw pi-image', to: '/lcrd' },
+                { label: "DICOM Viewer and Predict 1", icon: 'pi pi-fw pi-image', to: '/dicom-viewer' },
+                { label: "DICOM Viewer and Predict 2", icon: 'pi pi-fw pi-image', to: '/lcrd' },
                 ...[
-                    { label: 'Nhật kí hoạt động', icon: 'pi pi-fw pi-circle', to: '/logs', requiredPermissions: [Permissions.LIST_ALL_ACCESS_HISTORY] },
-                    { label: 'Quản lý người dùng', icon: 'pi pi-fw pi-user', to: '/users', requiredPermissions: [Permissions.LIST_ALL_USERS] },
-                    { label: 'Quản lý vai trò & quyền', icon: 'pi pi-fw pi-circle', to: '/role-permissions', requiredPermissions: [Permissions.LIST_ALL_ROLES, Permissions.LIST_ALL_PERMISSIONS] }
+                    { label: 'Access history', icon: 'pi pi-fw pi-circle', to: '/logs', requiredPermissions: [Permissions.LIST_ALL_ACCESS_HISTORY] },
+                    { label: 'User management', icon: 'pi pi-fw pi-user', to: '/users', requiredPermissions: [Permissions.LIST_ALL_USERS] },
+                    { label: 'Manage roles and permissions', icon: 'pi pi-fw pi-circle', to: '/role-permissions', requiredPermissions: [Permissions.LIST_ALL_ROLES, Permissions.LIST_ALL_PERMISSIONS] }
                 ].filter(item => !item.requiredPermissions || hasPermission(item.requiredPermissions))
             ]
         }
