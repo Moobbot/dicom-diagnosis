@@ -21,13 +21,15 @@ export const configureMiddleware = (app: express.Express) => {
     // app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
     // Tính năng đã được tích hợp sẵn trong helmet từ version 4
     // app.use(helmet.xssFilter());
-    app.use(helmet.contentSecurityPolicy({
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'trusted-cdn.com'"],
-            objectSrc: ["'none'"],
-        },
-    }));
+    app.use(
+        helmet.contentSecurityPolicy({
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'", "'trusted-cdn.com'"],
+                objectSrc: ["'none'"],
+            },
+        })
+    );
 
     // CORS
     app.use(cors(corsOptions));

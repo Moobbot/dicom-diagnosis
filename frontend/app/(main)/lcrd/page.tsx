@@ -1,31 +1,43 @@
-"use client";
+'use client';
 
 // Global styles
 import '@/styles/dicom/custom.scss';
 
 // React and Next.js imports
-import React, { useContext, useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import React, { useContext, useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 // PrimeReact components
-import { Button } from "primereact/button";
-import { FileUpload } from "primereact/fileupload";
-import { Splitter, SplitterPanel } from "primereact/splitter";
-import { TabMenu } from "primereact/tabmenu";
-import { Toast } from "primereact/toast";
+import { Button } from 'primereact/button';
+import { FileUpload } from 'primereact/fileupload';
+import { Splitter, SplitterPanel } from 'primereact/splitter';
+import { TabMenu } from 'primereact/tabmenu';
+import { Toast } from 'primereact/toast';
 
 // Context
-import { LayoutContext } from "@/layout/context/layoutcontext";
+import { LayoutContext } from '@/layout/context/layoutcontext';
 
 // DICOM viewer
 import cornerstoneDICOMImageLoader from '@cornerstonejs/dicom-image-loader';
 import DCMViewer from '@/layout/DICOMview/cornerstone';
+import ImageViewer from '@/layout/DICOMview/imageviewer';
 
 interface FolderType {
     id: string;
     name: string;
     files: File[];
     imageIds: string[];
+    predictedImages?: string[];
+}
+
+interface PredictionResponse {
+    message: string;
+    predictions: number[][];
+    session_id: string;
+    overlay_images: {
+        download_links: string[];
+        gif_download: string;
+    };
 }
 
 const LCRD = ({ children }: { children: React.ReactNode }) => {
@@ -39,10 +51,12 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
     const pathname = usePathname();
     const [activeIndex, setActiveIndex] = useState(0);
 
+    const [loading, setLoading] = useState(false);
+
     useEffect(() => {
         setLayoutState((prev) => ({
             ...prev,
-            staticMenuDesktopInactive: true,
+            staticMenuDesktopInactive: true
         }));
     }, [setLayoutState]);
 
@@ -59,7 +73,7 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
 
     const wizardItems = [
         { label: 'Original', command: () => <DCMViewer selectedFolder={selectedFolder} /> },
-        { label: 'Predicted', command: () => <DCMViewer selectedFolder={selectedFolder} /> },
+        { label: 'Predicted', command: () => <ImageViewer selectedFolder={selectedFolder} loading={loading} /> }
     ];
 
     const showToast = (severity: 'success' | 'info' | 'warn' | 'error', summary: string, detail: string) => {
@@ -72,21 +86,19 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
             return;
         }
 
-        const dicomFiles = event.files.filter(file => file.name.toLowerCase().endsWith('.dcm'));
+        const dicomFiles = event.files.filter((file) => file.name.toLowerCase().endsWith('.dcm'));
         if (!dicomFiles.length) {
             showToast('warn', 'Warning', 'No DICOM files found');
             return;
         }
 
-        const sortedFiles = [...event.files].sort((a, b) =>
-            new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name)
-        );
+        const sortedFiles = [...event.files].sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name));
 
         const newFolder: FolderType = {
             id: Date.now().toString(),
             name: `Folder ${folders.length + 1}`,
             files: sortedFiles,
-            imageIds: sortedFiles.map((file) => cornerstoneDICOMImageLoader.wadouri.fileManager.add(file)),
+            imageIds: sortedFiles.map((file) => cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
         };
 
         setFolders((prev) => [...prev, newFolder]);
@@ -100,7 +112,9 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
             return;
         }
 
-        const files = Array.from(event.target.files).filter(file => file.name.toLowerCase().endsWith('.dcm'));
+        const files = Array.from(event.target.files).filter((file) => file.name.toLowerCase().endsWith('.dcm'));
+
+        files.sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name));
 
         if (!files.length) {
             showToast('warn', 'Warning', 'No DICOM files found in selected folder');
@@ -113,7 +127,7 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
             id: Date.now().toString(),
             name: folderName,
             files,
-            imageIds: files.map((file) => cornerstoneDICOMImageLoader.wadouri.fileManager.add(file)),
+            imageIds: files.map((file) => cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
         };
 
         setFolders((prev) => [...prev, newFolder]);
@@ -128,34 +142,60 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
+    const handlePredict = async () => {
+        // TODO: Implement prediction logic
+        try {
+            setLoading(true);
+            if (!selectedFolder) {
+                showToast('warn', 'Warning', 'No folder selected');
+                return;
+            }
+
+            if (selectedFolder?.predictedImages) {
+                showToast('info', 'Info', 'Prediction already completed');
+                return;
+            }
+
+            const formData = new FormData();
+            selectedFolder?.files.forEach((file) => formData.append('files', file));
+
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/predict`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                showToast('error', 'Error', 'Failed to predict');
+                return;
+            }
+
+            const data: PredictionResponse = await response.json();
+
+            const downloadLinks = data.overlay_images.download_links.map((link) => `${process.env.NEXT_PUBLIC_API_BASE_URL}/${link}`);
+            const gifDownload = `${process.env.NEXT_PUBLIC_API_BASE_URL}/${data.overlay_images.gif_download}`;
+
+            const predictedImages = [...downloadLinks, gifDownload];
+            setSelectedFolder((prev) => ({ ...prev!, predictedImages }));
+
+            showToast('success', 'Success', 'Prediction completed successfully');
+        } catch (error) {
+            showToast('error', 'Error', 'Failed to predict');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="content-full">
             <Toast ref={toast} />
             <div className="card p-card card-custom overflow-hidden">
                 <div className="card-header flex align-items-center">
-                    <FileUpload
-                        ref={fileUploadRef}
-                        className="mr-2"
-                        mode="basic"
-                        name="files"
-                        multiple
-                        accept=".dcm"
-                        customUpload
-                        uploadHandler={handleFileUpload}
-                        auto
-                        chooseLabel="Upload DCM Files"
-                    />
+                    <FileUpload ref={fileUploadRef} className="mr-2" mode="basic" name="files" multiple accept=".dcm" customUpload uploadHandler={handleFileUpload} auto chooseLabel="Upload DCM Files" />
 
-                    <input
-                        ref={folderInputRef}
-                        type="file"
-                        webkitdirectory="true"
-                        directory=""
-                        style={{ display: 'none' }}
-                        onChange={handleFolderUpload}
-                    />
+                    <input ref={folderInputRef} type="file" webkitdirectory="true" directory="" style={{ display: 'none' }} onChange={handleFolderUpload} />
 
                     <Button label="Upload Folder" className="ml-2" icon="pi pi-folder-open" onClick={() => folderInputRef.current?.click()} />
+                    <Button label="Predict" className="ml-2" icon="pi pi-play" onClick={() => handlePredict()} loading={loading} />
                 </div>
 
                 <div className="card-body p-card-content">
@@ -163,11 +203,7 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
                         <SplitterPanel size={10} minSize={5} className="overflow-auto">
                             <div className="overflow-auto">
                                 {folders.map((folder) => (
-                                    <div
-                                        key={folder.id}
-                                        onClick={() => selectFolder(folder)}
-                                        className={`cursor-pointer p-3 border-round hover:surface-200 ${selectedFolder?.id === folder.id ? 'surface-200' : ''}`}
-                                    >
+                                    <div key={folder.id} onClick={() => selectFolder(folder)} className={`cursor-pointer p-3 border-round hover:surface-200 ${selectedFolder?.id === folder.id ? 'surface-200' : ''}`}>
                                         <i className="pi pi-folder text-4xl flex justify-content-center" />
                                         <div className="text-center mt-2">{folder.name}</div>
                                     </div>
@@ -177,12 +213,9 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
                         <SplitterPanel size={90} minSize={10}>
                             <div className="w-full h-full">
                                 <TabMenu className="" model={wizardItems} activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)} />
-                                <div className="w-full h-full max-h-full">
-                                    {wizardItems[activeIndex]?.command()}
-                                </div>
+                                <div className="w-full h-full max-h-full">{wizardItems[activeIndex]?.command()}</div>
                             </div>
                         </SplitterPanel>
-
                     </Splitter>
                 </div>
             </div>

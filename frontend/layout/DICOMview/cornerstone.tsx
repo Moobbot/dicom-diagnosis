@@ -79,7 +79,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                 toolGroup.setToolActive(StackScrollTool.toolName, { bindings: [{ mouseButton: cornerstoneTools.Enums.MouseBindings.Wheel }] });
             }
 
-            viewport.render();
+            // viewport.render();
         };
 
         initializeViewer();

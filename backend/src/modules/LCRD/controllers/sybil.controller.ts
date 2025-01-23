@@ -16,6 +16,18 @@ class SybilController {
         this.baseUrl = validateEnv().sybilModelBaseUrl;
     }
 
+    getResult = async (req: Request, res: Response) => {
+        const sessionId = req.params.sessionId;
+        const sessionPath = path.join("./src/modules/LCRD/tmp/results", sessionId);
+        const imagesPath = path.join(sessionPath, "images");
+        const gifPath = path.join(sessionPath, "gif");
+
+        const images = fs.readdirSync(imagesPath).map((file) => `results/${sessionId}/images/${file}`);
+        const gif = `results/${sessionId}/gif/animation.gif`;
+
+        res.status(200).json({ images, gif });
+    }
+
     predictSybil = async (req: Request, res: Response) => {
         const files = req.files as Express.Multer.File[];
         if (!files || files.length === 0) {
