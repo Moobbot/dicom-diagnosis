@@ -8,6 +8,7 @@ import fetch from "node-fetch";
 import { ISybilPredictionResponse } from "../interfaces/sybil.interface";
 import BadGatewayError from "../../../errors/bad-gateway.error";
 import HttpException from "../../../errors/http-exception.error";
+import { log } from "console";
 
 class SybilController {
     private readonly baseUrl: string;
@@ -56,6 +57,7 @@ class SybilController {
                 "./src/modules/LCRD/tmp/results",
                 sessionId
             );
+
             const imagesPath = path.join(sessionPath, "images");
             const gifPath = path.join(sessionPath, "gif");
 
@@ -64,21 +66,21 @@ class SybilController {
             fs.mkdirSync(gifPath);
 
             // Tải và lưu các ảnh
-            const downloadPromises = data.overlay_images.download_links.map(
-                async (url, index) => {
-                    const response = await fetch(url);
+            const downloadPromises = data.overlay_images.map(
+                async (overlay_image, index) => {
+                    const response = await fetch(overlay_image.download_link);
                     const buffer = await response.buffer();
                     const imagePath = path.join(
                         imagesPath,
-                        `result_${index}.png`
+                        `${overlay_image.filename}`
                     );
                     fs.writeFileSync(imagePath, buffer);
-                    return `results/${sessionId}/images/result_${index}.png`;
+                    return `results/${sessionId}/images/${overlay_image.filename}`;
                 }
             );
 
             // Tải và lưu GIF
-            const gifResponse = await fetch(data.overlay_images.gif_download);
+            const gifResponse = await fetch(data.gif_download);
             const gifBuffer = await gifResponse.buffer();
             const gifFilePath = path.join(gifPath, "animation.gif");
             fs.writeFileSync(gifFilePath, gifBuffer);

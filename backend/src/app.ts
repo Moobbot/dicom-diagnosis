@@ -9,8 +9,8 @@ export const bootstrapExpress = (app: Express) => {
     // Configure middlewares
     configureMiddleware(app);
 
-    // // Static files
-    // app.use("/results", express.static(path.join(__dirname, "/modules/LCRD/tmp/results")));
+    // Static files
+    app.use("/api/results", express.static(path.join(__dirname, "/modules/LCRD/tmp/results")));
 
     // Setup routes
     app.use("/api/", rootRouter);

@@ -175,7 +175,7 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
             const gifDownload = `${process.env.NEXT_PUBLIC_API_BASE_URL}/${data.overlay_images.gif_download}`;
 
             const predictedImages = [...downloadLinks, gifDownload];
-            setSelectedFolder((prev) => ({ ...prev!, predictedImages }));
+            setSelectedFolder((prev) => ({ ...prev!, predictedImages, gifDownload }));
 
             showToast('success', 'Success', 'Prediction completed successfully');
         } catch (error) {
@@ -213,7 +213,7 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
                         <SplitterPanel size={90} minSize={10}>
                             <div className="w-full h-full">
                                 <TabMenu className="" model={wizardItems} activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)} />
-                                <div className="w-full h-full max-h-full">{wizardItems[activeIndex]?.command()}</div>
+                                <div className="box-image w-full max-h-full">{wizardItems[activeIndex]?.command()}</div>
                             </div>
                         </SplitterPanel>
                     </Splitter>

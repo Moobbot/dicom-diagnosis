@@ -16,6 +16,7 @@ interface FolderType {
     files: File[];
     imageIds: string[];
     predictedImages?: string[];
+    gifDownload?: string;
 }
 
 interface ImageViewerProps {
@@ -42,7 +43,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ selectedFolder, loading }) =>
     };
 
     return (
-        <div className="flex w-full h-full overflow-hidden">
+        <div className="flex w-full h-full overflow-hidden relative">
             <Toast ref={toast} />
 
             {/* File Preview Panel */}
@@ -98,14 +99,45 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ selectedFolder, loading }) =>
                 </div>
 
                 {/* Image Viewer */}
-                <div className="flex-1 relative overflow-hidden">
+                <div className="flex flex-1 justify-content-center overflow-hidden">
                     {selectedImageId ? (
-                        <Image src={selectedImageId} alt="Selected Image" className="w-full h-full object-contain" />
+                        <Image src={selectedImageId} alt="Selected Image" className="img-full w-full h-full object-contain flex justify-content-center" style={{ backgroundColor: 'black' }} />
                     ) : (
                         <div className="w-full h-full flex align-items-center justify-content-center text-500">
                             Select a file to view
                         </div>
                     )}
+                </div>
+                <div className="div-action absolute bottom-1 right-0 p-3" style={{ bottom: "1rem" }}>
+                    <Button className="mr-2" label="Detection" type="button" severity="warning" />
+                    <Button className="mr-2" label="Export" severity="help" />
+                    <Button label="Download Gif" type="button" onClick={async () => {
+                        if (selectedFolder?.gifDownload) {
+                            try {
+                                const response = await fetch(selectedFolder.gifDownload);
+                                if (!response.ok) {
+                                    throw new Error('Failed to download file');
+                                }
+
+                                const blob = await response.blob();
+                                const url = URL.createObjectURL(blob);
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.type = "_blank";
+                                link.download = selectedFolder.name ? `${selectedFolder.name}.gif` : 'download.gif'; // Tên file tải về
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                URL.revokeObjectURL(url); // Giải phóng bộ nhớ
+
+                            } catch (error) {
+                                alert('Error downloading the GIF. Please try again.');
+                                console.error('Download error:', error);
+                            }
+                        } else {
+                            alert("No GIF available to download.");
+                        }
+                    }} severity="info" />
                 </div>
             </div>
         </div>
