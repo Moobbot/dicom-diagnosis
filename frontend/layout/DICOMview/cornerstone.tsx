@@ -310,7 +310,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     ];
 
     return (
-        <div className="flex w-full h-full overflow-hidden">
+        <div className="w-full h-full overflow-hidden">
             <Toast ref={toast} />
 
             <Splitter style={{ height: '100%' }}>
