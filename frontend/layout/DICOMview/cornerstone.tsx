@@ -142,7 +142,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
             const viewport = renderingEngineRef.current.getViewport(viewportId) as Types.IStackViewport;
             if (viewport) {
                 // viewport.setStack(selectedFolder.imageIds);
-                const imageStack = activeTab === 0 ? selectedFolder.imageIds : selectedFolder.predictedImagesURL?.map((img) => img.download_link) || [];
+                const imageStack = activeTab === 0 ? selectedFolder.imageIds : selectedFolder.predictedImagesURL?.map((img) => img.preview_link) || [];
                 viewport.setStack(imageStack);
                 viewport.render();
                 setSelectedImageIdIndex(0);
@@ -172,14 +172,15 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
 
     const handleImageClick = useCallback(
         (index: number) => {
-            console.log(selectedFolder?.files[index]);
             const viewport = renderingEngineRef.current?.getViewport(viewportId) as Types.IStackViewport;
 
             if (viewport && selectedFolder) {
                 try {
-                    const imageStack = activeTab === 0 ? selectedFolder.imageIds : selectedFolder.predictedImagesURL?.map((img) => img.download_link) || [];
-                    viewport.setStack(imageStack);
+                    const imageStack = activeTab === 0 ? selectedFolder.imageIds : selectedFolder.predictedImagesURL?.map((img) => img.preview_link) || [];
+                    console.log('Image stack:', imageStack[index]);
+                    viewport.setStack(imageStack, index);
                     viewport.render();
+                    setSelectedImageIdIndex(index);
                     showToast('info', 'Image Loaded', 'Selected image has been loaded successfully.');
                 } catch (error) {
                     console.error('Error loading selected image:', error);
@@ -376,7 +377,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                                 </div>
                             }
                             end={
-                                activeTab === 1 && (
+                                (activeTab === 1 && selectedFolder?.predictedImagesURL) && (
                                     <div className="flex gap-2">
                                         <Button label="Detection" severity="warning" />
                                         <Button label="Export" severity="help" />

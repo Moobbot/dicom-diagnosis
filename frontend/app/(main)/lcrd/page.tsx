@@ -161,79 +161,79 @@ const LCRD = () => {
             const formData = new FormData();
             selectedFolder?.files.forEach((file) => formData.append('files', file));
 
-            // const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/predict`, {
-            //     method: 'POST',
-            //     body: formData
-            // });
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/predict`, {
+                method: 'POST',
+                body: formData
+            });
 
-            // if (!response.ok) {
-            //     showToast('error', 'Error', 'Failed to predict');
-            //     return;
-            // }
+            if (!response.ok) {
+                showToast('error', 'Error', 'Failed to predict');
+                return;
+            }
 
-            // const data = await response.json();
+            const data = await response.json() as PredictionResponse;
 
-            const data = {
-                message: 'Prediction successful.',
-                predictions: [[0.0019649702414815395, 0.006792662605387028, 0.01361832965162377, 0.01728884468542021, 0.021685326042547536, 0.03595085191094143]],
-                session_id: 'cd554235-1c03-4b9c-aea5-4c93b672c115',
-                overlay_images: [
-                    {
-                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_18.dcm',
-                        filename: 'slice_18.dcm',
-                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_18.dcm'
-                    },
-                    {
-                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_19.dcm',
-                        filename: 'slice_19.dcm',
-                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_19.dcm'
-                    },
-                    {
-                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_20.dcm',
-                        filename: 'slice_20.dcm',
-                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_20.dcm'
-                    },
-                    {
-                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_21.dcm',
-                        filename: 'slice_21.dcm',
-                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_21.dcm'
-                    },
-                    {
-                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_22.dcm',
-                        filename: 'slice_22.dcm',
-                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_22.dcm'
-                    },
-                    {
-                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_23.dcm',
-                        filename: 'slice_23.dcm',
-                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_23.dcm'
-                    },
-                    {
-                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_24.dcm',
-                        filename: 'slice_24.dcm',
-                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_24.dcm'
-                    },
-                    {
-                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_25.dcm',
-                        filename: 'slice_25.dcm',
-                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_25.dcm'
-                    },
-                    {
-                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_26.dcm',
-                        filename: 'slice_26.dcm',
-                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_26.dcm'
-                    },
-                    {
-                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_27.dcm',
-                        filename: 'slice_27.dcm',
-                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_27.dcm'
-                    }
-                ],
-                gif: {
-                    download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/animation.gif',
-                    preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/animation.gif'
-                }
-            } as PredictionResponse;
+            // const data = {
+            //     message: 'Prediction successful.',
+            //     predictions: [[0.0019649702414815395, 0.006792662605387028, 0.01361832965162377, 0.01728884468542021, 0.021685326042547536, 0.03595085191094143]],
+            //     session_id: 'cd554235-1c03-4b9c-aea5-4c93b672c115',
+            //     overlay_images: [
+            //         {
+            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_18.dcm',
+            //             filename: 'slice_18.dcm',
+            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_18.dcm'
+            //         },
+            //         {
+            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_19.dcm',
+            //             filename: 'slice_19.dcm',
+            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_19.dcm'
+            //         },
+            //         {
+            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_20.dcm',
+            //             filename: 'slice_20.dcm',
+            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_20.dcm'
+            //         },
+            //         {
+            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_21.dcm',
+            //             filename: 'slice_21.dcm',
+            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_21.dcm'
+            //         },
+            //         {
+            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_22.dcm',
+            //             filename: 'slice_22.dcm',
+            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_22.dcm'
+            //         },
+            //         {
+            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_23.dcm',
+            //             filename: 'slice_23.dcm',
+            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_23.dcm'
+            //         },
+            //         {
+            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_24.dcm',
+            //             filename: 'slice_24.dcm',
+            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_24.dcm'
+            //         },
+            //         {
+            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_25.dcm',
+            //             filename: 'slice_25.dcm',
+            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_25.dcm'
+            //         },
+            //         {
+            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_26.dcm',
+            //             filename: 'slice_26.dcm',
+            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_26.dcm'
+            //         },
+            //         {
+            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_27.dcm',
+            //             filename: 'slice_27.dcm',
+            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_27.dcm'
+            //         }
+            //     ],
+            //     gif: {
+            //         download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/animation.gif',
+            //         preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/animation.gif'
+            //     }
+            // } as PredictionResponse;
 
             const updatedData = addPrefixToLinks(data, `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/`);
 
@@ -257,7 +257,7 @@ const LCRD = () => {
                     <input ref={folderInputRef} type="file" webkitdirectory="true" directory="" style={{ display: 'none' }} onChange={handleFolderUpload} />
 
                     <Button label="Upload Folder" className="ml-2" icon="pi pi-folder-open" onClick={() => folderInputRef.current?.click()} />
-                    <Button label="Predict" className="ml-2" icon="pi pi-play" onClick={handlePredict} loading={loading} />
+                    <Button label="Predict" className="ml-2" icon="pi pi-play" onClick={handlePredict} loading={loading} disabled={!selectedFolder}/>
                 </div>
 
                 <div className="card-body p-card-content">
