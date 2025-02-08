@@ -8,26 +8,49 @@ import fetch from "node-fetch";
 import { ISybilPredictionResponse } from "../interfaces/sybil.interface";
 import BadGatewayError from "../../../errors/bad-gateway.error";
 import HttpException from "../../../errors/http-exception.error";
-import { log } from "console";
 
 class SybilController {
     private readonly baseUrl: string;
+    private readonly savePath: string;
 
     public constructor() {
         this.baseUrl = validateEnv().sybilModelBaseUrl;
+        this.savePath = "./src/modules/LCRD/tmp/results";
     }
 
-    getResult = async (req: Request, res: Response) => {
-        const sessionId = req.params.sessionId;
-        const sessionPath = path.join("./src/modules/LCRD/tmp/results", sessionId);
-        const imagesPath = path.join(sessionPath, "images");
-        const gifPath = path.join(sessionPath, "gif");
+    downloadFile = async (req: Request, res: Response) => {
+        const encodedFilePath = req.params[0];
+        const filePath = decodeURIComponent(encodedFilePath);
 
-        const images = fs.readdirSync(imagesPath).map((file) => `results/${sessionId}/images/${file}`);
-        const gif = `results/${sessionId}/gif/animation.gif`;
+        if (!filePath) {
+            throw new BadRequestError("File path is missing");
+        }
 
-        res.status(200).json({ images, gif });
-    }
+        const fullPath = path.join(this.savePath, filePath);
+
+        if (!fs.existsSync(fullPath) || !fs.lstatSync(fullPath).isFile()) {
+            throw new BadRequestError("File not found");
+        }
+
+        res.download(fullPath, path.basename(fullPath));
+    };
+
+    previewFile = async (req: Request, res: Response) => {
+        const encodedFilePath = req.params[0];
+        const filePath = decodeURIComponent(encodedFilePath);
+
+        if (!filePath) {
+            throw new BadRequestError("File path is missing");
+        }
+
+        const fullPath = path.join(this.savePath, filePath);
+
+        if (!fs.existsSync(fullPath) || !fs.lstatSync(fullPath).isFile()) {
+            throw new BadRequestError("File not found");
+        }
+
+        res.sendFile(filePath, { root: this.savePath });
+    };
 
     predictSybil = async (req: Request, res: Response) => {
         const files = req.files as Express.Multer.File[];
@@ -53,17 +76,9 @@ class SybilController {
             const data = (await response.json()) as ISybilPredictionResponse;
 
             const sessionId = data.session_id;
-            const sessionPath = path.join(
-                "./src/modules/LCRD/tmp/results",
-                sessionId
-            );
-
-            const imagesPath = path.join(sessionPath, "images");
-            const gifPath = path.join(sessionPath, "gif");
+            const sessionPath = path.join(this.savePath, sessionId);
 
             fs.mkdirSync(sessionPath, { recursive: true });
-            fs.mkdirSync(imagesPath);
-            fs.mkdirSync(gifPath);
 
             // Tải và lưu các ảnh
             const downloadPromises = data.overlay_images.map(
@@ -71,18 +86,18 @@ class SybilController {
                     const response = await fetch(overlay_image.download_link);
                     const buffer = await response.buffer();
                     const imagePath = path.join(
-                        imagesPath,
+                        sessionPath,
                         `${overlay_image.filename}`
                     );
                     fs.writeFileSync(imagePath, buffer);
-                    return `results/${sessionId}/images/${overlay_image.filename}`;
+                    return `${sessionId}/${overlay_image.filename}`;
                 }
             );
 
             // Tải và lưu GIF
             const gifResponse = await fetch(data.gif_download);
             const gifBuffer = await gifResponse.buffer();
-            const gifFilePath = path.join(gifPath, "animation.gif");
+            const gifFilePath = path.join(sessionPath, "animation.gif");
             fs.writeFileSync(gifFilePath, gifBuffer);
 
             // Đợi tất cả các file được tải xong
@@ -93,14 +108,23 @@ class SybilController {
             //     fs.unlinkSync(file.path);
             // });
 
+            const overlayImages = savedImagePaths
+                .filter((path) => path.endsWith(".dcm"))
+                .map((path) => ({
+                    download_link: `download/${path}`,
+                    filename: path.split("/").pop(),
+                    preview_link: `preview/${path}`,
+                }));
+
             // Trả về kết quả cho frontend
             res.status(200).json({
                 message: "Prediction successful.",
                 predictions: data.predictions,
                 session_id: sessionId,
-                overlay_images: {
-                    download_links: savedImagePaths,
-                    gif_download: `results/${sessionId}/gif/animation.gif`,
+                overlay_images: overlayImages,
+                gif: {
+                    download_link: `download/${sessionId}/animation.gif`,
+                    preview_link: `preview/${sessionId}/animation.gif`,
                 },
             });
         } catch (error) {
