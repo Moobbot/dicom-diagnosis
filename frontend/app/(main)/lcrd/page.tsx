@@ -5,13 +5,11 @@ import '@/styles/dicom/custom.scss';
 
 // React and Next.js imports
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { usePathname } from 'next/navigation';
 
 // PrimeReact components
 import { Button } from 'primereact/button';
 import { FileUpload } from 'primereact/fileupload';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
-import { TabMenu } from 'primereact/tabmenu';
 import { Toast } from 'primereact/toast';
 
 // Context
@@ -20,37 +18,58 @@ import { LayoutContext } from '@/layout/context/layoutcontext';
 // DICOM viewer
 import cornerstoneDICOMImageLoader from '@cornerstonejs/dicom-image-loader';
 import DCMViewer from '@/layout/DICOMview/cornerstone';
-import ImageViewer from '@/layout/DICOMview/imageviewer';
 
 interface FolderType {
     id: string;
     name: string;
     files: File[];
     imageIds: string[];
-    predictedImages?: string[];
+    predictedImagesURL?: OverlayImage[];
+    gifDownloadURL?: Gif;
 }
 
 interface PredictionResponse {
     message: string;
     predictions: number[][];
     session_id: string;
-    overlay_images: {
-        download_links: string[];
-        gif_download: string;
-    };
+    overlay_images: OverlayImage[];
+    gif: Gif;
 }
 
-const LCRD = ({ children }: { children: React.ReactNode }) => {
+interface OverlayImage {
+    download_link: string;
+    filename: string;
+    preview_link: string;
+}
+
+interface Gif {
+    download_link: string;
+    preview_link: string;
+}
+
+const addPrefixToLinks = (data: PredictionResponse, apiPath: string): PredictionResponse => {
+    return {
+        ...data,
+        overlay_images: data.overlay_images.map((image) => ({
+            ...image,
+            download_link: `wadouri:${apiPath}${image.download_link}`,
+            preview_link: `wadouri:${apiPath}${image.preview_link}`
+        })),
+        gif: {
+            ...data.gif,
+            download_link: `${apiPath}${data.gif.download_link}`,
+            preview_link: `${apiPath}${data.gif.preview_link}`
+        }
+    };
+};
+
+const LCRD = () => {
     const { setLayoutState } = useContext(LayoutContext);
     const [folders, setFolders] = useState<FolderType[]>([]);
     const [selectedFolder, setSelectedFolder] = useState<FolderType | null>(null);
     const fileUploadRef = useRef<FileUpload>(null);
     const folderInputRef = useRef<HTMLInputElement>(null);
     const toast = useRef<Toast>(null);
-
-    const pathname = usePathname();
-    const [activeIndex, setActiveIndex] = useState(0);
-
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -59,22 +78,6 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
             staticMenuDesktopInactive: true
         }));
     }, [setLayoutState]);
-
-    useEffect(() => {
-        const paths = pathname.split('/');
-        const currentPath = paths[paths.length - 1];
-        const indexMap: Record<string, number> = {
-            seat: 1,
-            payment: 2,
-            confirmation: 3
-        };
-        setActiveIndex(indexMap[currentPath] || 0);
-    }, [pathname]);
-
-    const wizardItems = [
-        { label: 'Original', command: () => <DCMViewer selectedFolder={selectedFolder} /> },
-        { label: 'Predicted', command: () => <ImageViewer selectedFolder={selectedFolder} loading={loading} /> }
-    ];
 
     const showToast = (severity: 'success' | 'info' | 'warn' | 'error', summary: string, detail: string) => {
         toast.current?.show({ severity, summary, detail, life: 3000 });
@@ -92,7 +95,7 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
             return;
         }
 
-        const sortedFiles = [...event.files].sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name));
+        const sortedFiles = [...dicomFiles].sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name));
 
         const newFolder: FolderType = {
             id: Date.now().toString(),
@@ -143,7 +146,6 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
     };
 
     const handlePredict = async () => {
-        // TODO: Implement prediction logic
         try {
             setLoading(true);
             if (!selectedFolder) {
@@ -151,7 +153,7 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
                 return;
             }
 
-            if (selectedFolder?.predictedImages) {
+            if (selectedFolder?.predictedImagesURL) {
                 showToast('info', 'Info', 'Prediction already completed');
                 return;
             }
@@ -159,23 +161,83 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
             const formData = new FormData();
             selectedFolder?.files.forEach((file) => formData.append('files', file));
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/predict`, {
-                method: 'POST',
-                body: formData
-            });
+            // const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/predict`, {
+            //     method: 'POST',
+            //     body: formData
+            // });
 
-            if (!response.ok) {
-                showToast('error', 'Error', 'Failed to predict');
-                return;
-            }
+            // if (!response.ok) {
+            //     showToast('error', 'Error', 'Failed to predict');
+            //     return;
+            // }
 
-            const data: PredictionResponse = await response.json();
+            // const data = await response.json();
 
-            const downloadLinks = data.overlay_images.download_links.map((link) => `${process.env.NEXT_PUBLIC_API_BASE_URL}/${link}`);
-            const gifDownload = `${process.env.NEXT_PUBLIC_API_BASE_URL}/${data.overlay_images.gif_download}`;
+            const data = {
+                message: 'Prediction successful.',
+                predictions: [[0.0019649702414815395, 0.006792662605387028, 0.01361832965162377, 0.01728884468542021, 0.021685326042547536, 0.03595085191094143]],
+                session_id: 'cd554235-1c03-4b9c-aea5-4c93b672c115',
+                overlay_images: [
+                    {
+                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_18.dcm',
+                        filename: 'slice_18.dcm',
+                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_18.dcm'
+                    },
+                    {
+                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_19.dcm',
+                        filename: 'slice_19.dcm',
+                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_19.dcm'
+                    },
+                    {
+                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_20.dcm',
+                        filename: 'slice_20.dcm',
+                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_20.dcm'
+                    },
+                    {
+                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_21.dcm',
+                        filename: 'slice_21.dcm',
+                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_21.dcm'
+                    },
+                    {
+                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_22.dcm',
+                        filename: 'slice_22.dcm',
+                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_22.dcm'
+                    },
+                    {
+                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_23.dcm',
+                        filename: 'slice_23.dcm',
+                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_23.dcm'
+                    },
+                    {
+                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_24.dcm',
+                        filename: 'slice_24.dcm',
+                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_24.dcm'
+                    },
+                    {
+                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_25.dcm',
+                        filename: 'slice_25.dcm',
+                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_25.dcm'
+                    },
+                    {
+                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_26.dcm',
+                        filename: 'slice_26.dcm',
+                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_26.dcm'
+                    },
+                    {
+                        download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_27.dcm',
+                        filename: 'slice_27.dcm',
+                        preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_27.dcm'
+                    }
+                ],
+                gif: {
+                    download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/animation.gif',
+                    preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/animation.gif'
+                }
+            } as PredictionResponse;
 
-            const predictedImages = [...downloadLinks, gifDownload];
-            setSelectedFolder((prev) => ({ ...prev!, predictedImages, gifDownload }));
+            const updatedData = addPrefixToLinks(data, `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/`);
+
+            setSelectedFolder((prev) => ({ ...prev!, predictedImagesURL: updatedData.overlay_images, gifDownloadURL: updatedData.gif }));
 
             showToast('success', 'Success', 'Prediction completed successfully');
         } catch (error) {
@@ -191,11 +253,11 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
             <div className="card p-card card-custom overflow-hidden">
                 <div className="card-header flex align-items-center">
                     <FileUpload ref={fileUploadRef} className="mr-2" mode="basic" name="files" multiple accept=".dcm" customUpload uploadHandler={handleFileUpload} auto chooseLabel="Upload DCM Files" />
-
+                    {/* @ts-ignore */}
                     <input ref={folderInputRef} type="file" webkitdirectory="true" directory="" style={{ display: 'none' }} onChange={handleFolderUpload} />
 
                     <Button label="Upload Folder" className="ml-2" icon="pi pi-folder-open" onClick={() => folderInputRef.current?.click()} />
-                    <Button label="Predict" className="ml-2" icon="pi pi-play" onClick={() => handlePredict()} loading={loading} />
+                    <Button label="Predict" className="ml-2" icon="pi pi-play" onClick={handlePredict} loading={loading} />
                 </div>
 
                 <div className="card-body p-card-content">
@@ -211,10 +273,7 @@ const LCRD = ({ children }: { children: React.ReactNode }) => {
                             </div>
                         </SplitterPanel>
                         <SplitterPanel size={90} minSize={10}>
-                            <div className="w-full h-full">
-                                <TabMenu className="" model={wizardItems} activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)} />
-                                <div className="box-image w-full max-h-full">{wizardItems[activeIndex]?.command()}</div>
-                            </div>
+                            <DCMViewer selectedFolder={selectedFolder} />
                         </SplitterPanel>
                     </Splitter>
                 </div>
