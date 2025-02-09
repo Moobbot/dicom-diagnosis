@@ -55,59 +55,57 @@ const LCRD = () => {
         toast.current?.show({ severity, summary, detail, life: 3000 });
     };
 
+    // Hàm xử lý file DICOM (lọc, sắp xếp, và tạo danh sách imageIds)
+    const processFiles = (files: File[], folderName: string) => {
+        const dicomFiles = files.filter((file) => file.name.toLowerCase().endsWith('.dcm'));
+
+        if (!dicomFiles.length) {
+            showToast('warn', 'Warning', 'No DICOM files found');
+            return null;
+        }
+
+        // Sắp xếp file theo thứ tự tự nhiên (numeric sort)
+        dicomFiles.sort((a, b) =>
+            new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name)
+        );
+
+        return {
+            id: Date.now().toString(),
+            name: folderName,
+            files: dicomFiles,
+            imageIds: dicomFiles.map((file) => cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
+        } as FolderType;
+    };
+
+    // Xử lý upload file DICOM riêng lẻ
     const handleFileUpload = (event: { files: File[] }) => {
         if (!event.files.length) {
             showToast('warn', 'Warning', 'No files selected');
             return;
         }
 
-        const dicomFiles = event.files.filter((file) => file.name.toLowerCase().endsWith('.dcm'));
-        if (!dicomFiles.length) {
-            showToast('warn', 'Warning', 'No DICOM files found');
-            return;
-        }
-
-        const sortedFiles = [...dicomFiles].sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name));
-
-        const newFolder: FolderType = {
-            id: Date.now().toString(),
-            name: `Folder ${folders.length + 1}`,
-            files: sortedFiles,
-            imageIds: sortedFiles.map((file) => cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
-        };
+        const newFolder = processFiles(event.files, `Folder ${folders.length + 1}`);
+        if (!newFolder) return;
 
         setFolders((prev) => [...prev, newFolder]);
         fileUploadRef.current?.clear();
-        showToast('success', 'Success', `Uploaded ${sortedFiles.length} files successfully`);
+        showToast('success', 'Success', `Uploaded ${newFolder.files.length} files successfully`);
     };
-
+    // Xử lý upload thư mục DICOM
     const handleFolderUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (!event.target.files?.length) {
+        const fileList = event.target.files;
+        if (!fileList?.length) {
             showToast('warn', 'Warning', 'No folder selected');
             return;
         }
 
-        const files = Array.from(event.target.files).filter((file) => file.name.toLowerCase().endsWith('.dcm'));
-
-        files.sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name));
-
-        if (!files.length) {
-            showToast('warn', 'Warning', 'No DICOM files found in selected folder');
-            return;
-        }
-
-        const folderName = event.target.files[0].webkitRelativePath.split('/')[0];
-
-        const newFolder: FolderType = {
-            id: Date.now().toString(),
-            name: folderName,
-            files,
-            imageIds: files.map((file) => cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
-        };
+        const folderName = fileList[0].webkitRelativePath.split('/')[0];
+        const newFolder = processFiles(Array.from(fileList), folderName);
+        if (!newFolder) return;
 
         setFolders((prev) => [...prev, newFolder]);
-        folderInputRef.current!.value = '';
-        showToast('success', 'Success', `Uploaded ${files.length} DICOM files from folder "${folderName}"`);
+        folderInputRef.current!.value = ''; // Reset input
+        showToast('success', 'Success', `Uploaded ${newFolder.files.length} DICOM files from folder "${folderName}"`);
     };
 
     const selectFolder = (folder: FolderType) => {
