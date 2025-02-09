@@ -1,53 +1,41 @@
 'use client';
+
+// React imports
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+
+// PrimeReact components
 import { Button } from 'primereact/button';
-import { Toolbar } from 'primereact/toolbar';
-import { Toast } from 'primereact/toast';
+import { Dialog } from 'primereact/dialog';
+import { Image } from 'primereact/image';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { TabMenu } from 'primereact/tabmenu';
+import { Toast } from 'primereact/toast';
+import { Toolbar } from 'primereact/toolbar';
+
+// CornerstoneJS (DICOM viewer) imports
 import * as cornerstone from '@cornerstonejs/core';
 import { RenderingEngine, Enums, type Types } from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
-import { ZoomTool, PanTool, WindowLevelTool, StackScrollTool, LengthTool } from '@cornerstonejs/tools';
+import {
+    ZoomTool,
+    PanTool,
+    WindowLevelTool,
+    StackScrollTool,
+    LengthTool
+} from '@cornerstonejs/tools';
 import cornerstoneDICOMImageLoader from '@cornerstonejs/dicom-image-loader';
+
+// Icons
 import { TiZoom } from 'react-icons/ti';
 import { CiRuler } from 'react-icons/ci';
 import { IoIosMove } from 'react-icons/io';
 import { ImContrast } from 'react-icons/im';
 import { RiResetLeftFill } from 'react-icons/ri';
-import { Dialog } from 'primereact/dialog';
-import { Image } from 'primereact/image';
 
-interface FolderType {
-    id: string;
-    name: string;
-    files: File[];
-    imageIds: string[];
-    predictedImagesURL?: OverlayImage[];
-    gifDownloadURL?: Gif;
-}
-
-interface PredictionResponse {
-    message: string;
-    predictions: number[][];
-    session_id: string;
-    overlay_images: OverlayImage[];
-    gif: Gif;
-}
-
-interface OverlayImage {
-    download_link: string;
-    filename: string;
-    preview_link: string;
-}
-
-interface Gif {
-    download_link: string;
-    preview_link: string;
-}
-
-interface DCMViewerProps {
-    selectedFolder: FolderType | null;
+declare global {
+    interface Window {
+        __cornerstone_initialized?: boolean;
+    }
 }
 
 const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
@@ -315,11 +303,11 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
 
             <Splitter style={{ height: '100%' }}>
                 {/* File Preview Panel */}
-                <SplitterPanel size={25} minSize={15} className="border-right-1 p-2 flex flex-column">
+                <SplitterPanel size={50} minSize={15} className="border-right-1 p-2 flex flex-column">
                     <TabMenu model={wizardItems} activeIndex={activeTab} onTabChange={(e) => setActiveTab(e.index)} />
 
                     {/* File List với chiều cao cố định và overflow-auto */}
-                    <div className="flex-grow-1 overflow-auto mt-2" style={{ maxHeight: 'calc(100% - 40px)' }}>
+                    <div className="flex-grow-1 overflow-auto mt-2" style={{ maxHeight: 'calc(100% - 5rem)' }}>
                         {selectedFolder &&
                             (activeTab === 0 ? (
                                 selectedFolder.imageIds.map((imageId, index) => (
@@ -352,7 +340,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                 </SplitterPanel>
 
                 {/* Tools and Viewer Panel */}
-                <SplitterPanel size={75} minSize={50} className="p-2 flex flex-column">
+                <SplitterPanel size={50} minSize={50} className="p-2 flex-column">
                     {/* Toolbar */}
                     <div className="border-bottom-1">
                         <Toolbar
@@ -387,8 +375,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                             }
                         />
                     </div>
-
-                    <div className="flex-grow-1 w-full h-full flex align-items-center justify-content-center" ref={elementRef}></div>
+                    <div className="h-viewport" ref={elementRef}></div>
                 </SplitterPanel>
             </Splitter>
             <Dialog header="GIF Preview" visible={showGifDialog} style={{ width: '50vw' }} onHide={() => setShowGifDialog(false)}>

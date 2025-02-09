@@ -22,8 +22,28 @@
     }
 }
 
+.layout-main-container>.layout-main {
+    flex-grow: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+}
+
+.w-50 {
+    width: 50vw;
+}
+
+.h-viewport {
+    min-height: 25rem;
+    height: calc(84vh - 9rem);
+    // aspect-ratio: 1 / 1;
+    width: 100%;
+    height: 100%;
+}
+
 .content-full {
     padding: 0.25rem;
+    width: 100%;
     min-height: 84vh;
     display: flex;
     flex-direction: column;
@@ -31,8 +51,8 @@
     .card-custom {
         display: flex;
         flex-direction: column;
-        height: 100%;
         flex-grow: 1;
+        height: 100%;
         padding: 1rem;
 
         .card-header {
@@ -60,12 +80,9 @@
     overflow: hidden;
 }
 
-.flex-grow-1 {
-    flex-grow: 1;
-}
-
 .dicom-panel {
-    height: calc(84vh - 9rem);
+    // height: calc(84vh - 9rem);
+    flex-grow: 1;
     overflow: hidden;
 
     .file-preview-panel {
@@ -87,8 +104,4 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-}
-
-.box-image {
-    height: calc(84vh - 9rem);
 }
