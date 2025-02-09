@@ -1,53 +1,41 @@
 'use client';
+
+// React imports
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+
+// PrimeReact components
 import { Button } from 'primereact/button';
-import { Toolbar } from 'primereact/toolbar';
-import { Toast } from 'primereact/toast';
+import { Dialog } from 'primereact/dialog';
+import { Image } from 'primereact/image';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { TabMenu } from 'primereact/tabmenu';
+import { Toast } from 'primereact/toast';
+import { Toolbar } from 'primereact/toolbar';
+
+// CornerstoneJS (DICOM viewer) imports
 import * as cornerstone from '@cornerstonejs/core';
 import { RenderingEngine, Enums, type Types } from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
-import { ZoomTool, PanTool, WindowLevelTool, StackScrollTool, LengthTool } from '@cornerstonejs/tools';
+import {
+    ZoomTool,
+    PanTool,
+    WindowLevelTool,
+    StackScrollTool,
+    LengthTool
+} from '@cornerstonejs/tools';
 import cornerstoneDICOMImageLoader from '@cornerstonejs/dicom-image-loader';
+
+// Icons
 import { TiZoom } from 'react-icons/ti';
 import { CiRuler } from 'react-icons/ci';
 import { IoIosMove } from 'react-icons/io';
 import { ImContrast } from 'react-icons/im';
 import { RiResetLeftFill } from 'react-icons/ri';
-import { Dialog } from 'primereact/dialog';
-import { Image } from 'primereact/image';
 
-interface FolderType {
-    id: string;
-    name: string;
-    files: File[];
-    imageIds: string[];
-    predictedImagesURL?: OverlayImage[];
-    gifDownloadURL?: Gif;
-}
-
-interface PredictionResponse {
-    message: string;
-    predictions: number[][];
-    session_id: string;
-    overlay_images: OverlayImage[];
-    gif: Gif;
-}
-
-interface OverlayImage {
-    download_link: string;
-    filename: string;
-    preview_link: string;
-}
-
-interface Gif {
-    download_link: string;
-    preview_link: string;
-}
-
-interface DCMViewerProps {
-    selectedFolder: FolderType | null;
+declare global {
+    interface Window {
+        __cornerstone_initialized?: boolean;
+    }
 }
 
 const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {

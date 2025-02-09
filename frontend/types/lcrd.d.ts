@@ -8,6 +8,10 @@ interface FolderType {
     gifDownloadURL?: Gif;
 }
 
+interface DCMViewerProps {
+    selectedFolder: FolderType | null;
+}
+
 interface PredictionResponse {
     message: string;
     predictions: number[][];
