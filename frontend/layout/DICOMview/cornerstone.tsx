@@ -315,11 +315,11 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
 
             <Splitter style={{ height: '100%' }}>
                 {/* File Preview Panel */}
-                <SplitterPanel size={25} minSize={15} className="border-right-1 p-2 flex flex-column">
+                <SplitterPanel size={50} minSize={15} className="border-right-1 p-2 flex flex-column">
                     <TabMenu model={wizardItems} activeIndex={activeTab} onTabChange={(e) => setActiveTab(e.index)} />
 
                     {/* File List với chiều cao cố định và overflow-auto */}
-                    <div className="flex-grow-1 overflow-auto mt-2" style={{ maxHeight: 'calc(100% - 40px)' }}>
+                    <div className="flex-grow-1 overflow-auto mt-2" style={{ maxHeight: 'calc(100% - 5rem)' }}>
                         {selectedFolder &&
                             (activeTab === 0 ? (
                                 selectedFolder.imageIds.map((imageId, index) => (
@@ -352,7 +352,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                 </SplitterPanel>
 
                 {/* Tools and Viewer Panel */}
-                <SplitterPanel size={75} minSize={50} className="p-2 flex flex-column">
+                <SplitterPanel size={50} minSize={50} className="p-2 flex-column">
                     {/* Toolbar */}
                     <div className="border-bottom-1">
                         <Toolbar
@@ -387,8 +387,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                             }
                         />
                     </div>
-
-                    <div className="flex-grow-1 w-full h-full flex align-items-center justify-content-center" ref={elementRef}></div>
+                    <div className="h-viewport" ref={elementRef}></div>
                 </SplitterPanel>
             </Splitter>
             <Dialog header="GIF Preview" visible={showGifDialog} style={{ width: '50vw' }} onHide={() => setShowGifDialog(false)}>

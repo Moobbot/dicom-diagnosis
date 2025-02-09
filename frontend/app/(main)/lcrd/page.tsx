@@ -19,34 +19,6 @@ import { LayoutContext } from '@/layout/context/layoutcontext';
 import cornerstoneDICOMImageLoader from '@cornerstonejs/dicom-image-loader';
 import DCMViewer from '@/layout/DICOMview/cornerstone';
 
-interface FolderType {
-    id: string;
-    name: string;
-    files: File[];
-    imageIds: string[];
-    predictedImagesURL?: OverlayImage[];
-    gifDownloadURL?: Gif;
-}
-
-interface PredictionResponse {
-    message: string;
-    predictions: number[][];
-    session_id: string;
-    overlay_images: OverlayImage[];
-    gif: Gif;
-}
-
-interface OverlayImage {
-    download_link: string;
-    filename: string;
-    preview_link: string;
-}
-
-interface Gif {
-    download_link: string;
-    preview_link: string;
-}
-
 const addPrefixToLinks = (data: PredictionResponse, apiPath: string): PredictionResponse => {
     return {
         ...data,
@@ -146,29 +118,34 @@ const LCRD = () => {
     };
 
     const handlePredict = async () => {
+        if (!selectedFolder) {
+            showToast('warn', 'Warning', 'No folder selected');
+            return;
+        }
+
+        if (selectedFolder?.predictedImagesURL) {
+            showToast('info', 'Info', 'Prediction already completed');
+            return;
+        }
+
         try {
             setLoading(true);
-            if (!selectedFolder) {
-                showToast('warn', 'Warning', 'No folder selected');
-                return;
-            }
 
-            if (selectedFolder?.predictedImagesURL) {
-                showToast('info', 'Info', 'Prediction already completed');
-                return;
-            }
-
+            // Tạo FormData chứa các file DICOM
             const formData = new FormData();
             selectedFolder?.files.forEach((file) => formData.append('files', file));
 
+            // Gửi request đến API
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/predict`, {
                 method: 'POST',
                 body: formData
             });
 
+            // Xử lý lỗi nếu response không thành công
             if (!response.ok) {
-                showToast('error', 'Error', 'Failed to predict');
-                return;
+                const errorText = await response.text(); // Lấy nội dung lỗi từ server
+                showToast('error', `${response.status}`, errorText);
+                throw new Error(`Server error (${response.status}): ${errorText}`);
             }
 
             const data = await response.json() as PredictionResponse;
@@ -257,12 +234,12 @@ const LCRD = () => {
                     <input ref={folderInputRef} type="file" webkitdirectory="true" directory="" style={{ display: 'none' }} onChange={handleFolderUpload} />
 
                     <Button label="Upload Folder" className="ml-2" icon="pi pi-folder-open" onClick={() => folderInputRef.current?.click()} />
-                    <Button label="Predict" className="ml-2" icon="pi pi-play" onClick={handlePredict} loading={loading} disabled={!selectedFolder}/>
+                    <Button label="Predict" className="ml-2" icon="pi pi-play" onClick={handlePredict} loading={loading} disabled={!selectedFolder} />
                 </div>
 
                 <div className="card-body p-card-content">
-                    <Splitter className="dicom-panel flex-grow-1">
-                        <SplitterPanel size={10} minSize={5} className="overflow-auto">
+                    <Splitter className="dicom-panel">
+                        <SplitterPanel size={20} minSize={10} className="overflow-auto">
                             <div className="overflow-auto">
                                 {folders.map((folder) => (
                                     <div key={folder.id} onClick={() => selectFolder(folder)} className={`cursor-pointer p-3 border-round hover:surface-200 ${selectedFolder?.id === folder.id ? 'surface-200' : ''}`}>
@@ -272,7 +249,7 @@ const LCRD = () => {
                                 ))}
                             </div>
                         </SplitterPanel>
-                        <SplitterPanel size={90} minSize={10}>
+                        <SplitterPanel size={80} minSize={50}>
                             <DCMViewer selectedFolder={selectedFolder} />
                         </SplitterPanel>
                     </Splitter>

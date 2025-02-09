@@ -1,13 +1,19 @@
+// 'use client';
+
+// import VWUViewer from '@/layout/DICOMview/VWUViewer';
+
+// export default function Page() {
+//     return <VWUViewer />;
+// }
+
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 
-// ✅ Import trực tiếp không dùng dynamic()
 import * as cornerstone from '@cornerstonejs/core';
-import * as cornerstoneTools from '@cornerstonejs/tools';
-import * as cornerstoneDICOMImageLoader from '@cornerstonejs/dicom-image-loader';
+// import { RenderingEngine } from '@cornerstonejs/core';
 
 declare global {
     interface Window {
@@ -15,7 +21,7 @@ declare global {
     }
 }
 
-const DICOMViewer = () => {
+const VWUViewer = () => {
     const elementRef = useRef<HTMLDivElement>(null);
     const renderingEngineRef = useRef<any>(null);
     const [imageUrl, setImageUrl] = useState('');
@@ -23,57 +29,43 @@ const DICOMViewer = () => {
 
     const renderingEngineId = 'dicomRenderingEngine';
     const viewportId = 'dicomViewport';
-    const toolGroupId = 'myToolGroup';
 
     useEffect(() => {
-        if (typeof window === 'undefined') return; // Tránh lỗi SSR
+        const initCornerstone = async () => {
+            if (typeof window !== 'undefined' && !window.__cornerstone_initialized) {
+                const cornerstoneDICOMImageLoader = await import('@cornerstonejs/dicom-image-loader');
+                // cornerstoneDICOMImageLoader.convertColorSpace
+                await cornerstone.init();
+                await cornerstoneDICOMImageLoader.init();
 
-        const { RenderingEngine, Enums } = cornerstone;
-        const { ViewportType } = Enums;
-        const { ZoomTool, PanTool, WindowLevelTool, StackScrollTool, ToolGroupManager } = cornerstoneTools;
-
-        // ✅ Đảm bảo chỉ khởi tạo một lần duy nhất
-        if (!window.__cornerstone_initialized) {
-            cornerstone.init();
-            cornerstoneDICOMImageLoader.init(); // Không cần kiểm tra isInitialized
-            cornerstoneTools.init();
-            window.__cornerstone_initialized = true; // Đánh dấu đã khởi tạo
-        }
-
-        const renderingEngine = new RenderingEngine(renderingEngineId);
-        renderingEngineRef.current = renderingEngine;
-
-
-        // ✅ Tạo Rendering Engine
-        renderingEngine.enableElement({
-            viewportId,
-            type: ViewportType.STACK,
-            element: elementRef.current!,
-        });
-
-        // ✅ Kiểm tra xem ToolGroup đã tồn tại chưa, nếu chưa mới tạo
-        let toolGroup = ToolGroupManager.getToolGroup(toolGroupId);
-        if (!toolGroup) {
-            toolGroup = ToolGroupManager.createToolGroup(toolGroupId);
-
-            cornerstoneTools.addTool(ZoomTool);
-            cornerstoneTools.addTool(PanTool);
-            cornerstoneTools.addTool(WindowLevelTool);
-            cornerstoneTools.addTool(StackScrollTool);
-            if (toolGroup) {
-
-                toolGroup.addTool(ZoomTool.toolName);
-                toolGroup.addTool(PanTool.toolName);
-                toolGroup.addTool(WindowLevelTool.toolName);
-                toolGroup.addTool(StackScrollTool.toolName);
-
-                toolGroup.setToolActive(StackScrollTool.toolName, {
-                    bindings: [{ mouseButton: cornerstoneTools.Enums.MouseBindings.Wheel }],
+                // ✅ Đăng ký image loader với Cornerstone (wadouri)
+                cornerstone.registerImageLoader('wadouri', (imageId: string, options?: any) => {
+                    const loadObject = cornerstoneDICOMImageLoader.wadouri.loadImage(imageId, options);
+                    return {
+                        promise: loadObject.promise.then((image: any) => {
+                            return image as unknown as Record<string, unknown>;
+                        }),
+                        cancelFn: loadObject.cancelFn,
+                        decache: loadObject.decache,
+                    };
                 });
 
-                toolGroup.addViewport(viewportId, renderingEngineId);
+                window.__cornerstone_initialized = true;
             }
-        }
+
+            // ✅ Khởi tạo Rendering Engine
+            const renderingEngine = new cornerstone.RenderingEngine(renderingEngineId);
+            renderingEngineRef.current = renderingEngine;
+
+            // ✅ Tạo Rendering Engine - ✅ Kích hoạt viewport
+            renderingEngine.enableElement({
+                viewportId,
+                type: cornerstone.Enums.ViewportType.STACK,
+                element: elementRef.current!,
+            });
+        };
+        initCornerstone();
+
     }, []);
 
     const loadImage = async () => {
@@ -84,25 +76,23 @@ const DICOMViewer = () => {
 
         console.log('🔹 imageUrl:', imageUrl);
 
-        const viewport = renderingEngineRef.current?.getViewport(viewportId);
+        const renderingEngine = renderingEngineRef.current;
+        if (!renderingEngine) {
+            console.error('❌ Rendering Engine chưa được khởi tạo!');
+            return;
+        }
+
+        const viewport = renderingEngine?.getViewport(viewportId);
         if (!viewport) {
             console.error('❌ Viewport không tìm thấy!');
             return;
         }
 
         try {
+            const cornerstoneDICOMImageLoader = await import('@cornerstonejs/dicom-image-loader');
             // ✅ Thêm kiểm tra URL
             const dicomImageId = `wadouri:${imageUrl}`;
             console.log('✅ dicomImageId:', dicomImageId);
-
-            // ✅ Kiểm tra xem loader có support URL không
-            if (!cornerstoneDICOMImageLoader.wadouri) {
-                console.error('❌ DICOM Image Loader không hỗ trợ wadouri');
-                return;
-            }
-
-            // ✅ Kiểm tra trạng thái của viewport trước khi load
-            console.log('🟡 Viewport trước khi load:', viewport);
 
             // ✅ Clear cache trước khi load ảnh mới (tránh lỗi ảnh không cập nhật)
             cornerstone.cache.purgeCache();
@@ -111,18 +101,25 @@ const DICOMViewer = () => {
             await viewport.setStack([dicomImageId]);
             viewport.setImageIdIndex(0);
 
-            // ✅ Đảm bảo viewport có ảnh trước khi render
-            const loadedImage = viewport.getCurrentImageId();
-            if (!loadedImage) {
+            // ✅ Đợi ảnh load xong
+            await new Promise((resolve) => setTimeout(resolve, 500));
+
+            const csImage = viewport.getCornerstoneImage();
+            if (!csImage) {
                 console.error('❌ Không thể lấy ảnh từ viewport!');
                 return;
             }
-            console.log('🟡 Metadata:', viewport.csImage);
 
+            console.log('📸 Ảnh DICOM đã load:', csImage);
+
+            // ✅ Đợi ảnh load xong
+            await new Promise((resolve) => setTimeout(resolve, 500));
             viewport.render();
-            console.log('✅ Ảnh DICOM đã load thành công!');
+            console.log('✅ Viewport sau khi cập nhật:', viewport);
 
+            console.log('✅ Ảnh DICOM đã load thành công!');
             setLoadedImage(dicomImageId);
+            console.log('🟡 dicomImageId:', dicomImageId);
         } catch (error) {
             console.error('❌ Lỗi tải ảnh DICOM:', error);
         }
@@ -155,4 +152,4 @@ const DICOMViewer = () => {
     );
 };
 
-export default DICOMViewer;
+export default VWUViewer;
