@@ -7,7 +7,7 @@ interface SimpleLayoutProps {
 }
 
 export const metadata: Metadata = {
-    title: 'Dicome - Diagnostic',
+    title: 'Newlife LCRD - Lung Cancer Risk Diagnosis',
     description: 'Moobbot team to develop this application'
 };
 

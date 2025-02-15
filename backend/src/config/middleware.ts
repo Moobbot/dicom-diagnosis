@@ -16,18 +16,20 @@ export const configureMiddleware = (app: express.Express) => {
     app.use(ExpressMongoSanitize());
     // Bỏ đã sử dụng successHandler và errorHandler - chỉ sử dụng khi ở môi trường develop
     app.use(morgan("dev"));
-    app.use(helmet());
+    // app.use(helmet());
     //Tính năng đã được tích hợp sẵn.
     // app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
     // Tính năng đã được tích hợp sẵn trong helmet từ version 4
     // app.use(helmet.xssFilter());
-    app.use(helmet.contentSecurityPolicy({
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'trusted-cdn.com'"],
-            objectSrc: ["'none'"],
-        },
-    }));
+    // app.use(
+    //     helmet.contentSecurityPolicy({
+    //         directives: {
+    //             defaultSrc: ["'self'"],
+    //             scriptSrc: ["'self'", "'trusted-cdn.com'"],
+    //             objectSrc: ["'none'"],
+    //         },
+    //     })
+    // );
 
     // CORS
     app.use(cors(corsOptions));

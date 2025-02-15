@@ -11,6 +11,7 @@ import roleRouter from "./role.route";
 import userRouter from "./user.route";
 import accessHistoryRouter from "./access-history.route";
 import asyncHandler from "express-async-handler";
+import sybilRouter from "../modules/LCRD/routes/sybil.routes";
 // import { keyAuthMiddleware } from "../middleware/key-auth.middleware";
 
 const rootRouter: Router = Router();
@@ -32,5 +33,6 @@ rootRouter.use("/roles", roleRouter);
 rootRouter.use("/users", userRouter);
 rootRouter.use("/auth", authRouter);
 rootRouter.use("/access-history", accessHistoryRouter);
+rootRouter.use("/sybil", sybilRouter);
 
 export default rootRouter;

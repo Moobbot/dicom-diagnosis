@@ -1,28 +1,12 @@
-/* eslint-disable @next/next/no-img-element */
 'use client';
-import { useRouter } from 'next/navigation';
-import React, { useContext, useEffect } from 'react';
-import { LayoutContext } from '../../layout/context/layoutcontext';
-import { getCookie } from 'cookies-next';
+import React, { use, useContext, useEffect, useRef, useState } from 'react';
 
-const Dashboard = () => {
-    const { layoutConfig } = useContext(LayoutContext);
-    const router = useRouter();
-
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const token = getCookie('accessToken');
-            if (!token) {
-                router.replace('/auth/login'); 
-            }
-        }
-    }, [router]);
-
+const Dashboard: React.FC = () => {
     return (
-        <div className="grid">
-            {/* Nội dung của Dashboard */}
+        <div>
+            <h1>Dashboard</h1>
         </div>
     );
-};
+}
 
 export default Dashboard;

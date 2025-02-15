@@ -19,12 +19,6 @@ export const EnvSchema = z.object({
     NEXT_PUBLIC_DEBUG: z
         .string({ required_error: "NEXT_PUBLIC_DEBUG is required" })
         .transform((value) => value === "true"), // Convert to boolean
-
-    NEXT_PUBLIC_TOKEN_EXPIRATION: z
-        .string({
-            required_error: "NEXT_PUBLIC_TOKEN_EXPIRATION is required",
-        })
-        .regex(/^\d+[mhd]$/, "NEXT_PUBLIC_TOKEN_EXPIRATION must be in the format '60m', '1h', or '7d'"),
 });
 
 // Infer TypeScript type for validated environment variables

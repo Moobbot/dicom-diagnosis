@@ -2,10 +2,10 @@
 'use client';
 
 import React, { useContext, useEffect, useRef } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 import { classNames } from 'primereact/utils';
-import { useEventListener, useMountEffect, useUnmountEffect } from 'primereact/hooks';
+import { useEventListener, useUnmountEffect } from 'primereact/hooks';
 import { PrimeReactContext } from 'primereact/api';
 
 import AppFooter from './AppFooter';
@@ -15,7 +15,6 @@ import AppConfig from './AppConfig';
 
 import { LayoutContext } from './context/layoutcontext';
 import { ChildContainerProps, LayoutState, AppTopbarRef } from '@/types';
-import WithAuth from '../layout/context/WithAuth';
 
 const Layout = ({ children }: ChildContainerProps) => {
     const { layoutConfig, layoutState, setLayoutState } = useContext(LayoutContext);
@@ -126,22 +125,20 @@ const Layout = ({ children }: ChildContainerProps) => {
     });
 
     return (
-        <WithAuth>
-            <React.Fragment>
-                <div className={containerClass}>
-                    <AppTopbar ref={topbarRef} />
-                    <div ref={sidebarRef} className="layout-sidebar">
-                        <AppSidebar />
-                    </div>
-                    <div className="layout-main-container">
-                        <div className="layout-main">{children}</div>
-                        <AppFooter />
-                    </div>
-                    <AppConfig />
-                    <div className="layout-mask"></div>
+        <React.Fragment>
+            <div className={containerClass}>
+                <AppTopbar ref={topbarRef} />
+                <div ref={sidebarRef} className="layout-sidebar">
+                    <AppSidebar />
                 </div>
-            </React.Fragment>
-        </WithAuth>
+                <div className="layout-main-container">
+                    <div className="layout-main">{children}</div>
+                    <AppFooter />
+                </div>
+                <AppConfig />
+                <div className="layout-mask"></div>
+            </div>
+        </React.Fragment>
     );
 };
 
