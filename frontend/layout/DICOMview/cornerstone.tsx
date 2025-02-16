@@ -298,12 +298,12 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     ];
 
     return (
-        <div className="w-full h-full overflow-hidden">
+        <div className="w-full h-full">
             <Toast ref={toast} />
 
             <Splitter style={{ height: '100%' }}>
                 {/* File Preview Panel */}
-                <SplitterPanel size={50} minSize={15} className="border-right-1 p-2 flex flex-column">
+                <SplitterPanel size={10} minSize={10} className="border-right-1 p-2 flex flex-column">
                     <TabMenu model={wizardItems} activeIndex={activeTab} onTabChange={(e) => setActiveTab(e.index)} />
 
                     {/* File List với chiều cao cố định và overflow-auto */}
@@ -340,7 +340,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                 </SplitterPanel>
 
                 {/* Tools and Viewer Panel */}
-                <SplitterPanel size={50} minSize={50} className="p-2 flex-column">
+                <SplitterPanel size={80} minSize={30} className="p-2 flex-column">
                     {/* Toolbar */}
                     <div className="border-bottom-1">
                         <Toolbar
@@ -375,8 +375,11 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                             }
                         />
                     </div>
-                    <div className="h-viewport" ref={elementRef}></div>
+                    <div className="viewport-wrap overflow-y-auto">
+                        <div className="h-viewport" ref={elementRef}></div>
+                    </div>
                 </SplitterPanel>
+                <SplitterPanel size={10} minSize={5} className="p-2 flex-column"></SplitterPanel>
             </Splitter>
             <Dialog header="GIF Preview" visible={showGifDialog} style={{ width: '50vw' }} onHide={() => setShowGifDialog(false)}>
                 <div className="flex flex-column align-items-center">
