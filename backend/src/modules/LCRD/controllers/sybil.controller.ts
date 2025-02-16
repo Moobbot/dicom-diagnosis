@@ -1,13 +1,17 @@
-import { Request, Response } from "express";
-import { validateEnv } from "../../../config/env.config";
-import BadRequestError from "../../../errors/bad-request.error";
 import fs from "fs";
 import path from "path";
 import FormData from "form-data";
 import fetch from "node-fetch";
-import { ISybilPredictionResponse } from "../interfaces/sybil.interface";
+
+import { Request, Response } from "express";
+
+import { validateEnv } from "../../../config/env.config";
+
+import BadRequestError from "../../../errors/bad-request.error";
 import BadGatewayError from "../../../errors/bad-gateway.error";
 import HttpException from "../../../errors/http-exception.error";
+
+import { ISybilPredictionResponse } from "../interfaces/sybil.interface";
 
 class SybilController {
     private readonly baseUrl: string;
@@ -15,7 +19,7 @@ class SybilController {
 
     public constructor() {
         this.baseUrl = validateEnv().sybilModelBaseUrl;
-        this.savePath = "./src/modules/LCRD/tmp/results";
+        this.savePath = validateEnv().linkSaveDicomResults;
     }
 
     downloadFile = async (req: Request, res: Response) => {
