@@ -237,7 +237,7 @@ const LCRD = () => {
 
                 <div className="card-body p-card-content">
                     <Splitter className="dicom-panel">
-                        <SplitterPanel size={20} minSize={10} className="overflow-auto">
+                        <SplitterPanel size={10} minSize={5}>
                             <div className="overflow-auto">
                                 {folders.map((folder) => (
                                     <div key={folder.id} onClick={() => selectFolder(folder)} className={`cursor-pointer p-3 border-round hover:surface-200 ${selectedFolder?.id === folder.id ? 'surface-200' : ''}`}>
@@ -247,7 +247,7 @@ const LCRD = () => {
                                 ))}
                             </div>
                         </SplitterPanel>
-                        <SplitterPanel size={80} minSize={50}>
+                        <SplitterPanel size={90} minSize={70}>
                             <DCMViewer selectedFolder={selectedFolder} />
                         </SplitterPanel>
                     </Splitter>

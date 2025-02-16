@@ -26,6 +26,8 @@ export const EnvSchema = z.object({
         required_error: "JWT_REFRESH_EXPIRATION is required (e.g., '7d')",
     }),
     SYBIL_MODEL_BASE_URL: z.string({ required_error: "SYBIL_MODEL_BASE_URL is required" }),
+    LINK_SAVE_DICOM_UPLOADS: z.string({ required_error: "LINK_SAVE_DICOM_UPLOADS is required" }),
+    LINK_SAVE_DICOM_RESULTS: z.string({ required_error: "LINK_SAVE_DICOM_RESULTS is required" }),
 });
 
 export type EnvConfig = z.infer<typeof EnvSchema>;
