@@ -30,3 +30,8 @@ interface Gif {
     download_link: string;
     preview_link: string;
 }
+
+interface PatientPredict {
+    selectedFileName: string[];
+    session_id: string;
+}

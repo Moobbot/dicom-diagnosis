@@ -16,14 +16,21 @@ import { Toast } from 'primereact/toast';
 import { LayoutContext } from '@/layout/context/layoutcontext';
 
 // DICOM viewer
-import cornerstoneDICOMImageLoader from '@cornerstonejs/dicom-image-loader';
 import DCMViewer from '@/layout/DICOMview/cornerstone';
+
+declare global {
+    interface Window {
+        __cornerstone_initialized?: boolean;
+        cornerstoneDICOMImageLoader?: any;
+    }
+}
 
 const addPrefixToLinks = (data: PredictionResponse, apiPath: string): PredictionResponse => {
     return {
         ...data,
         overlay_images: data.overlay_images.map((image) => ({
             ...image,
+            filename: image.filename,
             download_link: `wadouri:${apiPath}${image.download_link}`,
             preview_link: `wadouri:${apiPath}${image.preview_link}`
         })),
@@ -51,12 +58,33 @@ const LCRD = () => {
         }));
     }, [setLayoutState]);
 
+    useEffect(() => {
+        const initCornerstone = async () => {
+            if (typeof window !== 'undefined' && !window.__cornerstone_initialized) {
+                console.log("active");
+
+                const cornerstoneDICOMImageLoader = await import('@cornerstonejs/dicom-image-loader');
+                await cornerstoneDICOMImageLoader.init({ maxWebWorkers: 1 });
+
+                // Lưu vào window để sử dụng toàn cục
+                window.__cornerstone_initialized = true;
+                window.cornerstoneDICOMImageLoader = cornerstoneDICOMImageLoader;
+            }
+        };
+        initCornerstone();
+    }, []);
+
     const showToast = (severity: 'success' | 'info' | 'warn' | 'error', summary: string, detail: string) => {
         toast.current?.show({ severity, summary, detail, life: 3000 });
     };
 
     // Hàm xử lý file DICOM (lọc, sắp xếp, và tạo danh sách imageIds)
     const processFiles = (files: File[], folderName: string) => {
+        if (!window.cornerstoneDICOMImageLoader) {
+            showToast('error', 'Error', 'Cornerstone DICOM Image Loader is not initialized');
+            return null;
+        }
+
         const dicomFiles = files.filter((file) => file.name.toLowerCase().endsWith('.dcm'));
 
         if (!dicomFiles.length) {
@@ -73,7 +101,7 @@ const LCRD = () => {
             id: Date.now().toString(),
             name: folderName,
             files: dicomFiles,
-            imageIds: dicomFiles.map((file) => cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
+            imageIds: dicomFiles.map((file) => window.cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
         } as FolderType;
     };
 
@@ -148,71 +176,21 @@ const LCRD = () => {
 
             const data = await response.json() as PredictionResponse;
 
-            // const data = {
-            //     message: 'Prediction successful.',
-            //     predictions: [[0.0019649702414815395, 0.006792662605387028, 0.01361832965162377, 0.01728884468542021, 0.021685326042547536, 0.03595085191094143]],
-            //     session_id: 'cd554235-1c03-4b9c-aea5-4c93b672c115',
-            //     overlay_images: [
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_18.dcm',
-            //             filename: 'slice_18.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_18.dcm'
-            //         },
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_19.dcm',
-            //             filename: 'slice_19.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_19.dcm'
-            //         },
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_20.dcm',
-            //             filename: 'slice_20.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_20.dcm'
-            //         },
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_21.dcm',
-            //             filename: 'slice_21.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_21.dcm'
-            //         },
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_22.dcm',
-            //             filename: 'slice_22.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_22.dcm'
-            //         },
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_23.dcm',
-            //             filename: 'slice_23.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_23.dcm'
-            //         },
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_24.dcm',
-            //             filename: 'slice_24.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_24.dcm'
-            //         },
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_25.dcm',
-            //             filename: 'slice_25.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_25.dcm'
-            //         },
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_26.dcm',
-            //             filename: 'slice_26.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_26.dcm'
-            //         },
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_27.dcm',
-            //             filename: 'slice_27.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_27.dcm'
-            //         }
-            //     ],
-            //     gif: {
-            //         download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/animation.gif',
-            //         preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/animation.gif'
-            //     }
-            // } as PredictionResponse;
-
             const updatedData = addPrefixToLinks(data, `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/`);
 
-            setSelectedFolder((prev) => ({ ...prev!, predictedImagesURL: updatedData.overlay_images, gifDownloadURL: updatedData.gif }));
+            setFolders((prevFolders) =>
+                prevFolders.map((folder) =>
+                    folder.id === selectedFolder.id
+                        ? { ...folder, predictedImagesURL: updatedData.overlay_images, gifDownloadURL: updatedData.gif }
+                        : folder
+                )
+            );
+
+            setSelectedFolder((prev) => ({
+                ...prev!,
+                predictedImagesURL: updatedData.overlay_images,
+                gifDownloadURL: updatedData.gif
+            }));
 
             showToast('success', 'Success', 'Prediction completed successfully');
         } catch (error) {

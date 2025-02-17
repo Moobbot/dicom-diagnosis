@@ -23,7 +23,6 @@ import {
     StackScrollTool,
     LengthTool
 } from '@cornerstonejs/tools';
-import cornerstoneDICOMImageLoader from '@cornerstonejs/dicom-image-loader';
 
 // Icons
 import { TiZoom } from 'react-icons/ti';
@@ -31,18 +30,15 @@ import { CiRuler } from 'react-icons/ci';
 import { IoIosMove } from 'react-icons/io';
 import { ImContrast } from 'react-icons/im';
 import { RiResetLeftFill } from 'react-icons/ri';
-
-declare global {
-    interface Window {
-        __cornerstone_initialized?: boolean;
-    }
-}
+import PatientForm from '../forms/PatientForm';
 
 const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     const [selectedImageIdIndex, setSelectedImageIdIndex] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState(0); // 0: Original, 1: Predicted
     const [activeTool, setActiveTool] = useState<string | null>(null);
     const [showGifDialog, setShowGifDialog] = useState(false);
+    const [ExportDialog, setExportDialog] = useState(false);
+    const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const toast = useRef<Toast>(null);
     const elementRef = useRef<HTMLDivElement>(null);
     const renderingEngineRef = useRef<RenderingEngine | null>(null);
@@ -57,7 +53,6 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
         const initializeViewer = async () => {
             await cornerstone.init();
             await cornerstoneTools.init();
-            await cornerstoneDICOMImageLoader.init({ maxWebWorkers: 1 });
 
             const renderingEngine = new RenderingEngine(renderingEngineId);
             renderingEngineRef.current = renderingEngine;
@@ -129,8 +124,21 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
         if (selectedFolder && renderingEngineRef.current) {
             const viewport = renderingEngineRef.current.getViewport(viewportId) as Types.IStackViewport;
             if (viewport) {
-                // viewport.setStack(selectedFolder.imageIds);
-                const imageStack = activeTab === 0 ? selectedFolder.imageIds : selectedFolder.predictedImagesURL?.map((img) => img.preview_link) || [];
+                let imageStack: string[] = [];
+                if (activeTab === 0) {
+                    imageStack = selectedFolder.imageIds;
+                } else if (selectedFolder.predictedImagesURL && selectedFolder.predictedImagesURL.length > 0) {
+                    imageStack = selectedFolder.predictedImagesURL
+                        .map((img) => img.preview_link)
+                        .filter((link) => typeof link === 'string' && link.startsWith("wadouri:"));
+                }
+
+                if (imageStack.length === 0) {
+                    console.warn("Predicted image stack is empty or invalid.");
+                    showToast("warn", "Warning", "No predicted images available.");
+                    return;
+                }
+
                 viewport.setStack(imageStack);
                 viewport.render();
                 setSelectedImageIdIndex(0);
@@ -162,20 +170,29 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
         (index: number) => {
             const viewport = renderingEngineRef.current?.getViewport(viewportId) as Types.IStackViewport;
 
-            if (viewport && selectedFolder) {
-                try {
-                    const imageStack = activeTab === 0 ? selectedFolder.imageIds : selectedFolder.predictedImagesURL?.map((img) => img.preview_link) || [];
-                    console.log('Image stack:', imageStack[index]);
-                    viewport.setStack(imageStack, index);
-                    viewport.render();
-                    setSelectedImageIdIndex(index);
-                    showToast('info', 'Image Loaded', 'Selected image has been loaded successfully.');
-                } catch (error) {
-                    console.error('Error loading selected image:', error);
-                    showToast('error', 'Image Load Failed', 'Failed to load selected image.');
-                }
-            } else {
-                showToast('error', 'Error', 'No active viewport found.');
+            if (!viewport || !selectedFolder) {
+                showToast("error", "Error", "No active viewport found.");
+                return;
+            }
+            const imageStack = activeTab === 0
+                ? selectedFolder.imageIds
+                : selectedFolder.predictedImagesURL?.map((img) => img.preview_link) || [];
+
+            if (!imageStack || imageStack.length === 0) {
+                showToast("warn", "Warning", "No images available for display.");
+                return;
+            }
+
+            try {
+                console.log('Image stack:', imageStack[index]);
+
+                viewport.setStack(imageStack, index);
+                viewport.render();
+                setSelectedImageIdIndex(index);
+                showToast('info', 'Image Loaded', 'Selected image has been loaded successfully.');
+            } catch (error) {
+                console.error('Error loading selected image:', error);
+                showToast('error', 'Image Load Failed', 'Failed to load selected image.');
             }
         },
         [selectedFolder, activeTab]
@@ -294,8 +311,32 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
 
     const wizardItems = [
         { label: 'Original', command: () => setActiveTab(0) },
-        { label: 'Predicted', command: () => setActiveTab(1) }
+        {
+            label: 'Predicted',
+            command: () => setActiveTab(1),
+            disabled: !selectedFolder?.predictedImagesURL || selectedFolder.predictedImagesURL.length === 0
+        }
     ];
+
+    const handleCheckboxChange = (image: { filename: string }) => {
+        setSelectedImages((prevSelected) => {
+            if (prevSelected.includes(image.filename)) {
+                return prevSelected.filter((img) => img !== image.filename);
+            } else {
+                return [...prevSelected, image.filename];
+            }
+        });
+    };
+
+    const handleViewExport = () => {
+        if (selectedFolder?.gifDownloadURL?.preview_link && selectedImages) {
+            console.log(selectedImages);
+
+            setExportDialog(true);
+        } else {
+            showToast('warn', 'No Image choose', 'There is no Image predict choose.');
+        }
+    };
 
     return (
         <div className="w-full h-full">
@@ -329,6 +370,13 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                                         onClick={() => handleImageClick(index)}
                                         className={`cursor-pointer p-2 border-1 border-200 border-round hover:surface-200 flex align-items-center ${selectedImageIdIndex === index ? 'bg-bluegray-400' : ''}`}
                                     >
+                                        <input
+                                            type="checkbox"
+                                            className="mr-2"
+                                            checked={selectedImages.includes(image.filename)}
+                                            onChange={() => handleCheckboxChange(image)}
+                                            onClick={(e) => e.stopPropagation()} // Ngăn chặn sự kiện onClick ảnh hưởng đến div
+                                        />
                                         <i className="pi pi-file text-2xl mr-2" />
                                         <span className="text-overflow-ellipsis flex-grow-1 overflow-hidden whitespace-nowrap">{image.filename}</span>
                                     </div>
@@ -368,7 +416,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                                 (activeTab === 1 && selectedFolder?.predictedImagesURL) && (
                                     <div className="flex gap-2">
                                         <Button label="Detection" severity="warning" />
-                                        <Button label="Export" severity="help" />
+                                        <Button label="Export" severity="help" onClick={handleViewExport} />
                                         <Button label="View Gif" severity="info" onClick={handleViewGif} />
                                     </div>
                                 )
@@ -386,6 +434,9 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                     {selectedFolder?.gifDownloadURL?.preview_link ? <Image src={selectedFolder.gifDownloadURL.preview_link} alt="GIF Preview" preview /> : <p>No GIF available</p>}
                     <Button label="Download Gif" className="mt-3" onClick={handleDownloadGif} />
                 </div>
+            </Dialog>
+            <Dialog header="Export Preview" visible={ExportDialog} style={{ width: '50vw' }} onHide={() => setExportDialog(false)}>
+                <PatientForm selectedFileName={selectedImages} session_id={''}></PatientForm>
             </Dialog>
         </div>
     );

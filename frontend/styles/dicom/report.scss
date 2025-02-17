@@ -1,0 +1,9 @@
+.input-wrap {
+    position: relative;
+
+    >.p-error {
+        position: absolute;
+        bottom: -8px;
+        left: 8px;
+    }
+}
