@@ -31,6 +31,7 @@ import { IoIosMove } from 'react-icons/io';
 import { ImContrast } from 'react-icons/im';
 import { RiResetLeftFill } from 'react-icons/ri';
 import PatientForm from '../forms/PatientForm';
+import { Messages } from 'primereact/messages';
 
 const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     const [selectedImageIdIndex, setSelectedImageIdIndex] = useState<number | null>(null);
@@ -48,6 +49,22 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     const renderingEngineId = 'myRenderingEngine';
     const viewportId = 'CT_VIEWPORT';
     const toolGroupId = 'ctToolGroup';
+    const msgs = useRef<Messages>(null);
+
+    const [patientData, setPatientData] = useState<PatientData>({
+        patientId: "",
+        group: "",
+        collectFees: "",
+        name: "",
+        age: "",
+        sex: "",
+        address: "",
+        diagnosis: "",
+        general_conclusion: "",
+        session_id: "",
+        file_name: [],
+        forecast_index: [],
+    });
 
     useEffect(() => {
         const initializeViewer = async () => {
@@ -165,6 +182,28 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
             };
         }
     }, [activeTab]);
+
+    useEffect(() => {
+        if (selectedFolder?.predictions && selectedFolder.predictions.length > 0) {
+            const messages = selectedFolder.predictions[0].map((value, index) => ({
+                sticky: true,
+                severity: getSeverity(value),
+                summary: `Year ${index + 1}`,
+                detail: `Value: ${(value * 100).toFixed(2)}%`,
+                closable: false,
+            }));
+
+            msgs.current?.clear(); // Xóa thông báo cũ trước khi cập nhật
+            msgs.current?.show(messages);
+        }
+    }, [selectedFolder?.predictions]);
+
+    const getSeverity = (value: number): "success" | "info" | "warn" | "error" => {
+        if (value < 0.25) return 'info';
+        if (value < 0.5) return 'success';
+        if (value < 0.75) return 'warn';
+        return 'error';
+    };
 
     const handleImageClick = useCallback(
         (index: number) => {
@@ -329,12 +368,19 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     };
 
     const handleViewExport = () => {
-        if (selectedFolder?.gifDownloadURL?.preview_link && selectedImages) {
-            console.log(selectedImages);
+        if (selectedFolder?.gifDownloadURL?.preview_link && selectedImages.length > 0) {
+            console.log("selectedImages:", selectedImages);
+
+            setPatientData((prevData) => ({
+                ...prevData,
+                file_name: selectedImages,
+                session_id: selectedFolder?.session_id || "",
+                forecast_index: selectedFolder?.predictions ? selectedFolder.predictions[0] : []
+            }));
 
             setExportDialog(true);
         } else {
-            showToast('warn', 'No Image choose', 'There is no Image predict choose.');
+            showToast("warn", "No Image choose", "There is no Image predict choose.");
         }
     };
 
@@ -427,7 +473,9 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                         <div className="h-viewport" ref={elementRef}></div>
                     </div>
                 </SplitterPanel>
-                <SplitterPanel size={10} minSize={5} className="p-2 flex-column"></SplitterPanel>
+                <SplitterPanel size={10} minSize={5} className="p-2 flex-column">
+                    <Messages ref={msgs} />
+                </SplitterPanel>
             </Splitter>
             <Dialog header="GIF Preview" visible={showGifDialog} style={{ width: '50vw' }} onHide={() => setShowGifDialog(false)}>
                 <div className="flex flex-column align-items-center">
@@ -436,7 +484,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                 </div>
             </Dialog>
             <Dialog header="Export Preview" visible={ExportDialog} style={{ width: '50vw' }} onHide={() => setExportDialog(false)}>
-                <PatientForm selectedFileName={selectedImages} session_id={''}></PatientForm>
+                <PatientForm patientData={patientData} setPatientData={setPatientData} />
             </Dialog>
         </div>
     );
