@@ -11,26 +11,6 @@ import "@/styles/dicom/report.scss";
 
 
 const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Dispatch<React.SetStateAction<PatientData>> }> = ({ patientData, setPatientData }) => {
-    // const [patient, setPatient] = useState<PatientData>(() => ({
-    //     patientId: "",
-    //     group: "",
-    //     collectFees: "",
-    //     name: "",
-    //     age: "",
-    //     sex: "",
-    //     address: "",
-    //     diagnosis: "",
-    //     general_conclusion: "",
-    //     session_id: "",
-    //     file_name: [],
-    //     forecast_index: {
-    //         index_0: "",
-    //         index_1: "",
-    //         index_2: "",
-    //         index_3: "",
-    //         index_4: "",
-    //     },
-    // }));
     const [loading, setLoading] = useState(false);
 
     const [errors, setErrors] = useState<Record<string, string>>({});
