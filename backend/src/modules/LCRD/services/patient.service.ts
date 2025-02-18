@@ -8,45 +8,48 @@ import { FolderType } from "../enums/folder-type.enum";
 import path from "path";
 import fs from "fs";
 import NotFoundError from "../../../errors/not-found.error";
+import { PredictionRepository } from "../repositories/prediction.repository";
 
 export class PatientService {
     private readonly patientRepository: PatientRepository;
     private readonly folderRepository: FolderRepository;
+    private readonly predictionRepository: PredictionRepository;
     private readonly uploadPath: string;
     private readonly savePath: string;
 
     constructor() {
         this.patientRepository = new PatientRepository();
         this.folderRepository = new FolderRepository();
+        this.predictionRepository = new PredictionRepository();
         this.uploadPath = validateEnv().linkSaveDicomUploads;
         this.savePath = validateEnv().linkSaveDicomResults;
     }
 
     createPatient = async (data: z.infer<typeof CreatePatientSchema>) => {
-        const uploadFolder =
-            await this.folderRepository.updateFolderByNameAndType(
-                { folderName: data.uploaded, folderType: FolderType.UPLOAD },
-                { status: true }
-            );
+        const folder = await this.folderRepository.updateFolderByUUID(
+            data.session_id,
+            {
+                isSaved: true,
+            }
+        );
 
-        if (!uploadFolder) {
-            throw new BadRequestError("Upload id not found");
+        if (!folder) {
+            throw new NotFoundError("Folder not found");
         }
 
-        const resultFolder =
-            await this.folderRepository.updateFolderByNameAndType(
-                { folderName: data.result, folderType: FolderType.RESULT },
-                { status: true }
+        const prediction =
+            await this.predictionRepository.getPredictionBySessionId(
+                data.session_id
             );
 
-        if (!resultFolder) {
-            throw new BadRequestError("Result id not found");
+        if (!prediction) {
+            throw new NotFoundError("Prediction not found");
         }
 
         return await this.patientRepository.create({
             ...data,
-            uploaded: uploadFolder._id,
-            result: resultFolder._id,
+            folder: folder._id,
+            prediction: prediction._id,
         });
     };
 }

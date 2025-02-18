@@ -9,34 +9,34 @@ import BadGatewayError from "../../../errors/bad-gateway.error";
 import HttpException from "../../../errors/http-exception.error";
 import { FolderRepository } from "../repositories/folder.repository";
 import { FolderType } from "../enums/folder-type.enum";
+import { PredictionRepository } from "../repositories/prediction.repository";
 
 export class SybilService {
     private readonly baseUrl: string;
     private readonly uploadPath: string;
     private readonly savePath: string;
     private readonly folderRepository: FolderRepository;
+    private readonly predictionRepository: PredictionRepository;
 
     constructor() {
         this.baseUrl = validateEnv().sybilModelBaseUrl;
         this.uploadPath = validateEnv().linkSaveDicomUploads;
         this.savePath = validateEnv().linkSaveDicomResults;
         this.folderRepository = new FolderRepository();
+        this.predictionRepository = new PredictionRepository();
     }
 
     predictSybil = async (folderUUID: string, files: Express.Multer.File[]) => {
         await this.folderRepository.create({
-            folderName: folderUUID,
-            folderType: FolderType.UPLOAD,
-            folderFiles: files.map((file) => file.originalname),
+            folderUUID,
         });
 
-        const uploadedFiles = files.map(
-            (file) => `${folderUUID}/${file.originalname}`
-        );
-
         const formData = new FormData();
-        for (const file of uploadedFiles) {
-            const filePath = path.join(this.uploadPath, file);
+        for (const file of files) {
+            const filePath = path.join(
+                this.uploadPath,
+                `${folderUUID}/${file.originalname}`
+            );
             formData.append("file", fs.createReadStream(filePath));
         }
 
@@ -52,8 +52,12 @@ export class SybilService {
 
             const data = (await response.json()) as ISybilPredictionResponse;
 
-            const sessionId = data.session_id;
-            const sessionPath = path.join(this.savePath, sessionId);
+            await this.predictionRepository.create({
+                session_id: folderUUID,
+                predictions: data.predictions,
+            });
+
+            const sessionPath = path.join(this.savePath, folderUUID);
 
             fs.mkdirSync(sessionPath, { recursive: true });
 
@@ -84,14 +88,6 @@ export class SybilService {
                 path.endsWith(".dcm")
             );
 
-            await this.folderRepository.create({
-                folderName: sessionId,
-                folderType: FolderType.RESULT,
-                folderFiles: overlayImages,
-                gifFile: "animation.gif",
-                apiResponse: data.predictions,
-            });
-
             // Xóa các file tạm trong thư mục uploads
             // (req.files as Express.Multer.File[]).forEach((file) => {
             //     fs.unlinkSync(file.path);
@@ -100,7 +96,6 @@ export class SybilService {
             // Trả về kết quả cho frontend
             return {
                 predictions: data.predictions,
-                session_id: sessionId,
                 overlay_images: overlayImages,
                 gif: "animation.gif",
             };

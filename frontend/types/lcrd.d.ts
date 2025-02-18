@@ -1,4 +1,3 @@
-
 interface FolderType {
     id: string;
     name: string;
@@ -6,6 +5,7 @@ interface FolderType {
     imageIds: string[];
     predictedImagesURL?: OverlayImage[];
     gifDownloadURL?: Gif;
+    session_id?: string;
 }
 
 interface DCMViewerProps {
@@ -16,8 +16,8 @@ interface PredictionResponse {
     message: string;
     predictions: number[][];
     session_id: string;
-    overlay_images: OverlayImage[];
-    gif: Gif;
+    overlay_images: string[];
+    gif: string;
 }
 
 interface OverlayImage {

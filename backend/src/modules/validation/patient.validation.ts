@@ -10,7 +10,6 @@ export const CreatePatientSchema = z.object({
     sex: z.string().min(1, "Sex is required"),
     address: z.string().min(1, "Address is required"),
     diagnosis: z.string().min(1, "Diagnosis is required"),
-    general_conclusion: z.string().min(1, "General conclusion is required"),
-    uploaded: z.string(),
-    result: z.string(),
+    general_conclusion: z.string().optional(),
+    session_id: z.string().min(1, "Session ID is required"),
 });

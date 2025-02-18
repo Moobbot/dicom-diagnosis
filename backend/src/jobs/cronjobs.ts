@@ -33,17 +33,29 @@ class CronJobs {
 
                 for (const folder of expiredFolders) {
                     try {
-                        const folderPath =
-                            folder.folderType === FolderType.UPLOAD
-                                ? path.join(this.uploadPath, folder.folderName)
-                                : path.join(this.savePath, folder.folderName);
+                        const uploadPath = path.join(
+                            this.uploadPath,
+                            folder.folderUUID
+                        );
+                        const savePath = path.join(
+                            this.savePath,
+                            folder.folderUUID
+                        );
 
-                        if (fs.existsSync(folderPath)) {
-                            fs.rmSync(folderPath, {
+                        if (fs.existsSync(uploadPath)) {
+                            fs.rmSync(uploadPath, {
                                 recursive: true,
                                 force: true,
                             });
-                            console.log(`Deleted folder: ${folderPath}`);
+                            console.log(`Deleted folder: ${uploadPath}`);
+                        }
+
+                        if (fs.existsSync(savePath)) {
+                            fs.rmSync(savePath, {
+                                recursive: true,
+                                force: true,
+                            });
+                            console.log(`Deleted folder: ${savePath}`);
                         }
 
                         await this.folderRepository.deleteById(
@@ -51,7 +63,7 @@ class CronJobs {
                         );
                     } catch (err) {
                         console.error(
-                            `Error deleting folder ${folder.folderName}:`,
+                            `Error deleting folder ${folder.folderUUID}:`,
                             err
                         );
                     }

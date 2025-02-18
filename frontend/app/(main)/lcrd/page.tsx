@@ -25,19 +25,17 @@ declare global {
     }
 }
 
-const addPrefixToLinks = (data: PredictionResponse, apiPath: string): PredictionResponse => {
+const addPrefixToLinks = (data: PredictionResponse, apiPath: string): Omit<PredictionResponse, 'overlay_images' | 'gif'> & { overlay_images: OverlayImage[]; gif: Gif } => {
     return {
         ...data,
-        overlay_images: data.overlay_images.map((image) => ({
-            ...image,
-            filename: image.filename,
-            download_link: `wadouri:${apiPath}${image.download_link}`,
-            preview_link: `wadouri:${apiPath}${image.preview_link}`
+        overlay_images: data.overlay_images.map((filename) => ({
+            filename,
+            download_link: `wadouri:${apiPath}/download/${data.session_id}/${filename}`,
+            preview_link: `wadouri:${apiPath}/preview/${data.session_id}/${filename}`
         })),
         gif: {
-            ...data.gif,
-            download_link: `${apiPath}${data.gif.download_link}`,
-            preview_link: `${apiPath}${data.gif.preview_link}`
+            download_link: `${apiPath}/download/${data.session_id}/${data.gif}`,
+            preview_link: `${apiPath}/preview/${data.session_id}/${data.gif}`
         }
     };
 };
@@ -61,7 +59,7 @@ const LCRD = () => {
     useEffect(() => {
         const initCornerstone = async () => {
             if (typeof window !== 'undefined' && !window.__cornerstone_initialized) {
-                console.log("active");
+                console.log('active');
 
                 const cornerstoneDICOMImageLoader = await import('@cornerstonejs/dicom-image-loader');
                 await cornerstoneDICOMImageLoader.init({ maxWebWorkers: 1 });
@@ -93,9 +91,7 @@ const LCRD = () => {
         }
 
         // Sắp xếp file theo thứ tự tự nhiên (numeric sort)
-        dicomFiles.sort((a, b) =>
-            new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name)
-        );
+        dicomFiles.sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name));
 
         return {
             id: Date.now().toString(),
@@ -174,22 +170,17 @@ const LCRD = () => {
                 throw new Error(`Server error (${response.status}): ${errorText}`);
             }
 
-            const data = await response.json() as PredictionResponse;
+            const data = (await response.json()) as PredictionResponse;
 
             const updatedData = addPrefixToLinks(data, `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/`);
 
-            setFolders((prevFolders) =>
-                prevFolders.map((folder) =>
-                    folder.id === selectedFolder.id
-                        ? { ...folder, predictedImagesURL: updatedData.overlay_images, gifDownloadURL: updatedData.gif }
-                        : folder
-                )
-            );
+            setFolders((prevFolders) => prevFolders.map((folder) => (folder.id === selectedFolder.id ? { ...folder, predictedImagesURL: updatedData.overlay_images, gifDownloadURL: updatedData.gif } : folder)));
 
             setSelectedFolder((prev) => ({
                 ...prev!,
                 predictedImagesURL: updatedData.overlay_images,
-                gifDownloadURL: updatedData.gif
+                gifDownloadURL: updatedData.gif,
+                session_id: data.session_id
             }));
 
             showToast('success', 'Success', 'Prediction completed successfully');

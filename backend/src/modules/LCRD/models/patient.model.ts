@@ -19,12 +19,11 @@ const patientSchema = new Schema<IPatient>(
         diagnosis: { type: String, required: [true, "Diagnosis is required"] },
         general_conclusion: {
             type: String,
-            required: [true, "General conclusion is required"],
         },
         createdBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
         updatedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
-        uploaded: { type: Schema.Types.ObjectId, ref: "Folder" },
-        result: { type: Schema.Types.ObjectId, ref: "Folder" },
+        folder: { type: Schema.Types.ObjectId, ref: "Folder" },
+        prediction: { type: Schema.Types.ObjectId, ref: "Prediction" },
     },
     { timestamps: true }
 );

@@ -9,11 +9,11 @@ export interface IPatient {
     sex: string;
     address: string;
     diagnosis: string;
-    general_conclusion: string;
+    general_conclusion?: string;
     createdAt: Date;
     updatedAt: Date;
     createdBy?: Types.ObjectId;
     updatedBy?: Types.ObjectId;
-    uploaded: Types.ObjectId;
-    result: Types.ObjectId;
+    folder: Types.ObjectId;
+    prediction: Types.ObjectId;
 }

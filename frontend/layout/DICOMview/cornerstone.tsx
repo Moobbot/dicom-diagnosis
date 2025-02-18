@@ -16,13 +16,7 @@ import { Toolbar } from 'primereact/toolbar';
 import * as cornerstone from '@cornerstonejs/core';
 import { RenderingEngine, Enums, type Types } from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
-import {
-    ZoomTool,
-    PanTool,
-    WindowLevelTool,
-    StackScrollTool,
-    LengthTool
-} from '@cornerstonejs/tools';
+import { ZoomTool, PanTool, WindowLevelTool, StackScrollTool, LengthTool } from '@cornerstonejs/tools';
 
 // Icons
 import { TiZoom } from 'react-icons/ti';
@@ -128,14 +122,12 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                 if (activeTab === 0) {
                     imageStack = selectedFolder.imageIds;
                 } else if (selectedFolder.predictedImagesURL && selectedFolder.predictedImagesURL.length > 0) {
-                    imageStack = selectedFolder.predictedImagesURL
-                        .map((img) => img.preview_link)
-                        .filter((link) => typeof link === 'string' && link.startsWith("wadouri:"));
+                    imageStack = selectedFolder.predictedImagesURL.map((img) => img.preview_link).filter((link) => typeof link === 'string' && link.startsWith('wadouri:'));
                 }
 
                 if (imageStack.length === 0) {
-                    console.warn("Predicted image stack is empty or invalid.");
-                    showToast("warn", "Warning", "No predicted images available.");
+                    console.warn('Predicted image stack is empty or invalid.');
+                    showToast('warn', 'Warning', 'No predicted images available.');
                     return;
                 }
 
@@ -171,15 +163,13 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
             const viewport = renderingEngineRef.current?.getViewport(viewportId) as Types.IStackViewport;
 
             if (!viewport || !selectedFolder) {
-                showToast("error", "Error", "No active viewport found.");
+                showToast('error', 'Error', 'No active viewport found.');
                 return;
             }
-            const imageStack = activeTab === 0
-                ? selectedFolder.imageIds
-                : selectedFolder.predictedImagesURL?.map((img) => img.preview_link) || [];
+            const imageStack = activeTab === 0 ? selectedFolder.imageIds : selectedFolder.predictedImagesURL?.map((img) => img.preview_link) || [];
 
             if (!imageStack || imageStack.length === 0) {
-                showToast("warn", "Warning", "No images available for display.");
+                showToast('warn', 'Warning', 'No images available for display.');
                 return;
             }
 
@@ -413,7 +403,8 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                                 </div>
                             }
                             end={
-                                (activeTab === 1 && selectedFolder?.predictedImagesURL) && (
+                                activeTab === 1 &&
+                                selectedFolder?.predictedImagesURL && (
                                     <div className="flex gap-2">
                                         <Button label="Detection" severity="warning" />
                                         <Button label="Export" severity="help" onClick={handleViewExport} />
@@ -436,7 +427,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                 </div>
             </Dialog>
             <Dialog header="Export Preview" visible={ExportDialog} style={{ width: '50vw' }} onHide={() => setExportDialog(false)}>
-                <PatientForm selectedFileName={selectedImages} session_id={''}></PatientForm>
+                <PatientForm selectedFileName={selectedImages} session_id={selectedFolder?.session_id as string}></PatientForm>
             </Dialog>
         </div>
     );

@@ -18,15 +18,12 @@ export class FolderRepository extends BaseRepository<IFolder> {
         });
     };
 
-    findFolderByNameAndType = (folderName: string, folderType: number) => {
-        return FolderModel.findOne({ folderName, folderType });
+    findFolderByUUID = (folderUUID: string) => {
+        return FolderModel.findOne({ folderUUID });
     };
 
-    updateFolderByNameAndType = (
-        query: { folderName: string; folderType: number },
-        update: UpdateQuery<IFolder>
-    ) => {
-        return FolderModel.findOneAndUpdate(query, update, {
+    updateFolderByUUID = (folderUUID: string, update: UpdateQuery<IFolder>) => {
+        return FolderModel.findOneAndUpdate({ folderUUID }, update, {
             new: true,
         });
     };
