@@ -38,7 +38,9 @@ const addPrefixToLinks = (data: PredictionResponse, apiPath: string): Prediction
             ...data.gif,
             download_link: `${apiPath}${data.gif.download_link}`,
             preview_link: `${apiPath}${data.gif.preview_link}`
-        }
+        },
+        predictions: data.predictions,
+        session_id: data.session_id
     };
 };
 
@@ -61,7 +63,7 @@ const LCRD = () => {
     useEffect(() => {
         const initCornerstone = async () => {
             if (typeof window !== 'undefined' && !window.__cornerstone_initialized) {
-                console.log("active");
+                console.log("DICOM Image Loader");
 
                 const cornerstoneDICOMImageLoader = await import('@cornerstonejs/dicom-image-loader');
                 await cornerstoneDICOMImageLoader.init({ maxWebWorkers: 1 });
@@ -138,6 +140,8 @@ const LCRD = () => {
 
     const selectFolder = (folder: FolderType) => {
         if (selectedFolder?.id !== folder.id) {
+            console.log("Folder selected: ", folder.name);
+
             setSelectedFolder(folder);
             showToast('info', 'Folder Selected', `Selected folder: ${folder.name}`);
         }
@@ -156,6 +160,8 @@ const LCRD = () => {
 
         try {
             setLoading(true);
+            const currentFolderId = selectedFolder.id; // Lưu ID folder cục bộ
+            console.log("Predicting for folder ID:", currentFolderId);
 
             // Tạo FormData chứa các file DICOM
             const formData = new FormData();
@@ -180,18 +186,32 @@ const LCRD = () => {
 
             setFolders((prevFolders) =>
                 prevFolders.map((folder) =>
-                    folder.id === selectedFolder.id
-                        ? { ...folder, predictedImagesURL: updatedData.overlay_images, gifDownloadURL: updatedData.gif }
+                    folder.id === currentFolderId
+                        ? {
+                            ...folder,
+                            predictedImagesURL: updatedData.overlay_images,
+                            gifDownloadURL: updatedData.gif,
+                            session_id: updatedData.session_id,
+                            predictions: updatedData.predictions,
+                            forecast_index: updatedData.predictions[0] || []
+                        }
                         : folder
                 )
             );
 
-            setSelectedFolder((prev) => ({
-                ...prev!,
-                predictedImagesURL: updatedData.overlay_images,
-                gifDownloadURL: updatedData.gif
-            }));
-
+            setSelectedFolder((prev) => {
+                if (prev?.id === currentFolderId) {
+                    return {
+                        ...prev,
+                        predictedImagesURL: updatedData.overlay_images,
+                        gifDownloadURL: updatedData.gif,
+                        session_id: updatedData.session_id,
+                        predictions: updatedData.predictions,
+                        forecast_index: updatedData.predictions[0] || []
+                    };
+                }
+                return prev;
+            });
             showToast('success', 'Success', 'Prediction completed successfully');
         } catch (error) {
             showToast('error', 'Error', 'Failed to predict');

@@ -8,48 +8,29 @@ import { Dropdown } from "primereact/dropdown";
 import { Button } from "primereact/button";
 import "@/styles/dicom/report.scss";
 
-interface PatientData {
-    patientId: string;
-    group: string;
-    collectFees: string;
-    name: string;
-    age: string;
-    sex: string;
-    address: string;
-    diagnosis: string;
-    general_conclusion: string;
-    session_id: string;
-    file_name: string[];
-    forecast_index: {
-        index_0: string;
-        index_1: string;
-        index_2: string;
-        index_3: string;
-        index_4: string;
-    };
-}
 
-const PatientForm: React.FC<PatientPredict> = ({ selectedFileName, session_id }) => {
-    const [patient, setPatient] = useState<PatientData>(() => ({
-        patientId: "",
-        group: "",
-        collectFees: "",
-        name: "",
-        age: "",
-        sex: "",
-        address: "",
-        diagnosis: "",
-        general_conclusion: "",
-        session_id: session_id || "",
-        file_name: [],
-        forecast_index: {
-            index_0: "",
-            index_1: "",
-            index_2: "",
-            index_3: "",
-            index_4: "",
-        },
-    }));
+
+const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Dispatch<React.SetStateAction<PatientData>> }> = ({ patientData, setPatientData }) => {
+    // const [patient, setPatient] = useState<PatientData>(() => ({
+    //     patientId: "",
+    //     group: "",
+    //     collectFees: "",
+    //     name: "",
+    //     age: "",
+    //     sex: "",
+    //     address: "",
+    //     diagnosis: "",
+    //     general_conclusion: "",
+    //     session_id: "",
+    //     file_name: [],
+    //     forecast_index: {
+    //         index_0: "",
+    //         index_1: "",
+    //         index_2: "",
+    //         index_3: "",
+    //         index_4: "",
+    //     },
+    // }));
     const [loading, setLoading] = useState(false);
 
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -63,35 +44,27 @@ const PatientForm: React.FC<PatientPredict> = ({ selectedFileName, session_id })
         e: React.ChangeEvent<HTMLInputElement>,
         field: keyof PatientData
     ) => {
-        setPatient({ ...patient, [field]: e.target.value });
+        setPatientData({ ...patientData, [field]: e.target.value });
     };
 
     const validate = () => {
         let errs: Record<string, string> = {};
-        if (!patient.patientId) errs.patientId = "Patient ID is required";
-        if (!patient.name) errs.name = "Patient Name is required";
-        if (!patient.age) errs.age = "Valid Age is required";
-        if (!patient.sex) errs.sex = "Sex is required";
+        if (!patientData.patientId) errs.patientId = "Patient ID is required";
+        if (!patientData.name) errs.name = "Patient Name is required";
+        if (!patientData.age) errs.age = "Valid Age is required";
+        if (!patientData.sex) errs.sex = "Sex is required";
         setErrors(errs);
         return Object.keys(errs).length === 0;
     };
 
-    const handleCheckboxChange = (filename: string) => {
-        setPatient((prevState) => {
-            const updatedFiles = prevState.file_name.includes(filename)
-                ? prevState.file_name.filter((file) => file !== filename)
-                : [...prevState.file_name, filename];
-            return { ...prevState, file_name: updatedFiles };
-        });
-    };
     const handleSubmit = async () => {
         setLoading(true);
         console.log("Call Submit");
 
         if (validate()) {
             try {
-                console.log(patient);
-                
+                console.log(patientData);
+
                 // const response = await fetch(
                 //     `${process.env.NEXT_PUBLIC_API_BASE_URL}/generate-report`,
                 //     {
@@ -125,7 +98,7 @@ const PatientForm: React.FC<PatientPredict> = ({ selectedFileName, session_id })
                 <div className="input-wrap field col-12 md:col-6">
                     <label>Patient ID</label>
                     <InputText
-                        value={patient.patientId}
+                        value={patientData.patientId}
                         onChange={(e) => handleChange(e, "patientId")}
                         className={errors.patientId ? "p-invalid" : ""}
                     />
@@ -134,7 +107,7 @@ const PatientForm: React.FC<PatientPredict> = ({ selectedFileName, session_id })
                 <div className="input-wrap field col-12 md:col-6">
                     <label>Patient Name</label>
                     <InputText
-                        value={patient.name}
+                        value={patientData.name}
                         onChange={(e) => handleChange(e, "name")}
                         className={errors.name ? "p-invalid" : ""}
                     />
@@ -143,17 +116,17 @@ const PatientForm: React.FC<PatientPredict> = ({ selectedFileName, session_id })
 
                 <div className="input-wrap field col-12 md:col-3">
                     <label>Group</label>
-                    <InputText value={patient.group} onChange={(e) => handleChange(e, "group")} />
+                    <InputText value={patientData.group} onChange={(e) => handleChange(e, "group")} />
                 </div>
                 <div className="input-wrap field col-12 md:col-3">
                     <label>Collect Fees</label>
-                    <InputText value={patient.collectFees} onChange={(e) => handleChange(e, "collectFees")} />
+                    <InputText value={patientData.collectFees} onChange={(e) => handleChange(e, "collectFees")} />
                 </div>
                 <div className="input-wrap field col-6 md:col-3">
                     <label>Age</label>
                     <InputText
                         type="number"
-                        value={patient.age}
+                        value={patientData.age}
                         onChange={(e) => handleChange(e, "age")}
                         className={errors.age ? "p-invalid" : ""}
                     />
@@ -162,9 +135,9 @@ const PatientForm: React.FC<PatientPredict> = ({ selectedFileName, session_id })
                 <div className="input-wrap field col-6 md:col-3">
                     <label>Sex</label>
                     <Dropdown
-                        value={patient.sex}
+                        value={patientData.sex}
                         options={sexOptions}
-                        onChange={(e) => setPatient({ ...patient, sex: e.value })}
+                        onChange={(e) => setPatientData({ ...patientData, sex: e.value })}
                         placeholder="Select"
                         className={errors.sex ? "p-invalid" : ""}
                     />
@@ -174,7 +147,7 @@ const PatientForm: React.FC<PatientPredict> = ({ selectedFileName, session_id })
                 <div className="input-wrap field col-12">
                     <label>Address</label>
                     <InputText
-                        value={patient.address}
+                        value={patientData.address}
                         onChange={(e) => handleChange(e, "address")}
                     />
                 </div>
@@ -182,7 +155,7 @@ const PatientForm: React.FC<PatientPredict> = ({ selectedFileName, session_id })
                 <div className="input-wrap field col-12">
                     <label>Initial Diagnosis or Chief Complain</label>
                     <InputText
-                        value={patient.diagnosis}
+                        value={patientData.diagnosis}
                         onChange={(e) => handleChange(e, "diagnosis")}
                     />
                 </div>
