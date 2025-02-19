@@ -1,14 +1,12 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { Card } from "primereact/card";
-import { InputText } from "primereact/inputtext";
-import { Dropdown } from "primereact/dropdown";
-import { Button } from "primereact/button";
-import "@/styles/dicom/report.scss";
-
-
+import React, { useState, useEffect } from 'react';
+import { Card } from 'primereact/card';
+import { InputText } from 'primereact/inputtext';
+import { Dropdown } from 'primereact/dropdown';
+import { Button } from 'primereact/button';
+import '@/styles/dicom/report.scss';
+import PatientService from '@/modules/admin/service/PatientService';
 
 const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Dispatch<React.SetStateAction<PatientData>> }> = ({ patientData, setPatientData }) => {
     const [loading, setLoading] = useState(false);
@@ -16,8 +14,8 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const sexOptions = [
-        { label: "Male", value: "Male" },
-        { label: "Female", value: "Female" },
+        { label: 'Male', value: 'Male' },
+        { label: 'Female', value: 'Female' }
     ];
 
     const handleChange = (
@@ -29,22 +27,36 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
 
     const validate = () => {
         let errs: Record<string, string> = {};
-        if (!patientData.patientId) errs.patientId = "Patient ID is required";
+        if (!patientData.patient_id) errs.patient_id = "Patient ID is required";
         if (!patientData.name) errs.name = "Patient Name is required";
         if (!patientData.age) errs.age = "Valid Age is required";
         if (!patientData.sex) errs.sex = "Sex is required";
         setErrors(errs);
         return Object.keys(errs).length === 0;
     };
+    const handleSave = async () => {
+        setLoading(true);
+        console.log('Call Submit');
+        console.log(patientData);
 
+        // if (validate()) {
+        //     try {
+        //         console.log("patientData:", patientData);
+        //         await PatientService.createPatient(patientData);
+        //     } catch (error) {
+        //         console.error('Error create patient', error);
+        //     }
+        // }
+    };
     const handleSubmit = async () => {
         setLoading(true);
-        console.log("Call Submit");
+        console.log('Call Submit');
 
         if (validate()) {
             try {
-                console.log(patientData);
+                console.log("patientData:", patientData);
 
+                // await PatientService.createPatient(patientData);
                 // const response = await fetch(
                 //     `${process.env.NEXT_PUBLIC_API_BASE_URL}/generate-report`,
                 //     {
@@ -67,7 +79,7 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
                 // a.click();
                 // document.body.removeChild(a);
             } catch (error) {
-                console.error("Error generating report:", error);
+                console.error('Error create patient', error);
             }
         }
     };
@@ -78,11 +90,11 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
                 <div className="input-wrap field col-12 md:col-6">
                     <label>Patient ID</label>
                     <InputText
-                        value={patientData.patientId}
-                        onChange={(e) => handleChange(e, "patientId")}
-                        className={errors.patientId ? "p-invalid" : ""}
+                        value={patientData.patient_id}
+                        onChange={(e) => handleChange(e, "patient_id")}
+                        className={errors.patient_id ? "p-invalid" : ""}
                     />
-                    {errors.patientId && <small className="p-error">{errors.patientId}</small>}
+                    {errors.patient_id && <small className="p-error">{errors.patient_id}</small>}
                 </div>
                 <div className="input-wrap field col-12 md:col-6">
                     <label>Patient Name</label>
@@ -93,7 +105,6 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
                     />
                     {errors.name && <small className="p-error">{errors.name}</small>}
                 </div>
-
                 <div className="input-wrap field col-12 md:col-3">
                     <label>Group</label>
                     <InputText value={patientData.group} onChange={(e) => handleChange(e, "group")} />
@@ -123,7 +134,6 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
                     />
                     {errors.sex && <small className="p-error">{errors.sex}</small>}
                 </div>
-
                 <div className="input-wrap field col-12">
                     <label>Address</label>
                     <InputText
@@ -131,7 +141,6 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
                         onChange={(e) => handleChange(e, "address")}
                     />
                 </div>
-
                 <div className="input-wrap field col-12">
                     <label>Initial Diagnosis or Chief Complain</label>
                     <InputText
@@ -139,14 +148,13 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
                         onChange={(e) => handleChange(e, "diagnosis")}
                     />
                 </div>
-
                 <div className="col-12">
-                    <Button
-                        label="Generate Report"
-                        icon="pi pi-file"
-                        onClick={handleSubmit}
-                        className="p-button-success"
-                    />
+                    <div className="col-6">
+                        <Button label="Generate Report" icon="pi pi-file" onClick={handleSubmit} className="p-button-success" />
+                    </div>
+                    <div className="col-6">
+                        <Button label="Save Patient" icon="pi pi-file" onClick={handleSave} className="p-button-primary" />
+                    </div>
                 </div>
             </div>
         </Card>

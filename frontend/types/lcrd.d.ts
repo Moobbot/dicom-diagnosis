@@ -1,4 +1,3 @@
-
 interface FolderType {
     id: string;
     name: string;
@@ -18,8 +17,9 @@ interface PredictionResponse {
     session_id: string;
     message: string;
     predictions: number[][];
-    overlay_images: OverlayImage[];
-    gif: Gif;
+    session_id: string;
+    overlay_images: string[];
+    gif: string;
 }
 
 interface OverlayImage {
@@ -34,7 +34,7 @@ interface Gif {
 }
 
 interface PatientData {
-    patientId: string;
+    patient_id: string;
     group: string;
     collectFees: string;
     name: string;
