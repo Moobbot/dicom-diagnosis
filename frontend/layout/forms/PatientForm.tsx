@@ -7,6 +7,7 @@ import { Dropdown } from 'primereact/dropdown';
 import { Button } from 'primereact/button';
 import '@/styles/dicom/report.scss';
 import PatientService from '@/modules/admin/service/PatientService';
+import { InputTextarea } from 'primereact/inputtextarea';
 
 const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Dispatch<React.SetStateAction<PatientData>> }> = ({ patientData, setPatientData }) => {
     const [loading, setLoading] = useState(false);
@@ -19,7 +20,7 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
     ];
 
     const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement>,
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
         field: keyof PatientData
     ) => {
         setPatientData({ ...patientData, [field]: e.target.value });
@@ -37,16 +38,16 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
     const handleSave = async () => {
         setLoading(true);
         console.log('Call Submit');
-        console.log(patientData);
+        console.log("Patient Data Save:", patientData);
 
-        // if (validate()) {
-        //     try {
-        //         console.log("patientData:", patientData);
-        //         await PatientService.createPatient(patientData);
-        //     } catch (error) {
-        //         console.error('Error create patient', error);
-        //     }
-        // }
+        if (validate()) {
+            try {
+                console.log("patientData:", patientData);
+                await PatientService.createPatient(patientData);
+            } catch (error) {
+                console.error('Error create patient', error);
+            }
+        }
     };
     const handleSubmit = async () => {
         setLoading(true);
@@ -143,12 +144,19 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
                 </div>
                 <div className="input-wrap field col-12">
                     <label>Initial Diagnosis or Chief Complain</label>
-                    <InputText
+                    <InputTextarea
                         value={patientData.diagnosis}
                         onChange={(e) => handleChange(e, "diagnosis")}
                     />
                 </div>
-                <div className="col-12">
+                <div className="input-wrap field col-12">
+                    <label>General Conclusion</label>
+                    <InputTextarea
+                        value={patientData.general_conclusion}
+                        onChange={(e) => handleChange(e, "general_conclusion")}
+                    />
+                </div>
+                <div className="col-12 flex">
                     <div className="col-6">
                         <Button label="Generate Report" icon="pi pi-file" onClick={handleSubmit} className="p-button-success" />
                     </div>

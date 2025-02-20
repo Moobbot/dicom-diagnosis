@@ -3,7 +3,6 @@ import fs from "fs";
 import path from "path";
 import { FolderRepository } from "../modules/LCRD/repositories/folder.repository";
 import { validateEnv } from "../config/env.config";
-import { FolderType } from "../modules/LCRD/enums/folder-type.enum";
 
 class CronJobs {
     private readonly folderRepository: FolderRepository;
