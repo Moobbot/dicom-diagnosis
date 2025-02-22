@@ -3,6 +3,10 @@ import {
     UpdateQuery,
     Model,
     PopulateOptions,
+    ClientSession,
+    QueryOptions,
+    Document,
+    Types,
 } from "mongoose";
 
 export class BaseRepository<T> {
@@ -13,139 +17,87 @@ export class BaseRepository<T> {
     }
 
     // Tìm tất cả tài liệu với tùy chọn phân trang và populate
-    async findAll(
+    findAll(
         filter: FilterQuery<T> = {},
+        sort?: Record<string, 1 | -1>,
         page?: number,
-        limit?: number,
-        populateOptions?: PopulateOptions | PopulateOptions[]
+        limit?: number
     ) {
-        try {
-            const query = this.model.find(filter);
+        const query = this.model.find(filter);
 
-            // Thêm populate nếu có
-            if (populateOptions) {
-                query.populate(populateOptions);
-            }
-            //  else {
-            //     query
-            //         .populate({ path: "createdBy", select: "id username" })
-            //         .populate({ path: "updatedBy", select: "id username" });
-            // }
-
-            // Xử lý phân trang
-            if (page && limit) {
-                const startIndex = (page - 1) * limit;
-                query.skip(startIndex).limit(limit);
-            }
-
-            return await query.exec();
-        } catch (error) {
-            if (error instanceof Error) {
-                throw new Error(`Error fetching data: ${error.message}`);
-            } else {
-                throw new Error("An unknown error occurred");
-            }
+        // Xử lý sắp xếp
+        if (sort) {
+            query.sort(sort);
         }
+
+        // Xử lý phân trang
+        if (page && limit) {
+            const startIndex = (page - 1) * limit;
+            query.skip(startIndex).limit(limit);
+        }
+
+        query
+            .populate({
+                path: "createdBy",
+                select: "id username",
+                strictPopulate: false,
+            })
+            .populate({
+                path: "updatedBy",
+                select: "id username",
+                strictPopulate: false,
+            });
+
+        return query;
     }
 
     // Tìm một tài liệu theo ID với tùy chọn populate
-    async findById(id: string, populateOptions?: PopulateOptions | PopulateOptions[]) {
-        try {
-            const query = this.model.findById(id);
-            if (populateOptions) {
-                query.populate(populateOptions);
-            }
-            return query.exec();
-        } catch (error) {
-            if (error instanceof Error) {
-                throw new Error(`Error fetching document by ID: ${error.message}`);
-            } else {
-                throw new Error("An unknown error occurred");
-            }
-        }
+    findById(id: string) {
+        return this.model.findById(id);
     }
 
-    async findByIds(ids: string[]) {
-        try {
-            const query = this.model.find({ _id: { $in: ids } });
-            return query.exec();
-        } catch (error) {
-            if (error instanceof Error) {
-                throw new Error(`Error fetching document by ID: ${error.message}`);
-            } else {
-                throw new Error("An unknown error occurred");
-            }
-        }
-    }
-    async create(data: Partial<T>) {
-        try {
-            return this.model.create(data);
-        } catch (error) {
-            if (error instanceof Error) {
-                throw new Error(`Error creating document: ${error.message}`);
-            } else {
-                throw new Error("An unknown error occurred");
-            }
-        }
-    }
-    async createMany(data: Partial<T>[]) {
-        try {
-            return this.model.insertMany(data);
-        } catch (error) {
-            if (error instanceof Error) {
-                throw new Error(`Error creating document: ${error.message}`);
-            } else {
-                throw new Error("An unknown error occurred");
-            }
-        }
+    findByIds(ids: string[]) {
+        return this.model.find({ _id: { $in: ids } });
     }
 
-    async updateById(id: string, update: UpdateQuery<T>) {
-        try {
-            return this.model.findByIdAndUpdate(id, update, {
-                new: true,
-            }).exec();
-        } catch (error) {
-            if (error instanceof Error) {
-                throw new Error(`Error updating document by ID: ${error.message}`);
-            } else {
-                throw new Error("An unknown error occurred");
-            }
-        }
-    }
-    updateByIds(ids: string[], update: UpdateQuery<T>) {
-        try {
-            return this.model.updateMany({ _id: { $in: ids } }, update).exec();
-        } catch (error) {
-            if (error instanceof Error) {
-                throw new Error(`Error updating document by ID: ${error.message}`);
-            } else {
-                throw new Error("An unknown error occurred");
-            }
-        }
+    find(query: FilterQuery<T>, options: QueryOptions = { lean: true }) {
+        return this.model.findOne(query, {}, options);
     }
 
-    async deleteById(id: string) {
-        try {
-            return this.model.deleteOne({ _id: id }).exec();
-        } catch (error) {
-            if (error instanceof Error) {
-                throw new Error(`Error deleting document by ID: ${error.message}`);
-            } else {
-                throw new Error("An unknown error occurred");
-            }
-        }
+    create(data: Partial<T>) {
+        return this.model.create(data);
     }
 
-    async count(filter: FilterQuery<T> = {}) {
-        try {
-            return this.model.countDocuments(filter);
-        } catch (error) {
-            if (error instanceof Error) {
-                throw new Error(`Error counting documents: ${error.message}`);
-            } else {
-                throw new Error("An unknown error occurred");
-            }
-        }
+    createWithTransaction(data: Partial<T>, session: ClientSession) {
+        return this.model.create([data], { session });
+    }
+
+    createMany(data: Partial<T>[], session?: ClientSession) {
+        return this.model.insertMany(data, { session });
+    }
+
+    updateById(id: string, update: UpdateQuery<T>, session?: ClientSession) {
+        return this.model.findByIdAndUpdate(id, update, {
+            new: true,
+            session,
+        });
+    }
+
+    updateByIds(
+        ids: string[],
+        update: UpdateQuery<T>,
+        session?: ClientSession
+    ) {
+        return this.model.updateMany({ _id: { $in: ids } }, update, {
+            session,
+        });
+    }
+
+    deleteById(id: string, session?: ClientSession) {
+        return this.model.deleteOne({ _id: id }, { session });
+    }
+
+    count(filter: FilterQuery<T> = {}) {
+        return this.model.countDocuments(filter);
     }
 }

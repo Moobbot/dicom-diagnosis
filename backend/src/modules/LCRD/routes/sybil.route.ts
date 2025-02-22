@@ -5,8 +5,22 @@ import { dicomUpload, generateUploadFolder } from "../middleware/dicom-upload";
 
 const sybilRouter: Router = Router();
 
-sybilRouter.get("/download/*", asyncHandler(SybilController.downloadFile));
-sybilRouter.get("/preview/*", asyncHandler(SybilController.previewFile));
+sybilRouter.get(
+    "/download/uploads/*",
+    asyncHandler(SybilController.downloadFile(true))
+);
+sybilRouter.get(
+    "/preview/uploads/*",
+    asyncHandler(SybilController.previewFile(true))
+);
+sybilRouter.get(
+    "/download/results/*",
+    asyncHandler(SybilController.downloadFile(false))
+);
+sybilRouter.get(
+    "/preview/results/*",
+    asyncHandler(SybilController.previewFile(false))
+);
 sybilRouter.post(
     "/predict",
     [generateUploadFolder, dicomUpload.array("files")], // maxCount hiện là infinity

@@ -11,6 +11,8 @@ import {
 import ConflictError from "../errors/conflict.error";
 import { IRole } from "../interfaces/role.interface";
 import { z } from "zod";
+import { FindQuerySchema } from "../validation/find-query.validation";
+import { buildSearchFilter, buildSortQuery } from "../utils/util";
 
 export class RoleService {
     private readonly roleRepository: RoleRepository;
@@ -21,7 +23,12 @@ export class RoleService {
         this.permissionRepository = new PermissionRepository();
     }
 
-    createRole = async (userId: any, name: string, grantAll: boolean) => {
+    createRole = async (
+        userId: any,
+        data: z.infer<typeof CreateRoleSchema>
+    ) => {
+        const { name, grantAll, description } = data;
+
         const existingRole = await this.roleRepository.findRoleByName(name);
 
         if (existingRole) {
@@ -29,14 +36,28 @@ export class RoleService {
         }
 
         return await this.roleRepository.create({
-            name,
-            grantAll,
+            ...data,
             createdBy: userId,
         });
     };
 
-    listAllRoles = async () => {
-        return await this.roleRepository.findAll();
+    listAllRoles = async (query: z.infer<typeof FindQuerySchema>) => {
+        const { search, sort, page, limit } = query;
+        const filter = buildSearchFilter(
+            search,
+        );
+
+        const sortOptions = buildSortQuery(sort);
+        const total = await this.roleRepository.count(filter);
+
+        const roles = await this.roleRepository.findAll(
+            filter,
+            sortOptions,
+            page,
+            limit
+        );
+
+        return { total, roles };
     };
 
     getRoleById = async (id: string) => {
