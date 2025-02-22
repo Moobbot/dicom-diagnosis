@@ -57,7 +57,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
         general_conclusion: "",
         session_id: "",
         file_name: [],
-        forecast_index: [],
+        forecast: [],
     });
 
     useEffect(() => {
@@ -365,7 +365,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                 ...prevData,
                 file_name: selectedImages,
                 session_id: selectedFolder?.session_id || "",
-                forecast_index: selectedFolder?.predictions ? selectedFolder.predictions[0] : []
+                forecast: selectedFolder?.predictions ? selectedFolder.predictions[0] : []
             }));
 
             setExportDialog(true);

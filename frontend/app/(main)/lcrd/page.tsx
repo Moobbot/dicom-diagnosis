@@ -189,7 +189,7 @@ const LCRD = () => {
                             gifDownloadURL: updatedData.gif,
                             session_id: updatedData.session_id,
                             predictions: updatedData.predictions,
-                            forecast_index: updatedData.predictions[0] || []
+                            forecast: updatedData.predictions[0] || []
                         }
                         : folder
                 )
@@ -203,7 +203,7 @@ const LCRD = () => {
                         gifDownloadURL: updatedData.gif,
                         session_id: updatedData.session_id,
                         predictions: updatedData.predictions,
-                        forecast_index: updatedData.predictions[0] || []
+                        forecast: updatedData.predictions[0] || []
                     };
                 }
                 return prev;

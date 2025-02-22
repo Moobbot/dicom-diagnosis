@@ -22,9 +22,9 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
         address: "???",
         diagnosis: "",
         general_conclusion: "",
-        session_id: "952e1a42-6e1f-44c9-b0da-fc3f70da1adb",
+        session_id: "f50f7cff-f55e-4912-841b-70d036547935",
         file_name: ["slice_125.dcm", "slice_126.dcm", "slice_127.dcm"],
-        forecast_index: [],
+        forecast: [],
     });
 
     return (

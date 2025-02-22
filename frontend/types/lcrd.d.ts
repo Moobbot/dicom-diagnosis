@@ -45,5 +45,5 @@ interface PatientData {
     general_conclusion: string;
     session_id: string;
     file_name: string[];
-    forecast_index: number[];
+    forecast: number[];
 }

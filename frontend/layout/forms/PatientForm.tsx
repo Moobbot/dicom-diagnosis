@@ -29,12 +29,13 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
     const validate = () => {
         let errs: Record<string, string> = {};
         if (!patientData.patient_id) errs.patient_id = "Patient ID is required";
-        if (!patientData.name) errs.name = "Patient Name is required";
+        if (!patientData.name) errs.name = "Patient Patient Name is required";
         if (!patientData.age) errs.age = "Valid Age is required";
         if (!patientData.sex) errs.sex = "Sex is required";
         setErrors(errs);
         return Object.keys(errs).length === 0;
     };
+
     const handleSave = async () => {
         setLoading(true);
         console.log('Call Submit');
@@ -42,43 +43,47 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
 
         if (validate()) {
             try {
-                console.log("patientData:", patientData);
+                console.log("Patient Data Save send:", patientData);
                 await PatientService.createPatient(patientData);
             } catch (error) {
                 console.error('Error create patient', error);
             }
         }
     };
+
     const handleSubmit = async () => {
         setLoading(true);
         console.log('Call Submit');
 
         if (validate()) {
             try {
-                console.log("patientData:", patientData);
+                console.log("Patient Data Report:", patientData);
 
-                // await PatientService.createPatient(patientData);
-                // const response = await fetch(
-                //     `${process.env.NEXT_PUBLIC_API_BASE_URL}/generate-report`,
-                //     {
-                //         method: "POST",
-                //         headers: { "Content-Type": "application/json" },
-                //         body: JSON.stringify(patient),
-                //     }
-                // );
+                const response = await fetch(
+                    `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/generate-report`,
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(patientData),
+                    }
+                );
 
-                // if (!response.ok) {
-                //     throw new Error("Failed to generate report");
-                // }
+                if (!response.ok) {
+                    throw new Error("Failed to generate report");
+                }
 
-                // const blob = await response.blob();
-                // const url = window.URL.createObjectURL(blob);
-                // const a = document.createElement("a");
-                // a.href = url;
-                // a.download = "Patient_Report.docx";
-                // document.body.appendChild(a);
-                // a.click();
-                // document.body.removeChild(a);
+                // Lấy file DOCX từ API
+                const blob = await response.blob();
+
+                // Tạo link tải file
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+
+                a.href = url;
+                a.download = "Patient_Report.docx";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
             } catch (error) {
                 console.error('Error create patient', error);
             }
