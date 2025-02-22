@@ -1,12 +1,13 @@
 interface FolderType {
     id: string;
     name: string;
-    files: File[];
+    files: File[] | string[];
     imageIds: string[];
     predictedImagesURL?: OverlayImage[];
     gifDownloadURL?: Gif;
     session_id?: string;
     predictions?: number[][];
+    patient_info: PatientInfo;
 }
 
 interface DCMViewerProps {
@@ -47,3 +48,36 @@ interface PatientData {
     file_name: string[];
     forecast: number[];
 }
+
+interface ServerResponse {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+    success: boolean;
+    data: ServerFolder[];
+}
+
+interface ServerFolder {
+    session_id: string;
+    predictions: number[][];
+    patient_info: PatientInfo;
+    upload_images: string[];
+    overlay_images: string[];
+    gif: string;
+}
+
+interface PatientInfo {
+    _id: string;
+    patient_id: string;
+    name: string;
+    group: string;
+    collectFees: string;
+    age: string;
+    sex: string;
+    address: string;
+    diagnosis: string;
+    general_conclusion: string;
+}
+
+type PatientInfo = Omits<PatientData, 'session_id' | 'file_name' | 'forecast'>;
