@@ -119,7 +119,18 @@ class SybilController {
             forecast: forecast,
         };
 
-        fillTemplate({ dicomPaths, dataForm });
+        const link_report = await fillTemplate({ dicomPaths, dataForm });
+        // Gửi file DOCX về FE để tải xuống ngay
+        if (link_report) {
+            res.download(link_report, "Patient_Report.docx", (err) => {
+                if (err) {
+                    console.error("❌ Lỗi khi gửi file:", err);
+                    res.status(500).json({ error: "Failed to send report" });
+                }
+            });
+        } else {
+            res.status(500).json({ error: "Report generation failed" });
+        }
     };
 }
 
