@@ -36,6 +36,12 @@ export const EnvSchema = z.object({
     LINK_SAVE_DICOM_RESULTS: z.string({
         required_error: "LINK_SAVE_DICOM_RESULTS is required",
     }),
+    LINK_TEMPLATE_REPORT: z.string({
+        required_error: "LINK_TEMPLATE_REPORT is required",
+    }),
+    LINK_SAVE_REPORT: z.string({
+        required_error: "LINK_SAVE_REPORT is required",
+    }),
     TEMP_EXPIRATION: z.string({
         required_error: "TEMP_EXPIRATION is required",
     }),

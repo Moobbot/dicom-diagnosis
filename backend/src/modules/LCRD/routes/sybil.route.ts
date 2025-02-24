@@ -26,5 +26,6 @@ sybilRouter.post(
     [generateUploadFolder, dicomUpload.array("files")], // maxCount hiện là infinity
     asyncHandler(SybilController.predictSybil)
 );
+sybilRouter.post("/generate-report", asyncHandler(SybilController.generateReport));
 
 export default sybilRouter;

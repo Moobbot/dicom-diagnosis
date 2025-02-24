@@ -8,12 +8,14 @@ class CronJobs {
     private readonly folderRepository: FolderRepository;
     private readonly uploadPath: string;
     private readonly savePath: string;
+    private readonly saveReport: string;
     private readonly deleteExpiredFolders: cron.ScheduledTask;
 
     constructor() {
         this.folderRepository = new FolderRepository();
         this.uploadPath = validateEnv().linkSaveDicomUploads;
         this.savePath = validateEnv().linkSaveDicomResults;
+        this.saveReport = validateEnv().linkSaveReport;
         this.deleteExpiredFolders = this.create();
     }
 
@@ -40,7 +42,10 @@ class CronJobs {
                             this.savePath,
                             folder.folderUUID
                         );
-
+                        const saveReport = path.join(
+                            this.saveReport,
+                            folder.folderUUID
+                        );
                         if (fs.existsSync(uploadPath)) {
                             fs.rmSync(uploadPath, {
                                 recursive: true,
@@ -55,6 +60,14 @@ class CronJobs {
                                 force: true,
                             });
                             console.log(`Deleted folder: ${savePath}`);
+                        }
+
+                        if (fs.existsSync(saveReport)) {
+                            fs.rmSync(saveReport, {
+                                recursive: true,
+                                force: true,
+                            });
+                            console.log(`Deleted folder: ${saveReport}`);
                         }
 
                         await this.folderRepository.deleteById(
