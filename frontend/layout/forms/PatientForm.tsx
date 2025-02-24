@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from 'primereact/card';
 import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
@@ -8,6 +8,7 @@ import { Button } from 'primereact/button';
 import '@/styles/dicom/report.scss';
 import PatientService from '@/modules/admin/service/PatientService';
 import { InputTextarea } from 'primereact/inputtextarea';
+import { Toast } from 'primereact/toast';
 
 const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Dispatch<React.SetStateAction<PatientData>> }> = ({ patientData, setPatientData }) => {
     const [loading, setLoading] = useState(false);
@@ -18,6 +19,12 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
         { label: 'Male', value: 'Male' },
         { label: 'Female', value: 'Female' }
     ];
+
+    const toast = useRef<Toast>(null);
+
+    const showToast = (severity: 'success' | 'info' | 'warn' | 'error', summary: string, detail: string) => {
+        toast.current?.show({ severity, summary, detail, life: 3000 });
+    };
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -30,8 +37,13 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
         let errs: Record<string, string> = {};
         if (!patientData.patient_id) errs.patient_id = "Patient ID is required";
         if (!patientData.name) errs.name = "Patient Patient Name is required";
-        if (!patientData.age) errs.age = "Valid Age is required";
+        if (!patientData.group) errs.group = "Group is required";
+        if (!patientData.collectFees) errs.collectFees = "collectFees is required";
         if (!patientData.sex) errs.sex = "Sex is required";
+        if (!patientData.age) errs.age = "Valid Age is required";
+        if (!patientData.address) errs.address = "Address is required";
+        if (!patientData.diagnosis) errs.diagnosis = "Diagnosis is required";
+        if (!patientData.general_conclusion) errs.general_conclusion = "General Conclusion is required";
         setErrors(errs);
         return Object.keys(errs).length === 0;
     };
@@ -44,11 +56,22 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
         if (validate()) {
             try {
                 console.log("Patient Data Save send:", patientData);
-                await PatientService.createPatient(patientData);
+                const response = await PatientService.createPatient(patientData);
+
+                // Kiểm tra phản hồi từ BE
+                if (response.status === 201) {
+                    showToast('success', 'Success', 'Save Patient success');
+                } else {
+                    showToast('warn', 'Warning', 'Patient saved, but unexpected response.');
+                }
             } catch (error) {
                 console.error('Error create patient', error);
+                showToast('error', 'Error', 'Failed to save patient');
             }
+        } else {
+            showToast('warn', 'Validation Failed', 'Please check patient data');
         }
+        setLoading(false);
     };
 
     const handleSubmit = async () => {
@@ -113,11 +136,17 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
                 </div>
                 <div className="input-wrap field col-12 md:col-3">
                     <label>Group</label>
-                    <InputText value={patientData.group} onChange={(e) => handleChange(e, "group")} />
+                    <InputText value={patientData.group} onChange={(e) => handleChange(e, "group")}
+                        className={errors.group ? "p-invalid" : ""}
+                    />
+                    {errors.group && <small className="p-error">{errors.group}</small>}
                 </div>
                 <div className="input-wrap field col-12 md:col-3">
                     <label>Collect Fees</label>
-                    <InputText value={patientData.collectFees} onChange={(e) => handleChange(e, "collectFees")} />
+                    <InputText value={patientData.collectFees} onChange={(e) => handleChange(e, "collectFees")}
+                        className={errors.collectFees ? "p-invalid" : ""}
+                    />
+                    {errors.collectFees && <small className="p-error">{errors.collectFees}</small>}
                 </div>
                 <div className="input-wrap field col-6 md:col-3">
                     <label>Age</label>
@@ -145,21 +174,27 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
                     <InputText
                         value={patientData.address}
                         onChange={(e) => handleChange(e, "address")}
+                        className={errors.address ? "p-invalid" : ""}
                     />
+                    {errors.address && <small className="p-error">{errors.address}</small>}
                 </div>
                 <div className="input-wrap field col-12">
                     <label>Initial Diagnosis or Chief Complain</label>
                     <InputTextarea
                         value={patientData.diagnosis}
                         onChange={(e) => handleChange(e, "diagnosis")}
+                        className={errors.diagnosis ? "p-invalid" : ""}
                     />
+                    {errors.diagnosis && <small className="p-error">{errors.diagnosis}</small>}
                 </div>
                 <div className="input-wrap field col-12">
                     <label>General Conclusion</label>
                     <InputTextarea
                         value={patientData.general_conclusion}
                         onChange={(e) => handleChange(e, "general_conclusion")}
+                        className={errors.general_conclusion ? "p-invalid" : ""}
                     />
+                    {errors.general_conclusion && <small className="p-error">{errors.general_conclusion}</small>}
                 </div>
                 <div className="col-12 flex">
                     <div className="col-6">

@@ -21,6 +21,7 @@ class PatientController {
         );
 
         res.status(201).json({
+            message: "Save Patient success",
             data: patient,
         });
     };

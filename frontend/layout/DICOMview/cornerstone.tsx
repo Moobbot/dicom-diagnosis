@@ -360,20 +360,20 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     };
 
     const handleViewExport = () => {
-        if (selectedFolder?.gifDownloadURL?.preview_link && selectedImages.length > 0) {
-            console.log('selectedImages:', selectedImages);
+        // if (selectedFolder?.gifDownloadURL?.preview_link && selectedImages.length > 0) {
+        console.log('selectedImages:', selectedImages);
 
-            setPatientData((prevData) => ({
-                ...prevData,
-                file_name: selectedImages,
-                session_id: selectedFolder?.session_id || '',
-                forecast: selectedFolder?.predictions ? selectedFolder.predictions[0] : []
-            }));
+        setPatientData((prevData) => ({
+            ...prevData,
+            file_name: selectedImages,
+            session_id: selectedFolder?.session_id || '',
+            forecast: selectedFolder?.predictions ? selectedFolder.predictions[0] : []
+        }));
 
-            setExportDialog(true);
-        } else {
-            showToast('warn', 'No Image choose', 'There is no Image predict choose.');
-        }
+        setExportDialog(true);
+        // } else {
+        //     showToast('warn', 'No Image choose', 'There is no Image predict choose.');
+        // }
     };
 
     return (
