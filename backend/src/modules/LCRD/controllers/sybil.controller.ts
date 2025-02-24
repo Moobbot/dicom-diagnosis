@@ -89,13 +89,17 @@ class SybilController {
         const reportFolder = path.join(validateEnv().linkSaveReport, session_id);
         if (!fs.existsSync(reportFolder)) fs.mkdirSync(reportFolder, { recursive: true });
 
-        // Lấy đường dẫn file DICOM đầu tiên
-        const dicomImagePath = path.join(validateEnv().linkSaveDicomResults, session_id, file_name[0]);
+        // Lấy đường dẫn các file DICOM
+        const dicomPaths = file_name.map((file: string) => 
+            path.join(validateEnv().linkSaveDicomResults, session_id, file)
+        );
 
-        // Kiểm tra xem file DICOM có tồn tại không
-        if (!fs.existsSync(dicomImagePath)) {
-            throw new BadRequestError(`DICOM file not found: ${file_name[0]}`);
-        }
+        // Kiểm tra xem tất cả các file DICOM có tồn tại không
+        dicomPaths.forEach((filePath: string) => {
+            if (!fs.existsSync(filePath)) {
+            throw new BadRequestError(`DICOM file not found: ${path.basename(filePath)}`);
+            }
+        });
 
         // Đọc file DICOM
         console.log("Đọc file DICOM...");
@@ -115,9 +119,8 @@ class SybilController {
             forecast: forecast,
         };
 
-        fillTemplate({ dicomPath: dicomImagePath, dataForm });
+        fillTemplate({ dicomPaths, dataForm });
     };
-
 }
 
 export default new SybilController();

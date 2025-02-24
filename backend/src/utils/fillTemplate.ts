@@ -57,10 +57,10 @@ function ensureDirectoryExistence(dir: string) {
  * Hàm điền dữ liệu vào file DOCX và xuất file báo cáo
  */
 export async function fillTemplate({
-    dicomPath,
+    dicomPaths,
     dataForm
 }: {
-    dicomPath: string;
+    dicomPaths: string[];
     dataForm: DataForm;
 }): Promise<string | null> {
     try {
@@ -72,27 +72,43 @@ export async function fillTemplate({
 
         console.log(`📂 Đang xử lý báo cáo cho session: ${session_id}`);
 
-        // 2️⃣ Chuyển đổi ảnh DICOM sang PNG
-        const pngPath = path.join(reportFolder, "dicom-image.png");
-        await convertDicomToPng(dicomPath, pngPath);
+        // 2️⃣ Chuyển đổi tất cả ảnh DICOM sang PNG
+        const pngPaths: string[] = [];
+        for (const [index, dicomPath] of dicomPaths.entries()) {
+            const pngPath = path.join(reportFolder, `dicom-image-${index + 1}.png`);
+            await convertDicomToPng(dicomPath, pngPath);
 
-        // 3️⃣ Kiểm tra lại file PNG (đợi nếu chưa có)
-        let retryCount = 0;
-        while (!fs.existsSync(pngPath) || fs.statSync(pngPath).size === 0) {
-            if (retryCount > 5) throw new Error("❌ Lỗi: File PNG không được tạo thành công!");
-            console.log("🔄 Đợi file PNG được tạo...");
-            await new Promise((resolve) => setTimeout(resolve, 500)); // Đợi 500ms
-            retryCount++;
+            // Kiểm tra lại file PNG (đợi nếu chưa có)
+            let retryCount = 0;
+            while (!fs.existsSync(pngPath) || fs.statSync(pngPath).size === 0) {
+                if (retryCount >= 5) throw new Error(`❌ File PNG không được tạo thành công: ${pngPath}`);
+                console.log(`🔄 Đợi file PNG ${index + 1} được tạo...`);
+                await new Promise((resolve) => setTimeout(resolve, 500)); // Đợi 500ms
+                retryCount++;
+            }
+
+            console.log(`✅ Ảnh PNG ${index + 1} đã được tạo: ${pngPath}`);
+            pngPaths.push(pngPath);
         }
 
-        console.log(`✅ Ảnh PNG đã được tạo: ${pngPath}`);
+        console.log(`✅ Ảnh PNG đã được tạo: ${pngPaths}`);
 
-        // 4️⃣ Đọc file template DOCX
+        // 3️⃣ Đọc file template DOCX
         const templateBuffer = fs.readFileSync(TEMPLATE_PATH);
 
-        // 5️⃣ Chuẩn bị dữ liệu
+        // 4️⃣ Chuẩn bị dữ liệu
         const forecastData = dataForm.forecast.map((value, index) =>
             value ? `${(value * 100).toFixed(2)}%` : "N/A"
+        );
+
+        // 5️⃣ Chuyển nhiều ảnh PNG thành danh sách Base64
+        const images_predict = await Promise.all(
+            pngPaths.map(async (pngPath) => ({
+                width: 6, // cm
+                height: 4, // cm
+                data: await imageToBase64(pngPath),
+                extension: ".png",
+            }))
         );
 
         const reportData = {
@@ -111,12 +127,7 @@ export async function fillTemplate({
             id_3: forecastData[3],
             id_4: forecastData[4],
             id_5: forecastData[5],
-            images_predict: {
-                width: 6, // cm
-                height: 4, // cm
-                data: await imageToBase64(pngPath),
-                extension: ".png",
-            },
+            images_predict
         };
 
         // 6️⃣ Tạo file DOCX từ template
