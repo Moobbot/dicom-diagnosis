@@ -101,15 +101,21 @@ export async function fillTemplate({
             value ? `${(value * 100).toFixed(2)}%` : "N/A"
         );
 
+        const columns = 2; // Số ảnh mỗi hàng
         // 5️⃣ Chuyển nhiều ảnh PNG thành danh sách Base64
         const images_predict = await Promise.all(
             pngPaths.map(async (pngPath) => ({
-                width: 6, // cm
-                height: 4, // cm
+                width: 7, // cm  
+                height: 7, // cm
                 data: await imageToBase64(pngPath),
                 extension: ".png",
             }))
         );
+        // Chia danh sách ảnh thành mảng 2D, mỗi hàng chứa `columns` ảnh
+        const images_predict_rows = [];
+        for (let i = 0; i < images_predict.length; i += columns) {
+            images_predict_rows.push(images_predict.slice(i, i + columns));
+        }
 
         const reportData = {
             patient_id: dataForm.patient_id,
@@ -127,7 +133,7 @@ export async function fillTemplate({
             id_3: forecastData[3],
             id_4: forecastData[4],
             id_5: forecastData[5],
-            images_predict
+            images_predict_rows
         };
 
         // 6️⃣ Tạo file DOCX từ template
