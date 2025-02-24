@@ -31,6 +31,8 @@ export const validateEnv = () => {
             sybilModelBaseUrl: envVars.SYBIL_MODEL_BASE_URL,
             linkSaveDicomUploads: envVars.LINK_SAVE_DICOM_UPLOADS,
             linkSaveDicomResults: envVars.LINK_SAVE_DICOM_RESULTS,
+            linkTemplateReport: envVars.LINK_TEMPLATE_REPORT,
+            linkSaveReport: envVars.LINK_SAVE_REPORT,
             tempExpiration: ms(envVars.TEMP_EXPIRATION) / 1000,
         };
     } catch (error) {
