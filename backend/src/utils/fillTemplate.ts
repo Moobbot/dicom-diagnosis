@@ -7,7 +7,6 @@ import createReport from "docx-templates";
 // Đường dẫn file template DOCX
 const TEMPLATE_PATH = path.join(validateEnv().linkTemplateReport, "report-hospital.docx");
 
-
 /**
  * Điền dữ liệu vào mẫu DOCX
  */
@@ -27,6 +26,34 @@ interface DataForm {
 }
 
 /**
+ * Chuyển file PNG sang base64 để chèn vào DOCX
+ */
+async function imageToBase64(imagePath: string): Promise<string> {
+    try {
+        if (!fs.existsSync(imagePath)) throw new Error(`❌ File không tồn tại: ${imagePath}`);
+
+        const buffer = await fs.promises.readFile(imagePath);
+        if (buffer.length === 0) throw new Error(`❌ File PNG rỗng: ${imagePath}`);
+
+        return buffer.toString("base64");
+    } catch (error) {
+        if (error instanceof Error) {
+            console.error(error.message);
+        } else {
+            console.error(error);
+        }
+        return "";
+    }
+}
+
+/**
+ * Tạo thư mục nếu chưa tồn tại
+ */
+function ensureDirectoryExistence(dir: string) {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
+/**
  * Hàm điền dữ liệu vào file DOCX và xuất file báo cáo
  */
 export async function fillTemplate({
@@ -35,23 +62,21 @@ export async function fillTemplate({
 }: {
     dicomPath: string;
     dataForm: DataForm;
-}): Promise<void> {
+}): Promise<string | null> {
     try {
-        // Tạo session_id nếu chưa có
+        // 1️⃣ Tạo session_id và thư mục lưu báo cáo
         const session_id = dataForm.session_id ?? Date.now().toString();
-
-        // Tạo thư mục lưu report nếu chưa có
         const reportFolder = path.join(validateEnv().linkSaveReport, session_id);
-
-        if (!fs.existsSync(reportFolder)) fs.mkdirSync(reportFolder, { recursive: true });
-
+        ensureDirectoryExistence(reportFolder);
         const OUTPUT_DOCX_PATH = path.join(reportFolder, "report.docx");
 
-        // 1️⃣ Chuyển đổi ảnh DICOM sang PNG
+        console.log(`📂 Đang xử lý báo cáo cho session: ${session_id}`);
+
+        // 2️⃣ Chuyển đổi ảnh DICOM sang PNG
         const pngPath = path.join(reportFolder, "dicom-image.png");
         await convertDicomToPng(dicomPath, pngPath);
 
-        // Kiểm tra lại kích thước file PNG
+        // 3️⃣ Kiểm tra lại file PNG (đợi nếu chưa có)
         let retryCount = 0;
         while (!fs.existsSync(pngPath) || fs.statSync(pngPath).size === 0) {
             if (retryCount > 5) throw new Error("❌ Lỗi: File PNG không được tạo thành công!");
@@ -60,21 +85,17 @@ export async function fillTemplate({
             retryCount++;
         }
 
-        // 2️⃣ Đọc file template DOCX
+        console.log(`✅ Ảnh PNG đã được tạo: ${pngPath}`);
+
+        // 4️⃣ Đọc file template DOCX
         const templateBuffer = fs.readFileSync(TEMPLATE_PATH);
-        // 5️⃣ Tạo dữ liệu thay thế
 
-        const f_id = {
-            id_0: dataForm.forecast[0] ? `${(dataForm.forecast[0] * 100).toFixed(2)}%` : "N/A",
-            id_1: dataForm.forecast[1] ? `${(dataForm.forecast[1] * 100).toFixed(2)}%` : "N/A",
-            id_2: dataForm.forecast[2] ? `${(dataForm.forecast[2] * 100).toFixed(2)}%` : "N/A",
-            id_3: dataForm.forecast[3] ? `${(dataForm.forecast[3] * 100).toFixed(2)}%` : "N/A",
-            id_4: dataForm.forecast[4] ? `${(dataForm.forecast[4] * 100).toFixed(2)}%` : "N/A",
-            id_5: dataForm.forecast[5] ? `${(dataForm.forecast[5] * 100).toFixed(2)}%` : "N/A",
-        };
+        // 5️⃣ Chuẩn bị dữ liệu
+        const forecastData = dataForm.forecast.map((value, index) =>
+            value ? `${(value * 100).toFixed(2)}%` : "N/A"
+        );
 
-        // 3️⃣ Tạo dữ liệu thay thế
-        const data = {
+        const reportData = {
             patient_id: dataForm.patient_id,
             name: dataForm.name,
             group: dataForm.group,
@@ -84,26 +105,33 @@ export async function fillTemplate({
             address: dataForm.address,
             diagnosis: dataForm.diagnosis,
             general_conclusion: dataForm.general_conclusion,
-            ...f_id,
+            id_0: forecastData[0],
+            id_1: forecastData[1],
+            id_2: forecastData[2],
+            id_3: forecastData[3],
+            id_4: forecastData[4],
+            id_5: forecastData[5],
             images_predict: {
                 width: 6, // cm
                 height: 4, // cm
-                data: await fs.promises.readFile(pngPath, "base64"), // Chỉ lấy Base64, không có tiền tố 'data:image/png;base64,'
+                data: await imageToBase64(pngPath),
                 extension: ".png",
             },
         };
 
-        // 4️⃣ Tạo file DOCX từ template
+        // 6️⃣ Tạo file DOCX từ template
         const buffer = await createReport({
             template: templateBuffer,
-            data,
-            cmdDelimiter: ["{", "}"], // Đảm bảo sử dụng đúng `{}` làm ký tự định dạng
+            data: reportData,
+            cmdDelimiter: ["{", "}"],
         });
 
         // 5️⃣ Lưu file DOCX mới
         fs.writeFileSync(OUTPUT_DOCX_PATH, buffer);
-        console.log(`✅ File báo cáo đã được tạo: ${OUTPUT_DOCX_PATH}`);
+        console.log(`✅ Báo cáo đã được tạo thành công: ${OUTPUT_DOCX_PATH}`);
+        return OUTPUT_DOCX_PATH;
     } catch (error) {
         console.error("❌ Lỗi khi tạo báo cáo:", error);
+        return null;
     }
 }
