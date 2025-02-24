@@ -53,14 +53,16 @@ export async function fillTemplate({ dicomPath, dataForm }: { dicomPath: string;
 
         const f_id = [
             {
-                id_0: dataForm.forecast[0]?.toFixed(6) || "N/A",
-                id_1: dataForm.forecast[1]?.toFixed(6) || "N/A",
-                id_2: dataForm.forecast[2]?.toFixed(6) || "N/A",
-                id_3: dataForm.forecast[3]?.toFixed(6) || "N/A",
-                id_4: dataForm.forecast[4]?.toFixed(6) || "N/A",
-                id_5: dataForm.forecast[4]?.toFixed(6) || "N/A",
+                id_0: dataForm.forecast[0] ? parseFloat(dataForm.forecast[0].toFixed(4)) * 100 + "%" : "N/A",
+                id_1: dataForm.forecast[1] ? parseFloat(dataForm.forecast[1].toFixed(4)) * 100 + "%" : "N/A",
+                id_2: dataForm.forecast[2] ? parseFloat(dataForm.forecast[2].toFixed(4)) * 100 + "%" : "N/A",
+                id_3: dataForm.forecast[3] ? parseFloat(dataForm.forecast[3].toFixed(4)) * 100 + "%" : "N/A",
+                id_4: dataForm.forecast[4] ? parseFloat(dataForm.forecast[4].toFixed(4)) * 100 + "%" : "N/A",
+                id_5: dataForm.forecast[4] ? parseFloat(dataForm.forecast[4].toFixed(4)) * 100 + "%" : "N/A",
             }
         ];
+
+        // 3️⃣ Tạo báo cáo với dữ liệu
         doc.render({
             patient_id: dataForm.patient_id,
             patient_name: dataForm.name,
@@ -79,31 +81,8 @@ export async function fillTemplate({ dicomPath, dataForm }: { dicomPath: string;
                 extension: ".png",
             },
         });
-        // // 3️⃣ Tạo báo cáo với dữ liệu
-        // const report = await createReport({
-        //     template: templateContent,
-        //     data: {
-        //         patient_id: dataForm.patient_id,
-        //         patient_name: dataForm.name,
-        //         group: dataForm.group,
-        //         collectFees: dataForm.collectFees,
-        //         age: dataForm.age,
-        //         sex: dataForm.sex,
-        //         address: dataForm.address,
-        //         diagnosis: dataForm.diagnosis,
-        //         general_conclusion: dataForm.general_conclusion,
-        //         f_id: f_id,
-        //         images_predict: {
-        //             width: 6, // cm
-        //             height: 4, // cm
-        //             data: fs.readFileSync(pngPath).toString("base64"),
-        //             extension: ".png",
-        //         },
-        //     },
-        // });
 
         // 4️⃣ Ghi file DOCX kết quả
-        // fs.writeFileSync(OUTPUT_DOCX_PATH, report);
         fs.writeFileSync(OUTPUT_DOCX_PATH, doc.getZip().generate({ type: "nodebuffer" }));
         console.log(`✅ File báo cáo đã được tạo: ${OUTPUT_DOCX_PATH}`);
     } catch (error) {
