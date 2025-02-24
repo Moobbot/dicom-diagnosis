@@ -11,7 +11,6 @@ import { signJwt } from "../utils/jwt";
 import { addTokenToBlockList } from "../utils/token-cache";
 import { Types } from "mongoose";
 
-
 export class AuthService {
     private readonly userRepository: UserRepository;
     private readonly accessSecret: string;
@@ -43,13 +42,19 @@ export class AuthService {
     refreshToken = async (refreshToken: string) => {
         jwt.verify(refreshToken, this.refreshAccessSecret);
 
-        const user = await this.userRepository.findUserByRefreshToken(refreshToken);
+        const user = await this.userRepository.findUserByRefreshToken(
+            refreshToken
+        );
         if (!user) {
             throw new ForbiddenError("Invalid refresh token");
         }
 
-        const { accessToken, refreshToken: newRefreshToken } = this.generateTokens(user._id);
-        await this.userRepository.updateUserRefreshToken(user._id.toString(), newRefreshToken);
+        const { accessToken, refreshToken: newRefreshToken } =
+            this.generateTokens(user._id);
+        await this.userRepository.updateUserRefreshToken(
+            user._id.toString(),
+            newRefreshToken
+        );
 
         return { accessToken, newRefreshToken };
     };
@@ -81,7 +86,7 @@ export class AuthService {
                 _id: user._id,
                 username: user.username,
                 detail_user: user.detail_user,
-                grantAll: user.roles.some((role: IRole) => role.grantAll),
+                grantAll: user.roles.some((role) => role.grantAll),
                 permissions: Array.from(
                     new Set(
                         user.roles.flatMap((role) =>
@@ -95,15 +100,39 @@ export class AuthService {
         };
     };
 
-    logout = async (userId: any, token: string) => {
-        await addTokenToBlockList(
-            token,
-            validateEnv()?.jwtconfig?.accessExpiration as string
-        );
+    logout = async (token: string | boolean, refreshToken: string) => {
+        try {
+            let userId: any;
+            if (token) {
+                await addTokenToBlockList(
+                    token as string,
+                    validateEnv()?.jwtconfig?.accessExpiration as string
+                );
+                const payload = jwt.verify(
+                    token as string,
+                    this.accessSecret
+                ) as any;
+                userId = payload.userId;
+            }
 
-        await this.userRepository.updateUserRefreshToken(userId, "");
+            if (refreshToken) {
+                await addTokenToBlockList(
+                    refreshToken,
+                    validateEnv()?.jwtconfig?.refreshAccessExpiration as string
+                );
+                const payload = jwt.verify(
+                    refreshToken,
+                    this.refreshAccessSecret
+                ) as any;
+                userId = payload.userId;
+            }
+            if (userId) {
+                await this.userRepository.updateUserRefreshToken(userId, "");
+            }
+        } catch (error) {
+            throw new BadRequestError("Invalid token");
+        }
     };
-
 
     changePassword = async (
         userId: any,
@@ -154,5 +183,4 @@ export class AuthService {
             updatedBy: userId,
         });
     };
-
 }

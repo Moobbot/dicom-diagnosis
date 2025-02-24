@@ -46,18 +46,18 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     const msgs = useRef<Messages>(null);
 
     const [patientData, setPatientData] = useState<PatientData>({
-        patient_id: "",
-        group: "",
-        collectFees: "",
-        name: "",
-        age: "",
-        sex: "",
-        address: "",
-        diagnosis: "",
-        general_conclusion: "",
-        session_id: "",
+        patient_id: '',
+        group: '',
+        collectFees: '',
+        name: '',
+        age: '',
+        sex: '',
+        address: '',
+        diagnosis: '',
+        general_conclusion: '',
+        session_id: '',
         file_name: [],
-        forecast: [],
+        forecast: []
     });
 
     useEffect(() => {
@@ -182,15 +182,17 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                 severity: getSeverity(value),
                 summary: `Year ${index + 1}`,
                 detail: `Value: ${(value * 100).toFixed(2)}%`,
-                closable: false,
+                closable: false
             }));
 
             msgs.current?.clear(); // Xóa thông báo cũ trước khi cập nhật
             msgs.current?.show(messages);
+        } else {
+            msgs.current?.clear();
         }
     }, [selectedFolder?.predictions]);
 
-    const getSeverity = (value: number): "success" | "info" | "warn" | "error" => {
+    const getSeverity = (value: number): 'success' | 'info' | 'warn' | 'error' => {
         if (value < 0.25) return 'info';
         if (value < 0.5) return 'success';
         if (value < 0.75) return 'warn';
@@ -359,18 +361,18 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
 
     const handleViewExport = () => {
         if (selectedFolder?.gifDownloadURL?.preview_link && selectedImages.length > 0) {
-            console.log("selectedImages:", selectedImages);
+            console.log('selectedImages:', selectedImages);
 
             setPatientData((prevData) => ({
                 ...prevData,
                 file_name: selectedImages,
-                session_id: selectedFolder?.session_id || "",
+                session_id: selectedFolder?.session_id || '',
                 forecast: selectedFolder?.predictions ? selectedFolder.predictions[0] : []
             }));
 
             setExportDialog(true);
         } else {
-            showToast("warn", "No Image choose", "There is no Image predict choose.");
+            showToast('warn', 'No Image choose', 'There is no Image predict choose.');
         }
     };
 
@@ -395,7 +397,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                                         className={`cursor-pointer p-2 border-1 border-200 border-round hover:surface-200 flex align-items-center ${selectedImageIdIndex === index ? 'bg-bluegray-400' : ''}`}
                                     >
                                         <i className="pi pi-file text-2xl mr-2" />
-                                        <span className="text-overflow-ellipsis flex-grow-1 overflow-hidden whitespace-nowrap">{selectedFolder.files[index]?.name}</span>
+                                        <span className="text-overflow-ellipsis flex-grow-1 overflow-hidden whitespace-nowrap">{typeof selectedFolder.files[index] === 'string' ? selectedFolder.files[index] : selectedFolder.files[index].name}</span>
                                     </div>
                                 ))
                             ) : selectedFolder.predictedImagesURL && selectedFolder.predictedImagesURL.length > 0 ? (

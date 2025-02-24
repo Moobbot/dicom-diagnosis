@@ -26,6 +26,23 @@ export class SybilService {
         this.predictionRepository = new PredictionRepository();
     }
 
+    getFullPath = async (filePath: string, isUpload: boolean) => {
+        let basePath;
+        if (isUpload) {
+            basePath = this.uploadPath;
+        } else {
+            basePath = this.savePath;
+        }
+
+        const fullPath = path.join(basePath, filePath);
+
+        if (!fs.existsSync(fullPath) || !fs.lstatSync(fullPath).isFile()) {
+            throw new BadRequestError("File not found");
+        }
+
+        return { basePath, fullPath };
+    };
+
     predictSybil = async (folderUUID: string, files: Express.Multer.File[]) => {
         await this.folderRepository.create({
             folderUUID,

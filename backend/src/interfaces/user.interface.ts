@@ -7,15 +7,14 @@ export interface IDetailUser {
     avatar?: string;
     birth_date: Date;
     address: string;
-    gender: string;
+    gender: number;
 }
 
 export interface IUser {
-    // _id: Types.ObjectId;
     username: string;
     password: string;
     name: string;
-    roles: IRole[];
+    roles: Types.ObjectId[];
     createdAt: Date;
     createdBy?: string;
     updatedAt: Date;

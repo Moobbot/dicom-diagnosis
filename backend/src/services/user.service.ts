@@ -11,10 +11,12 @@ import {
     ChangeManyUserStatusSchema,
     ChangeUserStatusSchema,
     CreateUserSchema,
+    FindUserQuerySchema,
     UpdateUserSchema,
 } from "../validation/user.validation";
 import ConflictError from "../errors/conflict.error";
 import { z } from "zod";
+import { buildSearchFilter, buildSortQuery } from "../utils/util";
 
 export class UserService {
     private readonly userRepository: UserRepository;
@@ -53,23 +55,40 @@ export class UserService {
             username: data.username,
             password: hashedPassword,
             detail_user: data.detail_user,
-            roles: roles,
+            roles: roles.map((role) => role._id),
             createdBy: userId,
         });
     };
 
     getUserById = async (id: string) => {
-        const user = await this.userRepository.findById(id);
+        const user = await this.userRepository.findExtendedUserById(id);
         if (!user) {
             throw new NotFoundError("User not found");
         }
         return user;
     };
 
-    listAllUsers = async (page: number, limit: number) => {
-        const total = await this.userRepository.count();
+    listAllUsers = async (query: z.infer<typeof FindUserQuerySchema>) => {
+        const { search, sort, page, limit, roles, status } = query;
 
-        const users = await this.userRepository.findAll({}, page, limit);
+        console.log(query);
+
+        const filter = buildSearchFilter(
+            search,
+            ["username", "detail_user.user_code", "detail_user.name"],
+            { roles, status }
+        );
+
+        const sortOptions = buildSortQuery(sort);
+
+        const total = await this.userRepository.count(filter);
+
+        const users = await this.userRepository.findAll(
+            filter,
+            sortOptions,
+            page,
+            limit
+        );
 
         return { total, users };
     };

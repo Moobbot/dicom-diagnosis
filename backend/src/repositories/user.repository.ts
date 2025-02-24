@@ -1,7 +1,10 @@
-import { FilterQuery } from "mongoose";
+import { Document, FilterQuery, Query, Types } from "mongoose";
 import { IUser } from "../interfaces/user.interface";
 import { UserModel } from "../models/user.model";
 import { BaseRepository } from "./base.repository";
+import { populate } from "dotenv";
+import { IRole } from "../interfaces/role.interface";
+import { IPermission } from "../interfaces/permission.interface";
 
 export class UserRepository extends BaseRepository<IUser> {
     constructor() {
@@ -10,12 +13,15 @@ export class UserRepository extends BaseRepository<IUser> {
 
     override findAll(
         filter?: FilterQuery<IUser>,
+        sort?: Record<string, 1 | -1>,
         page?: number,
         limit?: number
     ) {
-        return super.findAll(filter, page, limit, {
+        return super.findAll(filter, sort, page, limit).populate({
             path: "roles",
-            select: "id name",
+            populate: {
+                path: "permissions",
+            },
         });
     }
 
@@ -30,7 +36,11 @@ export class UserRepository extends BaseRepository<IUser> {
     ) {
         const match = activeOnly ? { status: true } : {};
         const options = includePassword ? { select: "+password" } : {};
-        return UserModel.findOne(filter, {}, options).populate({
+        return UserModel.findOne(filter, {}, options).populate<{
+            roles: (Omit<IRole, "permissions"> & {
+                permissions: IPermission[];
+            })[];
+        }>({
             path: "roles",
             match,
             populate: {

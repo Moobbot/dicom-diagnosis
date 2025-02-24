@@ -17,6 +17,9 @@ import { LayoutContext } from '@/layout/context/layoutcontext';
 
 // DICOM viewer
 import DCMViewer from '@/layout/DICOMview/cornerstone';
+import PatientService from '@/modules/admin/service/PatientService';
+
+import { VirtualScroller } from 'primereact/virtualscroller';
 
 declare global {
     interface Window {
@@ -50,6 +53,84 @@ const LCRD = () => {
     const folderInputRef = useRef<HTMLInputElement>(null);
     const toast = useRef<Toast>(null);
     const [loading, setLoading] = useState(false);
+    const [folderLoading, setFolderLoading] = useState(false);
+
+    const [totalRecords, setTotalRecords] = useState(0);
+    const [currentPage, setCurrentPage] = useState(0);
+    const rowsPerPage = 10; // Số folder trên mỗi lần tải
+
+    const isMounted = useRef(false);
+
+    const initCornerstone = async () => {
+        if (typeof window !== 'undefined' && !window.__cornerstone_initialized) {
+            console.log('DICOM Image Loader');
+
+            const cornerstoneDICOMImageLoader = await import('@cornerstonejs/dicom-image-loader');
+            await cornerstoneDICOMImageLoader.init({ maxWebWorkers: 1 });
+
+            // Lưu vào window để sử dụng toàn cục
+            window.__cornerstone_initialized = true;
+            window.cornerstoneDICOMImageLoader = cornerstoneDICOMImageLoader;
+        }
+    };
+
+    const loadFolders = async (page: number) => {
+        if (loading) return; // Tránh gọi API nhiều lần khi đang tải
+        setFolderLoading(true);
+
+        try {
+            const response = await PatientService.getPatients(page + 1, rowsPerPage);
+            const serverData = response as ServerResponse;
+
+            // Xử lý dữ liệu
+            const processedFolders = serverData.data.map((folder) => {
+                const sessionId = folder.session_id;
+
+                // Sắp xếp upload_images theo thứ tự tự nhiên
+                const sortedUploadImages = folder.upload_images.sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b));
+
+                // Tạo danh sách imageIds
+                const imageIds = sortedUploadImages.map((filename) => `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/uploads/${sessionId}/${filename}`);
+
+                // Sắp xếp overlay_images theo thứ tự tự nhiên
+                const sortedOverlayImages = folder.overlay_images.sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b));
+
+                // Tạo danh sách predictedImagesURL
+                const predictedImagesURL = sortedOverlayImages.map((filename) => ({
+                    filename,
+                    preview_link: `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${filename}`,
+                    download_link: `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${filename}`
+                }));
+
+                // GIF URL
+                const gifDownloadURL = {
+                    download_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${folder.gif}`,
+                    preview_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${folder.gif}`
+                };
+
+                return {
+                    id: sessionId,
+                    name: folder.patient_info.name,
+                    files: sortedUploadImages,
+                    session_id: sessionId,
+                    patient_info: folder.patient_info,
+                    imageIds,
+                    predictedImagesURL,
+                    gifDownloadURL,
+                    predictions: folder.predictions
+                };
+            });
+
+            // Cập nhật state (thêm dữ liệu vào danh sách cũ)
+            setFolders((prevFolders) => [...prevFolders, ...processedFolders]);
+            setTotalRecords(serverData.total);
+            setCurrentPage(page);
+        } catch (error) {
+            console.error('Error loading folders: ', error);
+        } finally {
+            setFolderLoading(false);
+        }
+    };
 
     useEffect(() => {
         setLayoutState((prev) => ({
@@ -59,19 +140,11 @@ const LCRD = () => {
     }, [setLayoutState]);
 
     useEffect(() => {
-        const initCornerstone = async () => {
-            if (typeof window !== 'undefined' && !window.__cornerstone_initialized) {
-                console.log("DICOM Image Loader");
-
-                const cornerstoneDICOMImageLoader = await import('@cornerstonejs/dicom-image-loader');
-                await cornerstoneDICOMImageLoader.init({ maxWebWorkers: 1 });
-
-                // Lưu vào window để sử dụng toàn cục
-                window.__cornerstone_initialized = true;
-                window.cornerstoneDICOMImageLoader = cornerstoneDICOMImageLoader;
-            }
-        };
-        initCornerstone();
+        if (!isMounted.current) {
+            isMounted.current = true;
+            initCornerstone();
+            loadFolders(0); // Gọi API lần đầu tiên
+        }
     }, []);
 
     const showToast = (severity: 'success' | 'info' | 'warn' | 'error', summary: string, detail: string) => {
@@ -136,7 +209,7 @@ const LCRD = () => {
 
     const selectFolder = (folder: FolderType) => {
         if (selectedFolder?.id !== folder.id) {
-            console.log("Folder selected: ", folder.name);
+            console.log('Folder selected: ', folder.name);
 
             setSelectedFolder(folder);
             showToast('info', 'Folder Selected', `Selected folder: ${folder.name}`);
@@ -157,11 +230,11 @@ const LCRD = () => {
         try {
             setLoading(true);
             const currentFolderId = selectedFolder.id; // Lưu ID folder cục bộ
-            console.log("Predicting for folder ID:", currentFolderId);
+            console.log('Predicting for folder ID:', currentFolderId);
 
             // Tạo FormData chứa các file DICOM
             const formData = new FormData();
-            selectedFolder?.files.forEach((file) => formData.append('files', file));
+            selectedFolder?.files!.forEach((file) => formData.append('files', file));
 
             // Gửi request đến API
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/predict`, {
@@ -178,19 +251,19 @@ const LCRD = () => {
 
             const data = (await response.json()) as PredictionResponse;
 
-            const updatedData = addPrefixToLinks(data, `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/`);
+            const updatedData = addPrefixToLinks(data, `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil`);
 
             setFolders((prevFolders) =>
                 prevFolders.map((folder) =>
                     folder.id === currentFolderId
                         ? {
-                            ...folder,
-                            predictedImagesURL: updatedData.overlay_images,
-                            gifDownloadURL: updatedData.gif,
-                            session_id: updatedData.session_id,
-                            predictions: updatedData.predictions,
-                            forecast: updatedData.predictions[0] || []
-                        }
+                              ...folder,
+                              predictedImagesURL: updatedData.overlay_images,
+                              gifDownloadURL: updatedData.gif,
+                              session_id: updatedData.session_id,
+                              predictions: updatedData.predictions,
+                              forecast: updatedData.predictions[0] || []
+                          }
                         : folder
                 )
             );
@@ -232,14 +305,23 @@ const LCRD = () => {
                 <div className="card-body p-card-content">
                     <Splitter className="dicom-panel">
                         <SplitterPanel size={10} minSize={5}>
-                            <div className="overflow-auto">
-                                {folders.map((folder) => (
+                            <VirtualScroller
+                                items={folders}
+                                itemSize={80} // Chiều cao mỗi item
+                                lazy
+                                onLazyLoad={(e) => {
+                                    if (folders.length < totalRecords) {
+                                        loadFolders(currentPage + 1);
+                                    }
+                                }}
+                                className="w-full h-full"
+                                itemTemplate={(folder) => (
                                     <div key={folder.id} onClick={() => selectFolder(folder)} className={`cursor-pointer p-3 border-round hover:surface-200 ${selectedFolder?.id === folder.id ? 'surface-200' : ''}`}>
                                         <i className="pi pi-folder text-4xl flex justify-content-center" />
                                         <div className="text-center mt-2">{folder.name}</div>
                                     </div>
-                                ))}
-                            </div>
+                                )}
+                            />
                         </SplitterPanel>
                         <SplitterPanel size={90} minSize={70}>
                             <DCMViewer selectedFolder={selectedFolder} />

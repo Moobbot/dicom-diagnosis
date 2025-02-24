@@ -9,6 +9,9 @@ import path from "path";
 import fs from "fs";
 import NotFoundError from "../../../errors/not-found.error";
 import { PredictionRepository } from "../repositories/prediction.repository";
+import { FindQuerySchema } from "../../../validation/find-query.validation";
+import { Types } from "mongoose";
+import { buildSearchFilter, buildSortQuery } from "../../../utils/util";
 
 export class PatientService {
     private readonly patientRepository: PatientRepository;
@@ -25,7 +28,10 @@ export class PatientService {
         this.savePath = validateEnv().linkSaveDicomResults;
     }
 
-    createPatient = async (data: z.infer<typeof CreatePatientSchema>) => {
+    createPatient = async (
+        userId: string,
+        data: z.infer<typeof CreatePatientSchema>
+    ) => {
         const folder = await this.folderRepository.updateFolderByUUID(
             data.session_id,
             {
@@ -50,6 +56,55 @@ export class PatientService {
             ...data,
             folder: folder._id,
             prediction: prediction._id,
+            createdBy: new Types.ObjectId(userId),
         });
+    };
+
+    listAllPatients = async (query: z.infer<typeof FindQuerySchema>) => {
+        const { search, sort, page, limit } = query;
+
+        const filter = buildSearchFilter(search);
+
+        const sortOptions = buildSortQuery(sort);
+
+        const total = await this.patientRepository.count(filter);
+
+        const patients = await this.patientRepository.findExtendedPatients(
+            filter,
+            sortOptions,
+            page,
+            limit
+        );
+
+        const enrichedPatients = await Promise.all(
+            patients.map(async (patient) => {
+                const folderUUID = patient.folder.folderUUID;
+                const uploadPath = path.join(this.uploadPath, folderUUID);
+                const savePath = path.join(this.savePath, folderUUID);
+
+                const uploadFiles = fs.readdirSync(uploadPath);
+                const saveFiles = fs.readdirSync(savePath);
+
+                const overlayImages = saveFiles.filter((file) =>
+                    file.endsWith(".dcm")
+                );
+                const gif = "animation.gif";
+
+                const patientInfo = (({ folder, prediction, ...rest }) => rest)(
+                    patient.toObject()
+                );
+
+                return {
+                    patient_info: patientInfo,
+                    session_id: folderUUID,
+                    predictions: patient.prediction.predictions,
+                    upload_images: uploadFiles,
+                    overlay_images: overlayImages,
+                    gif,
+                };
+            })
+        );
+
+        return { total, patients: enrichedPatients };
     };
 }

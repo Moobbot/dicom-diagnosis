@@ -8,7 +8,8 @@ import {
     CreateRoleSchema,
     UpdateRoleSchema,
 } from "../validation/role.validation";
-import ConflictError from "../errors/conflict.error";
+import { idSchema } from "../validation/objectid.validation";
+import { FindQuerySchema } from "../validation/find-query.validation";
 
 export class RoleController {
     private readonly roleService: RoleService;
@@ -20,13 +21,13 @@ export class RoleController {
     }
 
     createRole = async (req: Request, res: Response) => {
-        CreateRoleSchema.parse(req.body);
+        const validatedData = CreateRoleSchema.parse(req.body);
 
         const { name, grantAll } = req.body;
         const userId = req.userData?.userId;
 
-        const role = await this.roleService.createRole(userId, name, grantAll);
-        
+        const role = await this.roleService.createRole(userId, validatedData);
+
         res.status(201).json({
             message: "Role created successfully",
             success: true,
@@ -35,16 +36,26 @@ export class RoleController {
     };
 
     listAllRoles = async (req: Request, res: Response) => {
-        const roles = await this.roleService.listAllRoles();
+        const validatedQuery = FindQuerySchema.parse(req.query);
+
+        const { total, roles } = await this.roleService.listAllRoles(
+            validatedQuery
+        );
+
+        const { page, limit } = validatedQuery;
 
         res.status(200).json({
+            page,
+            limit,
+            total,
+            pages: limit ? Math.ceil(total / limit) : undefined,
             data: roles,
             success: true,
         });
     };
 
     getRoleById = async (req: Request, res: Response) => {
-        const { id } = req.params;
+        const { id } = idSchema.parse(req.params);
 
         const role = await this.roleService.getRoleById(id);
         if (!role) {
@@ -60,7 +71,7 @@ export class RoleController {
     updateRole = async (req: Request, res: Response) => {
         const validatedData = UpdateRoleSchema.parse(req.body);
 
-        const { id } = req.params;
+        const { id } = idSchema.parse(req.params);
 
         const userId = req.userData?.userId;
 
@@ -80,7 +91,7 @@ export class RoleController {
     changeRoleStatus = async (req: Request, res: Response) => {
         ChangeRoleStatusSchema.parse(req.body);
 
-        const { id } = req.params;
+        const { id } = idSchema.parse(req.params);
 
         const { status } = req.body;
 

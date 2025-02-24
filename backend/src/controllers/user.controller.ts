@@ -1,8 +1,4 @@
-import bcrypt from "bcryptjs";
 import { Request, Response } from "express";
-
-import BadRequestError from "../errors/bad-request.error";
-import NotFoundError from "../errors/not-found.error";
 
 import { RoleService } from "../services/role.service";
 import { UserService } from "../services/user.service";
@@ -11,9 +7,10 @@ import {
     ChangeManyUserStatusSchema,
     ChangeUserStatusSchema,
     CreateUserSchema,
+    FindUserQuerySchema,
     UpdateUserSchema,
 } from "../validation/user.validation";
-import ConflictError from "../errors/conflict.error";
+import { idSchema } from "../validation/objectid.validation";
 
 export class UserController {
     private readonly userService: UserService;
@@ -41,7 +38,7 @@ export class UserController {
     };
 
     getUserById = async (req: Request, res: Response) => {
-        const { id } = req.params;
+        const { id } = idSchema.parse(req.params);
 
         const user = await this.userService.getUserById(id);
 
@@ -52,19 +49,19 @@ export class UserController {
     };
 
     listAllUsers = async (req: Request, res: Response) => {
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
+        const validatedQuery = FindUserQuerySchema.parse(req.query);
 
         const { total, users } = await this.userService.listAllUsers(
-            page,
-            limit
+            validatedQuery
         );
+
+        const { page, limit } = validatedQuery;
 
         res.status(200).json({
             page,
             limit,
             total,
-            pages: Math.ceil(total / limit),
+            pages: limit ? Math.ceil(total / limit) : undefined,
             data: users,
             success: true,
         });
@@ -73,7 +70,7 @@ export class UserController {
     updateUser = async (req: Request, res: Response) => {
         const validatedData = UpdateUserSchema.parse(req.body);
 
-        const { id } = req.params;
+        const { id } = idSchema.parse(req.params);
         const userId = req.userData?.userId;
 
         const updatedUser = await this.userService.updateUser(
@@ -92,7 +89,7 @@ export class UserController {
     changeUserStatus = async (req: Request, res: Response) => {
         const validatedData = ChangeUserStatusSchema.parse(req.body);
 
-        const { id } = req.params;
+        const { id } = idSchema.parse(req.params);
 
         const { status } = validatedData;
 

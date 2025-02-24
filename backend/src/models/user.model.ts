@@ -1,5 +1,6 @@
 import { Schema, model } from "mongoose";
 import { IDetailUser, IUser } from "../interfaces/user.interface";
+import { Gender } from "../enums/gender.enum";
 
 const detailSchema = new Schema<IDetailUser>(
     {
@@ -9,8 +10,8 @@ const detailSchema = new Schema<IDetailUser>(
         birth_date: { type: Date, required: [true, "Birth date is required"] },
         address: { type: String, required: [true, "Address is required"] },
         gender: {
-            type: String,
-            enum: ["Male", "Female", "Other"],
+            type: Number,
+            enum: Object.values(Gender),
             required: [true, "Gender is required"],
         },
     },

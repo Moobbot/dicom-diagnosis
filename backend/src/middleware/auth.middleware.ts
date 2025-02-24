@@ -34,6 +34,7 @@ export const authMiddleware = async (
             )
         );
     }
+    
     const tokenBlocked = await isTokenBlocked(token as string);
     if (tokenBlocked) {
         return next(new ForbiddenError("Token expires"));
@@ -57,7 +58,7 @@ export const authMiddleware = async (
             detail_user: user.detail_user,
         };
 
-        const hasGrantAll = user?.roles.some((role: IRole) => role.grantAll);
+        const hasGrantAll = user?.roles.some(role => role.grantAll);
         if (hasGrantAll) {
             req.userData.grantAll = true;
         } else {

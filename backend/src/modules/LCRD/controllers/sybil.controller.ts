@@ -20,41 +20,39 @@ class SybilController {
         this.sybilService = new SybilService();
     }
 
-    downloadFileDicomResults = async (req: Request, res: Response) => {
-        const encodedFilePath = req.params[0];
-        const filePath = decodeURIComponent(encodedFilePath);
+    downloadFile =
+        (isUpload: boolean) => async (req: Request, res: Response) => {
+            const encodedFilePath = req.params[0];
+            const filePath = decodeURIComponent(encodedFilePath);
 
-        if (!filePath) {
-            throw new BadRequestError("File path is missing");
-        }
+            if (!filePath) {
+                throw new BadRequestError("File path is missing");
+            }
 
-        const savePath = validateEnv().linkSaveDicomResults;
-        const fullPath = path.join(savePath, filePath);
+            const { fullPath } = await this.sybilService.getFullPath(
+                filePath,
+                isUpload
+            );
 
-        if (!fs.existsSync(fullPath) || !fs.lstatSync(fullPath).isFile()) {
-            throw new BadRequestError("File not found");
-        }
+            res.download(fullPath, path.basename(fullPath));
+        };
 
-        res.download(fullPath, path.basename(fullPath));
-    };
+    previewFile =
+        (isUpload: boolean) => async (req: Request, res: Response) => {
+            const encodedFilePath = req.params[0];
+            const filePath = decodeURIComponent(encodedFilePath);
 
-    previewFile = async (req: Request, res: Response) => {
-        const encodedFilePath = req.params[0];
-        const filePath = decodeURIComponent(encodedFilePath);
+            if (!filePath) {
+                throw new BadRequestError("File path is missing");
+            }
 
-        if (!filePath) {
-            throw new BadRequestError("File path is missing");
-        }
+            const { basePath, fullPath } = await this.sybilService.getFullPath(
+                filePath,
+                isUpload
+            );
 
-        const savePath = validateEnv().linkSaveDicomResults;
-        const fullPath = path.join(savePath, filePath);
-
-        if (!fs.existsSync(fullPath) || !fs.lstatSync(fullPath).isFile()) {
-            throw new BadRequestError("File not found");
-        }
-
-        res.sendFile(filePath, { root: savePath });
-    };
+            res.sendFile(filePath, { root: basePath });
+        };
 
     predictSybil = async (req: Request, res: Response) => {
         const files = req.files as Express.Multer.File[];

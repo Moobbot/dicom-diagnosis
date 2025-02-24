@@ -85,10 +85,10 @@ const addRoles = async () => {
         {
             name: "User",
             permissions: [
-                permissionsMap[Permissions.LIST_ALL_PERMISSIONS],
-                permissionsMap[Permissions.GET_PERMISSION],
-                permissionsMap[Permissions.LIST_ALL_ROLES],
-                permissionsMap[Permissions.GET_ROLE],
+                permissionsMap[Permissions.LIST_ALL_PERMISSIONS]._id,
+                permissionsMap[Permissions.GET_PERMISSION]._id,
+                permissionsMap[Permissions.LIST_ALL_ROLES]._id,
+                permissionsMap[Permissions.GET_ROLE]._id,
             ],
             description: "Đây là role người dùng",
             grantAll: false,
@@ -120,25 +120,25 @@ const addUsers = async () => {
         {
             username: "admin",
             password: "123456",
-            roles: [roleMap["Admin"]],
+            roles: [roleMap["Admin"]._id],
             detail_user: {
                 user_code: "ADMIN001",
                 name: "Admin",
                 birth_date: new Date("1980-01-01"),
                 address: "Admin Address",
-                gender: "Male",
+                gender: 1,
             },
         },
         {
             username: "user",
             password: "123456",
-            roles: [roleMap["User"]],
+            roles: [roleMap["User"]._id],
             detail_user: {
                 user_code: "user01",
                 name: "Demo User",
                 birth_date: new Date("1985-02-02"),
                 address: "Demo User Address",
-                gender: "Female",
+                gender: 2,
             },
         },
     ];
