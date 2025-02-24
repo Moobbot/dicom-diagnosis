@@ -1,7 +1,8 @@
 import fs from "fs";
 import path from "path";
-import FormData from "form-data";
+import FormData, { from } from "form-data";
 import fetch from "node-fetch";
+import dicomParser from "dicom-parser";
 
 import { Request, Response } from "express";
 
@@ -13,6 +14,11 @@ import HttpException from "../../../errors/http-exception.error";
 
 import { ISybilPredictionResponse } from "../interfaces/sybil.interface";
 import { SybilService } from "../services/sybil.service";
+import express from "express";
+import PizZip from "pizzip";
+import Docxtemplater from "docxtemplater";
+import sharp from "sharp";
+import { fillTemplate } from "../../../utils/fillTemplate";
 
 class SybilController {
     private readonly sybilService: SybilService;
@@ -21,7 +27,7 @@ class SybilController {
         this.sybilService = new SybilService();
     }
 
-    downloadFile = async (req: Request, res: Response) => {
+    downloadFileDicomResults = async (req: Request, res: Response) => {
         const encodedFilePath = req.params[0];
         const filePath = decodeURIComponent(encodedFilePath);
 
@@ -73,6 +79,52 @@ class SybilController {
             ...result,
         });
     };
+
+    generateReport = async (req: Request, res: Response): Promise<void> => {
+        const {
+            patient_id, group, collectFees, name, age, sex, address,
+            diagnosis, general_conclusion, session_id, file_name, forecast
+        } = req.body;
+
+        if (!session_id || !file_name.length) {
+            throw new BadRequestError("Missing session_id or file_name");
+        }
+
+        console.log("Bắt đầu tạo báo cáo...");
+
+        // Tạo thư mục lưu report nếu chưa có
+        const reportFolder = path.join(validateEnv().linkSaveReport, session_id);
+        if (!fs.existsSync(reportFolder)) fs.mkdirSync(reportFolder, { recursive: true });
+
+        // Lấy đường dẫn file DICOM đầu tiên
+        const dicomImagePath = path.join(validateEnv().linkSaveDicomResults, session_id, file_name[0]);
+
+        // Kiểm tra xem file DICOM có tồn tại không
+        if (!fs.existsSync(dicomImagePath)) {
+            throw new BadRequestError(`DICOM file not found: ${file_name[0]}`);
+        }
+
+        // Đọc file DICOM
+        console.log("Đọc file DICOM...");
+        // Chạy hàm fillTemplate
+        const dataForm = {
+            patient_id: patient_id,
+            name: name,
+            group: group,
+            collectFees: collectFees,
+            age: age,
+            sex: sex,
+            address: address,
+            diagnosis: diagnosis,
+            general_conclusion: general_conclusion,
+            session_id: session_id,
+            file_name: file_name,
+            forecast: forecast,
+        };
+
+        fillTemplate({ dicomPath: dicomImagePath, dataForm });
+    };
+
 }
 
 export default new SybilController();
