@@ -1,8 +1,5 @@
 import fs from "fs";
 import path from "path";
-import FormData, { from } from "form-data";
-import fetch from "node-fetch";
-import dicomParser from "dicom-parser";
 
 import { Request, Response } from "express";
 
@@ -14,10 +11,6 @@ import HttpException from "../../../errors/http-exception.error";
 
 import { ISybilPredictionResponse } from "../interfaces/sybil.interface";
 import { SybilService } from "../services/sybil.service";
-import express from "express";
-import PizZip from "pizzip";
-import Docxtemplater from "docxtemplater";
-import sharp from "sharp";
 import { fillTemplate } from "../../../utils/fillTemplate";
 
 class SybilController {

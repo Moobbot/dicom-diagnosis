@@ -37,9 +37,17 @@ export async function convertDicomToPng(dicomPath: string, outputPngPath: string
             png.data[index + 3] = 255;    // Alpha
         }
 
-        // Lưu file PNG
-        png.pack().pipe(fs.createWriteStream(outputPngPath)).on("finish", () => {
-            console.log(`Ảnh PNG đã được tạo: ${ outputPngPath }`);
+        // Ghi file PNG và đảm bảo quá trình hoàn tất
+        await new Promise<void>((resolve, reject) => {
+            png.pack().pipe(fs.createWriteStream(outputPngPath))
+                .on("finish", () => {
+                    console.log(`✅ Ảnh PNG đã được tạo thành công: ${outputPngPath}`);
+                    resolve();
+                })
+                .on("error", (err) => {
+                    console.error("❌ Lỗi khi ghi file PNG:", err);
+                    reject(err);
+                });
         });
 
     } catch (error) {
