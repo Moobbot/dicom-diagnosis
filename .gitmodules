@@ -1,0 +1,3 @@
+[submodule "Sybil"]
+	path = Sybil
+	url = https://github.com/Moobbot/Sybil.git
