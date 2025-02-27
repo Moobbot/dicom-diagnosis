@@ -1,11 +1,14 @@
 import cors from "cors";
 
+const FE_BASE_URL = process.env.FE_BASE_URL;
+
 // List of allowed origins
 const allowedOrigins: string[] = [
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:3002",
     "http://localhost:3003",
+    ...(FE_BASE_URL ? [FE_BASE_URL] : []),
 ];
 
 // Check if origin is allowed

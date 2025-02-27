@@ -7,7 +7,8 @@ import {
     CreatePermissionSchema,
     UpdatePermissionSchema,
 } from "../validation/permission.validation";
-import ConflictError from "../errors/conflict.error";
+import { idSchema } from "../validation/objectid.validation";
+import { FindQuerySchema } from "../validation/find-query.validation";
 
 export class PermissionController {
     private readonly permissionService: PermissionService;
@@ -17,15 +18,12 @@ export class PermissionController {
     }
 
     createPermission = async (req: Request, res: Response) => {
-        CreatePermissionSchema.parse(req.body);
-
-        const { name, description } = req.body;
+        const validatedData = CreatePermissionSchema.parse(req.body);
         const userId = req.userData.userId;
 
         const permission = await this.permissionService.createPermission(
             userId,
-            name,
-            description
+            validatedData,
         );
 
         res.status(201).json({
@@ -36,7 +34,7 @@ export class PermissionController {
     };
 
     updatePermission = async (req: Request, res: Response) => {
-        const { id } = req.params;
+        const { id } = idSchema.parse(req.params)
 
         UpdatePermissionSchema.parse(req.body);
 
@@ -57,15 +55,25 @@ export class PermissionController {
     };
 
     listAllPermissions = async (req: Request, res: Response) => {
-        const permissions = await this.permissionService.listAllPermissions();
+        const validatedQuery = FindQuerySchema.parse(req.query);
+
+        const {total, permissions} = await this.permissionService.listAllPermissions(validatedQuery);
+
+
+        const { page, limit } = validatedQuery;
+
         res.status(200).json({
-            permissions,
+            page,
+            limit,
+            total,
+            pages: limit ? Math.ceil(total / limit) : undefined,
+            data: permissions,
             success: true,
         });
     };
 
     getPermissionById = async (req: Request, res: Response) => {
-        const { id } = req.params;
+        const { id } = idSchema.parse(req.params)
 
         const permission = await this.permissionService.getPermissionById(id);
 
@@ -78,7 +86,7 @@ export class PermissionController {
     changePermissionStatus = async (req: Request, res: Response) => {
         ChangePermissionStatusSchema.parse(req.body);
 
-        const { id } = req.params;
+        const { id } = idSchema.parse(req.params)
 
         const { status } = req.body;
 

@@ -40,20 +40,23 @@ export class AuthController {
     };
 
     logout = async (req: Request, res: Response) => {
-        const userId = req.userData.userId;
-        const token = extractTokenFromHeader(req) as string;
+        const token = extractTokenFromHeader(req);
         const refreshToken = req.cookies.refreshToken;
 
-        if (!refreshToken) {
-            throw new ForbiddenError("Refresh token is required");
-        }
+        await this.authService.logout(token, refreshToken);
 
-        await this.authService.logout(userId, token);
-
-        res.clearCookie("refreshToken").status(200).json({
-            success: true,
-            message: "Logged out successfully",
-        });
+        // ✅ Xóa cookie refreshToken chính xác với các options
+        res.clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: validateEnv()?.env === "production",
+            sameSite: "strict",
+            path: "/", // Đảm bảo xóa ở đúng path
+        })
+            .status(200)
+            .json({
+                success: true,
+                message: "Logged out successfully",
+            });
     };
 
     changePassword = async (req: Request, res: Response) => {

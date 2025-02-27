@@ -39,11 +39,11 @@ const isNumeric = (value: string): boolean => {
 
 // Thêm các Permission
 const addPermissions = async () => {
-    const add = await askQuestion("Do you want to add Permissions?");
-    if (!add) {
-        console.log(`${ICONS.info} Skipped adding Permissions.`);
-        return;
-    }
+    // const add = await askQuestion("Do you want to add Permissions?");
+    // if (!add) {
+    //     console.log(`${ICONS.info} Skipped adding Permissions.`);
+    //     return;
+    // }
 
     const permissions = Object.values(Permissions).map((permission) => ({
         name: permission,
@@ -64,11 +64,11 @@ const addPermissions = async () => {
 
 // Tạo các Role
 const addRoles = async () => {
-    const add = await askQuestion("Do you want to add Roles?");
-    if (!add) {
-        console.log(`${ICONS.info} Skipped adding Roles.`);
-        return;
-    }
+    // const add = await askQuestion("Do you want to add Roles?");
+    // if (!add) {
+    //     console.log(`${ICONS.info} Skipped adding Roles.`);
+    //     return;
+    // }
 
     const allPermissions = await permissionRepository.findAll();
     const permissionsMap = Object.fromEntries(
@@ -85,10 +85,10 @@ const addRoles = async () => {
         {
             name: "User",
             permissions: [
-                permissionsMap[Permissions.LIST_ALL_PERMISSIONS],
-                permissionsMap[Permissions.GET_PERMISSION],
-                permissionsMap[Permissions.LIST_ALL_ROLES],
-                permissionsMap[Permissions.GET_ROLE],
+                permissionsMap[Permissions.LIST_ALL_PERMISSIONS]._id,
+                permissionsMap[Permissions.GET_PERMISSION]._id,
+                permissionsMap[Permissions.LIST_ALL_ROLES]._id,
+                permissionsMap[Permissions.GET_ROLE]._id,
             ],
             description: "Đây là role người dùng",
             grantAll: false,
@@ -107,11 +107,11 @@ const addRoles = async () => {
 
 // Tạo các User
 const addUsers = async () => {
-    const add = await askQuestion("Do you want to add Users?");
-    if (!add) {
-        console.log(`${ICONS.info} Skipped adding Users.`);
-        return;
-    }
+    // const add = await askQuestion("Do you want to add Users?");
+    // if (!add) {
+    //     console.log(`${ICONS.info} Skipped adding Users.`);
+    //     return;
+    // }
 
     const roles = await roleRepository.findAll();
     const roleMap = Object.fromEntries(roles.map((role) => [role.name, role]));
@@ -120,25 +120,25 @@ const addUsers = async () => {
         {
             username: "admin",
             password: "123456",
-            roles: [roleMap["Admin"]],
+            roles: [roleMap["Admin"]._id],
             detail_user: {
                 user_code: "ADMIN001",
                 name: "Admin",
                 birth_date: new Date("1980-01-01"),
                 address: "Admin Address",
-                gender: "Male",
+                gender: 1,
             },
         },
         {
             username: "user",
             password: "123456",
-            roles: [roleMap["User"]],
+            roles: [roleMap["User"]._id],
             detail_user: {
                 user_code: "user01",
                 name: "Demo User",
                 birth_date: new Date("1985-02-02"),
                 address: "Demo User Address",
-                gender: "Female",
+                gender: 2,
             },
         },
     ];

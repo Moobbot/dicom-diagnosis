@@ -1,11 +1,8 @@
 import { ObjectId } from "mongoose";
 
-export interface IMiscellaneous {
-    
-}
+export interface IMiscellaneous {}
 
 export interface IAccessHistory {
-    _id?: ObjectId;
     username?: string;
     actionName?: string;
     functionName?: string;

@@ -1,56 +1,58 @@
-import { Request, Response } from "express";
-import { validateEnv } from "../../../config/env.config";
-import BadRequestError from "../../../errors/bad-request.error";
 import fs from "fs";
 import path from "path";
-import FormData from "form-data";
-import fetch from "node-fetch";
-import { ISybilPredictionResponse } from "../interfaces/sybil.interface";
+
+import { Request, Response } from "express";
+
+import { validateEnv } from "../../../config/env.config";
+
+import BadRequestError from "../../../errors/bad-request.error";
 import BadGatewayError from "../../../errors/bad-gateway.error";
 import HttpException from "../../../errors/http-exception.error";
 
+import { ISybilPredictionResponse } from "../interfaces/sybil.interface";
+import { SybilService } from "../services/sybil.service";
+import { fillTemplate } from "../../../utils/fillTemplate";
+
 class SybilController {
-    private readonly baseUrl: string;
-    private readonly savePath: string;
+    private readonly sybilService: SybilService;
 
     public constructor() {
-        this.baseUrl = validateEnv().sybilModelBaseUrl;
-        this.savePath = "./src/modules/LCRD/tmp/results";
+        this.sybilService = new SybilService();
     }
 
-    downloadFile = async (req: Request, res: Response) => {
-        const encodedFilePath = req.params[0];
-        const filePath = decodeURIComponent(encodedFilePath);
+    downloadFile =
+        (isUpload: boolean) => async (req: Request, res: Response) => {
+            const encodedFilePath = req.params[0];
+            const filePath = decodeURIComponent(encodedFilePath);
 
-        if (!filePath) {
-            throw new BadRequestError("File path is missing");
-        }
+            if (!filePath) {
+                throw new BadRequestError("File path is missing");
+            }
 
-        const fullPath = path.join(this.savePath, filePath);
+            const { fullPath } = await this.sybilService.getFullPath(
+                filePath,
+                isUpload
+            );
 
-        if (!fs.existsSync(fullPath) || !fs.lstatSync(fullPath).isFile()) {
-            throw new BadRequestError("File not found");
-        }
+            res.download(fullPath, path.basename(fullPath));
+        };
 
-        res.download(fullPath, path.basename(fullPath));
-    };
+    previewFile =
+        (isUpload: boolean) => async (req: Request, res: Response) => {
+            const encodedFilePath = req.params[0];
+            const filePath = decodeURIComponent(encodedFilePath);
 
-    previewFile = async (req: Request, res: Response) => {
-        const encodedFilePath = req.params[0];
-        const filePath = decodeURIComponent(encodedFilePath);
+            if (!filePath) {
+                throw new BadRequestError("File path is missing");
+            }
 
-        if (!filePath) {
-            throw new BadRequestError("File path is missing");
-        }
+            const { basePath, fullPath } = await this.sybilService.getFullPath(
+                filePath,
+                isUpload
+            );
 
-        const fullPath = path.join(this.savePath, filePath);
-
-        if (!fs.existsSync(fullPath) || !fs.lstatSync(fullPath).isFile()) {
-            throw new BadRequestError("File not found");
-        }
-
-        res.sendFile(filePath, { root: this.savePath });
-    };
+            res.sendFile(filePath, { root: basePath });
+        };
 
     predictSybil = async (req: Request, res: Response) => {
         const files = req.files as Express.Multer.File[];
@@ -58,80 +60,74 @@ class SybilController {
             throw new BadRequestError("Only .dcm files are allowed");
         }
 
-        const formData = new FormData();
-        for (const file of files) {
-            formData.append("file", file.buffer, file.originalname);
+        const folderUUID = (req as any).uploadFolder as string;
+
+        const result = await this.sybilService.predictSybil(folderUUID, files);
+
+        res.status(200).json({
+            message: "Prediction completed",
+            session_id: folderUUID,
+            ...result,
+        });
+    };
+
+    generateReport = async (req: Request, res: Response): Promise<void> => {
+        const {
+            patient_id, group, collectFees, name, age, sex, address,
+            diagnosis, general_conclusion, session_id, file_name, forecast
+        } = req.body;
+
+        if (!session_id || !file_name.length) {
+            throw new BadRequestError("Missing session_id or file_name");
         }
 
-        try {
-            const response = await fetch(`${this.baseUrl}/api_predict`, {
-                method: "POST",
-                body: formData,
-            });
+        console.log("Bắt đầu tạo báo cáo...");
 
-            if (!response.ok) {
-                throw new BadRequestError("Sybil model failed to predict");
+        // Tạo thư mục lưu report nếu chưa có
+        const reportFolder = path.join(validateEnv().linkSaveReport, session_id);
+        if (!fs.existsSync(reportFolder)) fs.mkdirSync(reportFolder, { recursive: true });
+
+        // Lấy đường dẫn các file DICOM
+        const dicomPaths = file_name.map((file: string) => 
+            path.join(validateEnv().linkSaveDicomResults, session_id, file)
+        );
+
+        // Kiểm tra xem tất cả các file DICOM có tồn tại không
+        dicomPaths.forEach((filePath: string) => {
+            if (!fs.existsSync(filePath)) {
+            throw new BadRequestError(`DICOM file not found: ${path.basename(filePath)}`);
             }
+        });
 
-            const data = (await response.json()) as ISybilPredictionResponse;
+        // Đọc file DICOM
+        console.log("Đọc file DICOM...");
+        // Chạy hàm fillTemplate
+        const dataForm = {
+            patient_id: patient_id,
+            name: name,
+            group: group,
+            collectFees: collectFees,
+            age: age,
+            sex: sex,
+            address: address,
+            diagnosis: diagnosis,
+            general_conclusion: general_conclusion,
+            session_id: session_id,
+            file_name: file_name,
+            forecast: forecast,
+        };
 
-            const sessionId = data.session_id;
-            const sessionPath = path.join(this.savePath, sessionId);
-
-            fs.mkdirSync(sessionPath, { recursive: true });
-
-            // Tải và lưu các ảnh
-            const downloadPromises = data.overlay_images.map(
-                async (overlay_image, index) => {
-                    const response = await fetch(overlay_image.download_link);
-                    const buffer = await response.buffer();
-                    const imagePath = path.join(
-                        sessionPath,
-                        `${overlay_image.filename}`
-                    );
-                    fs.writeFileSync(imagePath, buffer);
-                    return `${sessionId}/${overlay_image.filename}`;
+        const link_report = await fillTemplate({ dicomPaths, dataForm });
+        // Gửi file DOCX về FE để tải xuống ngay
+        if (link_report) {
+            res.download(link_report, "Patient_Report.docx", (err) => {
+                if (err) {
+                    console.error("❌ Lỗi khi gửi file:", err);
+                    res.status(500).json({ error: "Failed to send report" });
                 }
-            );
-
-            // Tải và lưu GIF
-            const gifResponse = await fetch(data.gif_download);
-            const gifBuffer = await gifResponse.buffer();
-            const gifFilePath = path.join(sessionPath, "animation.gif");
-            fs.writeFileSync(gifFilePath, gifBuffer);
-
-            // Đợi tất cả các file được tải xong
-            const savedImagePaths = await Promise.all(downloadPromises);
-
-            // Xóa các file tạm trong thư mục uploads
-            // (req.files as Express.Multer.File[]).forEach((file) => {
-            //     fs.unlinkSync(file.path);
-            // });
-
-            const overlayImages = savedImagePaths
-                .filter((path) => path.endsWith(".dcm"))
-                .map((path) => ({
-                    download_link: `download/${path}`,
-                    filename: path.split("/").pop(),
-                    preview_link: `preview/${path}`,
-                }));
-
-            // Trả về kết quả cho frontend
-            res.status(200).json({
-                message: "Prediction successful.",
-                predictions: data.predictions,
-                session_id: sessionId,
-                overlay_images: overlayImages,
-                gif: {
-                    download_link: `download/${sessionId}/animation.gif`,
-                    preview_link: `preview/${sessionId}/animation.gif`,
-                },
             });
-        } catch (error) {
-            if (error instanceof HttpException) {
-                throw error;
-            }
-            throw new BadGatewayError("Sybil model is not available");
+        } else {
+            res.status(500).json({ error: "Report generation failed" });
         }
     };
 }

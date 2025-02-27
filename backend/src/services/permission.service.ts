@@ -8,6 +8,9 @@ import {
     UpdatePermissionSchema,
 } from "../validation/permission.validation";
 import ConflictError from "../errors/conflict.error";
+import { z } from "zod";
+import { FindQuerySchema } from "../validation/find-query.validation";
+import { buildSearchFilter, buildSortQuery } from "../utils/util";
 
 export class PermissionService {
     private readonly permissionRepository: PermissionRepository;
@@ -18,9 +21,10 @@ export class PermissionService {
 
     createPermission = async (
         userId: any,
-        name: string,
-        description: string
+        data: z.infer<typeof CreatePermissionSchema>
     ) => {
+        const { name, description } = data;
+
         const existingPermission =
             await this.permissionRepository.findPermissionByName(name);
 
@@ -29,19 +33,14 @@ export class PermissionService {
         }
 
         const permission = await this.permissionRepository.create({
-            name,
-            description,
+            ...data,
             createdBy: userId,
         });
 
         return permission;
     };
 
-    updatePermission = async (
-        userId: any,
-        id: string,
-        description: string
-    ) => {
+    updatePermission = async (userId: any, id: string, description: string) => {
         const updatedPermission = await this.permissionRepository.updateById(
             id,
             {
@@ -57,8 +56,24 @@ export class PermissionService {
         return updatedPermission;
     };
 
-    listAllPermissions = async () => {
-        return await this.permissionRepository.findAll();
+    listAllPermissions = async (query: z.infer<typeof FindQuerySchema>) => {
+        const { search, sort, page, limit } = query;
+        const filter = buildSearchFilter(
+            search,
+        );
+
+        const sortOptions = buildSortQuery(sort);
+
+        const total = await this.permissionRepository.count(filter);
+
+        const permissions = await this.permissionRepository.findAll(
+            filter,
+            sortOptions,
+            page,
+            limit
+        );
+
+        return { total, permissions };
     };
 
     getPermissionById = async (id: string) => {

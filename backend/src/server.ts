@@ -4,6 +4,7 @@ import { logger } from "./config/logger";
 import { validateEnv } from "./config/env.config";
 import mongoose from "mongoose";
 import { bootstrap } from "./bootstrap";
+import { deleteExpiredFolders } from "./jobs/cronjobs";
 
 let isShuttingDown = false; // Prevent multiple shutdown calls
 
@@ -62,6 +63,8 @@ const startServer = async () => {
         logger.error(`Database error: ${err.message}`);
         console.log(`${err.no}: ${err.code}\t${err.syscall}\t${err.hostname}`);
     });
+
+    deleteExpiredFolders.start();
 };
 
 // Run the server

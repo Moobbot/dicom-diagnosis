@@ -1,5 +1,8 @@
+import { z } from "zod";
 import { IAccessHistory } from "../interfaces/access-history.interface";
 import { AccessHistoryRepository } from "../repositories/access-history.repository";
+import { FindQuerySchema } from "../validation/find-query.validation";
+import { buildSearchFilter, buildSortQuery } from "../utils/util";
 
 export class AccessHistoryService {
     private readonly accessHistoryRepository: AccessHistoryRepository;
@@ -10,38 +13,30 @@ export class AccessHistoryService {
 
     // Tạo mới một lịch sử truy cập
     async createAccessHistory(accessData: Partial<IAccessHistory>) {
-        try {
-            const createdHistory = await this.accessHistoryRepository.create(accessData);
-            return {
-                success: true,
-                data: createdHistory,
-            };
-        } catch (error) {
-            throw new Error(`Failed to create access history: ${(error as Error).message}`);
-        }
+        const createdHistory = await this.accessHistoryRepository.create(
+            accessData
+        );
+        return {
+            success: true,
+            data: createdHistory,
+        };
     }
 
     // Liệt kê tất cả lịch sử truy cập với phân trang và bộ lọc
-    async listAllAccessHistory(
-        page: number,
-        limit: number,
-        filter: Partial<IAccessHistory> = {}
-    ) {
-        try {
-            const total = await this.accessHistoryRepository.count(filter);
+    async listAllAccessHistory(query: z.infer<typeof FindQuerySchema>) {
+        const { search, sort, page, limit } = query;
+        const filter = buildSearchFilter(search);
 
-            const history = await this.accessHistoryRepository.findAll(
-                filter,
-                page,
-                limit
-            );
-            const result = {
-                total,
-                history,
-            };
-            return result;
-        } catch (error) {
-            throw new Error(`Failed to fetch access history: ${(error as Error).message}`);
-        }
+        const sortOptions = buildSortQuery(sort);
+
+        const total = await this.accessHistoryRepository.count(filter);
+
+        const history = await this.accessHistoryRepository.findAll(
+            filter,
+            sortOptions,
+            page,
+            limit
+        );
+        return { total, history };
     }
 }

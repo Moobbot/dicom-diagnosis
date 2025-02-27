@@ -21,11 +21,30 @@ export const EnvSchema = z.object({
     JWT_EXPIRATION: z.string({
         required_error: "JWT_EXPIRATION is required (e.g., '1h', '7d')",
     }),
-    JWT_REFRESH: z.string({ required_error: "JWT Refresh token secret is required" }),
+    JWT_REFRESH: z.string({
+        required_error: "JWT Refresh token secret is required",
+    }),
     JWT_REFRESH_EXPIRATION: z.string({
         required_error: "JWT_REFRESH_EXPIRATION is required (e.g., '7d')",
     }),
-    SYBIL_MODEL_BASE_URL: z.string({ required_error: "SYBIL_MODEL_BASE_URL is required" }),
+    SYBIL_MODEL_BASE_URL: z.string({
+        required_error: "SYBIL_MODEL_BASE_URL is required",
+    }),
+    LINK_SAVE_DICOM_UPLOADS: z.string({
+        required_error: "LINK_SAVE_DICOM_UPLOADS is required",
+    }),
+    LINK_SAVE_DICOM_RESULTS: z.string({
+        required_error: "LINK_SAVE_DICOM_RESULTS is required",
+    }),
+    LINK_TEMPLATE_REPORT: z.string({
+        required_error: "LINK_TEMPLATE_REPORT is required",
+    }),
+    LINK_SAVE_REPORT: z.string({
+        required_error: "LINK_SAVE_REPORT is required",
+    }),
+    TEMP_EXPIRATION: z.string({
+        required_error: "TEMP_EXPIRATION is required",
+    }),
 });
 
 export type EnvConfig = z.infer<typeof EnvSchema>;

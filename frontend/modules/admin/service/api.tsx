@@ -23,7 +23,7 @@ export const api = axios.create({
 
 api.interceptors.request.use(
     (request) => {
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && !request.url?.includes('/auth/login')) {
             const accessToken = localStorage.getItem('accessToken');
             if (accessToken) {
                 request.headers['Authorization'] = `Bearer ${accessToken}`;
@@ -61,7 +61,7 @@ api.interceptors.response.use(
 
             try {
                 console.log('Refreshing token...');
-                const response = await api.post('/auth/refresh-token', {}, { withCredentials: true });
+                const response = await axios.post('/auth/refresh-token', {}, { withCredentials: true });
                 const { accessToken } = response.data;
                 // console.log('New access token:', accessToken);
 
@@ -75,6 +75,7 @@ api.interceptors.response.use(
             } catch (refreshError) {
                 processQueue(refreshError, null);
                 localStorage.removeItem('accessToken');
+                await axios.post('/auth/logout', {}, { withCredentials: true });
                 window.location.href = '/auth/login';
                 return Promise.reject(refreshError);
             } finally {

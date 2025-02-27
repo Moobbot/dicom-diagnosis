@@ -16,22 +16,32 @@ import { Toast } from 'primereact/toast';
 import { LayoutContext } from '@/layout/context/layoutcontext';
 
 // DICOM viewer
-import cornerstoneDICOMImageLoader from '@cornerstonejs/dicom-image-loader';
 import DCMViewer from '@/layout/DICOMview/cornerstone';
+import PatientService from '@/modules/admin/service/PatientService';
 
-const addPrefixToLinks = (data: PredictionResponse, apiPath: string): PredictionResponse => {
+import { VirtualScroller } from 'primereact/virtualscroller';
+
+declare global {
+    interface Window {
+        __cornerstone_initialized?: boolean;
+        cornerstoneDICOMImageLoader?: any;
+    }
+}
+
+const addPrefixToLinks = (data: PredictionResponse, apiPath: string): Omit<PredictionResponse, 'overlay_images' | 'gif'> & { overlay_images: OverlayImage[]; gif: Gif } => {
     return {
         ...data,
-        overlay_images: data.overlay_images.map((image) => ({
-            ...image,
-            download_link: `wadouri:${apiPath}${image.download_link}`,
-            preview_link: `wadouri:${apiPath}${image.preview_link}`
+        overlay_images: data.overlay_images.map((filename) => ({
+            filename,
+            download_link: `wadouri:${apiPath}/download/${data.session_id}/${filename}`,
+            preview_link: `wadouri:${apiPath}/preview/${data.session_id}/${filename}`
         })),
         gif: {
-            ...data.gif,
-            download_link: `${apiPath}${data.gif.download_link}`,
-            preview_link: `${apiPath}${data.gif.preview_link}`
-        }
+            download_link: `${apiPath}/download/${data.session_id}/${data.gif}`,
+            preview_link: `${apiPath}/preview/${data.session_id}/${data.gif}`
+        },
+        predictions: data.predictions,
+        session_id: data.session_id
     };
 };
 
@@ -43,6 +53,84 @@ const LCRD = () => {
     const folderInputRef = useRef<HTMLInputElement>(null);
     const toast = useRef<Toast>(null);
     const [loading, setLoading] = useState(false);
+    const [folderLoading, setFolderLoading] = useState(false);
+
+    const [totalRecords, setTotalRecords] = useState(0);
+    const [currentPage, setCurrentPage] = useState(0);
+    const rowsPerPage = 10; // Số folder trên mỗi lần tải
+
+    const isMounted = useRef(false);
+
+    const initCornerstone = async () => {
+        if (typeof window !== 'undefined' && !window.__cornerstone_initialized) {
+            console.log('DICOM Image Loader');
+
+            const cornerstoneDICOMImageLoader = await import('@cornerstonejs/dicom-image-loader');
+            await cornerstoneDICOMImageLoader.init({ maxWebWorkers: 1 });
+
+            // Lưu vào window để sử dụng toàn cục
+            window.__cornerstone_initialized = true;
+            window.cornerstoneDICOMImageLoader = cornerstoneDICOMImageLoader;
+        }
+    };
+
+    const loadFolders = async (page: number) => {
+        if (loading) return; // Tránh gọi API nhiều lần khi đang tải
+        setFolderLoading(true);
+
+        try {
+            const response = await PatientService.getPatients(page + 1, rowsPerPage);
+            const serverData = response as ServerResponse;
+
+            // Xử lý dữ liệu
+            const processedFolders = serverData.data.map((folder) => {
+                const sessionId = folder.session_id;
+
+                // Sắp xếp upload_images theo thứ tự tự nhiên
+                const sortedUploadImages = folder.upload_images.sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b));
+
+                // Tạo danh sách imageIds
+                const imageIds = sortedUploadImages.map((filename) => `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/uploads/${sessionId}/${filename}`);
+
+                // Sắp xếp overlay_images theo thứ tự tự nhiên
+                const sortedOverlayImages = folder.overlay_images.sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b));
+
+                // Tạo danh sách predictedImagesURL
+                const predictedImagesURL = sortedOverlayImages.map((filename) => ({
+                    filename,
+                    preview_link: `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${filename}`,
+                    download_link: `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${filename}`
+                }));
+
+                // GIF URL
+                const gifDownloadURL = {
+                    download_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${folder.gif}`,
+                    preview_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${folder.gif}`
+                };
+
+                return {
+                    id: sessionId,
+                    name: folder.patient_info.name,
+                    files: sortedUploadImages,
+                    session_id: sessionId,
+                    patient_info: folder.patient_info,
+                    imageIds,
+                    predictedImagesURL,
+                    gifDownloadURL,
+                    predictions: folder.predictions
+                };
+            });
+
+            // Cập nhật state (thêm dữ liệu vào danh sách cũ)
+            setFolders((prevFolders) => [...prevFolders, ...processedFolders]);
+            setTotalRecords(serverData.total);
+            setCurrentPage(page);
+        } catch (error) {
+            console.error('Error loading folders: ', error);
+        } finally {
+            setFolderLoading(false);
+        }
+    };
 
     useEffect(() => {
         setLayoutState((prev) => ({
@@ -51,12 +139,25 @@ const LCRD = () => {
         }));
     }, [setLayoutState]);
 
+    useEffect(() => {
+        if (!isMounted.current) {
+            isMounted.current = true;
+            initCornerstone();
+            loadFolders(0); // Gọi API lần đầu tiên
+        }
+    }, []);
+
     const showToast = (severity: 'success' | 'info' | 'warn' | 'error', summary: string, detail: string) => {
         toast.current?.show({ severity, summary, detail, life: 3000 });
     };
 
     // Hàm xử lý file DICOM (lọc, sắp xếp, và tạo danh sách imageIds)
     const processFiles = (files: File[], folderName: string) => {
+        if (!window.cornerstoneDICOMImageLoader) {
+            showToast('error', 'Error', 'Cornerstone DICOM Image Loader is not initialized');
+            return null;
+        }
+
         const dicomFiles = files.filter((file) => file.name.toLowerCase().endsWith('.dcm'));
 
         if (!dicomFiles.length) {
@@ -65,15 +166,13 @@ const LCRD = () => {
         }
 
         // Sắp xếp file theo thứ tự tự nhiên (numeric sort)
-        dicomFiles.sort((a, b) =>
-            new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name)
-        );
+        dicomFiles.sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name));
 
         return {
             id: Date.now().toString(),
             name: folderName,
             files: dicomFiles,
-            imageIds: dicomFiles.map((file) => cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
+            imageIds: dicomFiles.map((file) => window.cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
         } as FolderType;
     };
 
@@ -110,6 +209,8 @@ const LCRD = () => {
 
     const selectFolder = (folder: FolderType) => {
         if (selectedFolder?.id !== folder.id) {
+            console.log('Folder selected: ', folder.name);
+
             setSelectedFolder(folder);
             showToast('info', 'Folder Selected', `Selected folder: ${folder.name}`);
         }
@@ -128,10 +229,12 @@ const LCRD = () => {
 
         try {
             setLoading(true);
+            const currentFolderId = selectedFolder.id; // Lưu ID folder cục bộ
+            console.log('Predicting for folder ID:', currentFolderId);
 
             // Tạo FormData chứa các file DICOM
             const formData = new FormData();
-            selectedFolder?.files.forEach((file) => formData.append('files', file));
+            selectedFolder?.files!.forEach((file) => formData.append('files', file));
 
             // Gửi request đến API
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/predict`, {
@@ -146,74 +249,38 @@ const LCRD = () => {
                 throw new Error(`Server error (${response.status}): ${errorText}`);
             }
 
-            const data = await response.json() as PredictionResponse;
+            const data = (await response.json()) as PredictionResponse;
 
-            // const data = {
-            //     message: 'Prediction successful.',
-            //     predictions: [[0.0019649702414815395, 0.006792662605387028, 0.01361832965162377, 0.01728884468542021, 0.021685326042547536, 0.03595085191094143]],
-            //     session_id: 'cd554235-1c03-4b9c-aea5-4c93b672c115',
-            //     overlay_images: [
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_18.dcm',
-            //             filename: 'slice_18.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_18.dcm'
-            //         },
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_19.dcm',
-            //             filename: 'slice_19.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_19.dcm'
-            //         },
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_20.dcm',
-            //             filename: 'slice_20.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_20.dcm'
-            //         },
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_21.dcm',
-            //             filename: 'slice_21.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_21.dcm'
-            //         },
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_22.dcm',
-            //             filename: 'slice_22.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_22.dcm'
-            //         },
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_23.dcm',
-            //             filename: 'slice_23.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_23.dcm'
-            //         },
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_24.dcm',
-            //             filename: 'slice_24.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_24.dcm'
-            //         },
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_25.dcm',
-            //             filename: 'slice_25.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_25.dcm'
-            //         },
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_26.dcm',
-            //             filename: 'slice_26.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_26.dcm'
-            //         },
-            //         {
-            //             download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_27.dcm',
-            //             filename: 'slice_27.dcm',
-            //             preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/slice_27.dcm'
-            //         }
-            //     ],
-            //     gif: {
-            //         download_link: 'download/cd554235-1c03-4b9c-aea5-4c93b672c115/animation.gif',
-            //         preview_link: 'preview/cd554235-1c03-4b9c-aea5-4c93b672c115/animation.gif'
-            //     }
-            // } as PredictionResponse;
+            const updatedData = addPrefixToLinks(data, `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil`);
 
-            const updatedData = addPrefixToLinks(data, `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/`);
+            setFolders((prevFolders) =>
+                prevFolders.map((folder) =>
+                    folder.id === currentFolderId
+                        ? {
+                              ...folder,
+                              predictedImagesURL: updatedData.overlay_images,
+                              gifDownloadURL: updatedData.gif,
+                              session_id: updatedData.session_id,
+                              predictions: updatedData.predictions,
+                              forecast: updatedData.predictions[0] || []
+                          }
+                        : folder
+                )
+            );
 
-            setSelectedFolder((prev) => ({ ...prev!, predictedImagesURL: updatedData.overlay_images, gifDownloadURL: updatedData.gif }));
-
+            setSelectedFolder((prev) => {
+                if (prev?.id === currentFolderId) {
+                    return {
+                        ...prev,
+                        predictedImagesURL: updatedData.overlay_images,
+                        gifDownloadURL: updatedData.gif,
+                        session_id: updatedData.session_id,
+                        predictions: updatedData.predictions,
+                        forecast: updatedData.predictions[0] || []
+                    };
+                }
+                return prev;
+            });
             showToast('success', 'Success', 'Prediction completed successfully');
         } catch (error) {
             showToast('error', 'Error', 'Failed to predict');
@@ -237,17 +304,26 @@ const LCRD = () => {
 
                 <div className="card-body p-card-content">
                     <Splitter className="dicom-panel">
-                        <SplitterPanel size={20} minSize={10} className="overflow-auto">
-                            <div className="overflow-auto">
-                                {folders.map((folder) => (
+                        <SplitterPanel size={10} minSize={5}>
+                            <VirtualScroller
+                                items={folders}
+                                itemSize={80} // Chiều cao mỗi item
+                                lazy
+                                onLazyLoad={(e) => {
+                                    if (folders.length < totalRecords) {
+                                        loadFolders(currentPage + 1);
+                                    }
+                                }}
+                                className="w-full h-full"
+                                itemTemplate={(folder) => (
                                     <div key={folder.id} onClick={() => selectFolder(folder)} className={`cursor-pointer p-3 border-round hover:surface-200 ${selectedFolder?.id === folder.id ? 'surface-200' : ''}`}>
                                         <i className="pi pi-folder text-4xl flex justify-content-center" />
                                         <div className="text-center mt-2">{folder.name}</div>
                                     </div>
-                                ))}
-                            </div>
+                                )}
+                            />
                         </SplitterPanel>
-                        <SplitterPanel size={80} minSize={50}>
+                        <SplitterPanel size={90} minSize={70}>
                             <DCMViewer selectedFolder={selectedFolder} />
                         </SplitterPanel>
                     </Splitter>

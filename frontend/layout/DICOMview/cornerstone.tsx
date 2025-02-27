@@ -16,14 +16,7 @@ import { Toolbar } from 'primereact/toolbar';
 import * as cornerstone from '@cornerstonejs/core';
 import { RenderingEngine, Enums, type Types } from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
-import {
-    ZoomTool,
-    PanTool,
-    WindowLevelTool,
-    StackScrollTool,
-    LengthTool
-} from '@cornerstonejs/tools';
-import cornerstoneDICOMImageLoader from '@cornerstonejs/dicom-image-loader';
+import { ZoomTool, PanTool, WindowLevelTool, StackScrollTool, LengthTool } from '@cornerstonejs/tools';
 
 // Icons
 import { TiZoom } from 'react-icons/ti';
@@ -31,18 +24,16 @@ import { CiRuler } from 'react-icons/ci';
 import { IoIosMove } from 'react-icons/io';
 import { ImContrast } from 'react-icons/im';
 import { RiResetLeftFill } from 'react-icons/ri';
-
-declare global {
-    interface Window {
-        __cornerstone_initialized?: boolean;
-    }
-}
+import PatientForm from '../forms/PatientForm';
+import { Messages } from 'primereact/messages';
 
 const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     const [selectedImageIdIndex, setSelectedImageIdIndex] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState(0); // 0: Original, 1: Predicted
     const [activeTool, setActiveTool] = useState<string | null>(null);
     const [showGifDialog, setShowGifDialog] = useState(false);
+    const [ExportDialog, setExportDialog] = useState(false);
+    const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const toast = useRef<Toast>(null);
     const elementRef = useRef<HTMLDivElement>(null);
     const renderingEngineRef = useRef<RenderingEngine | null>(null);
@@ -52,12 +43,27 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     const renderingEngineId = 'myRenderingEngine';
     const viewportId = 'CT_VIEWPORT';
     const toolGroupId = 'ctToolGroup';
+    const msgs = useRef<Messages>(null);
+
+    const [patientData, setPatientData] = useState<PatientData>({
+        patient_id: '',
+        group: '',
+        collectFees: '',
+        name: '',
+        age: '',
+        sex: '',
+        address: '',
+        diagnosis: '',
+        general_conclusion: '',
+        session_id: '',
+        file_name: [],
+        forecast: []
+    });
 
     useEffect(() => {
         const initializeViewer = async () => {
             await cornerstone.init();
             await cornerstoneTools.init();
-            await cornerstoneDICOMImageLoader.init({ maxWebWorkers: 1 });
 
             const renderingEngine = new RenderingEngine(renderingEngineId);
             renderingEngineRef.current = renderingEngine;
@@ -129,8 +135,19 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
         if (selectedFolder && renderingEngineRef.current) {
             const viewport = renderingEngineRef.current.getViewport(viewportId) as Types.IStackViewport;
             if (viewport) {
-                // viewport.setStack(selectedFolder.imageIds);
-                const imageStack = activeTab === 0 ? selectedFolder.imageIds : selectedFolder.predictedImagesURL?.map((img) => img.preview_link) || [];
+                let imageStack: string[] = [];
+                if (activeTab === 0) {
+                    imageStack = selectedFolder.imageIds;
+                } else if (selectedFolder.predictedImagesURL && selectedFolder.predictedImagesURL.length > 0) {
+                    imageStack = selectedFolder.predictedImagesURL.map((img) => img.preview_link).filter((link) => typeof link === 'string' && link.startsWith('wadouri:'));
+                }
+
+                if (imageStack.length === 0) {
+                    console.warn('Predicted image stack is empty or invalid.');
+                    showToast('warn', 'Warning', 'No predicted images available.');
+                    return;
+                }
+
                 viewport.setStack(imageStack);
                 viewport.render();
                 setSelectedImageIdIndex(0);
@@ -158,24 +175,55 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
         }
     }, [activeTab]);
 
+    useEffect(() => {
+        if (selectedFolder?.predictions && selectedFolder.predictions.length > 0) {
+            const messages = selectedFolder.predictions[0].map((value, index) => ({
+                sticky: true,
+                severity: getSeverity(value),
+                summary: `Year ${index + 1}`,
+                detail: `Value: ${(value * 100).toFixed(2)}%`,
+                closable: false
+            }));
+
+            msgs.current?.clear(); // Xóa thông báo cũ trước khi cập nhật
+            msgs.current?.show(messages);
+        } else {
+            msgs.current?.clear();
+        }
+    }, [selectedFolder?.predictions]);
+
+    const getSeverity = (value: number): 'success' | 'info' | 'warn' | 'error' => {
+        if (value < 0.25) return 'info';
+        if (value < 0.5) return 'success';
+        if (value < 0.75) return 'warn';
+        return 'error';
+    };
+
     const handleImageClick = useCallback(
         (index: number) => {
             const viewport = renderingEngineRef.current?.getViewport(viewportId) as Types.IStackViewport;
 
-            if (viewport && selectedFolder) {
-                try {
-                    const imageStack = activeTab === 0 ? selectedFolder.imageIds : selectedFolder.predictedImagesURL?.map((img) => img.preview_link) || [];
-                    console.log('Image stack:', imageStack[index]);
-                    viewport.setStack(imageStack, index);
-                    viewport.render();
-                    setSelectedImageIdIndex(index);
-                    showToast('info', 'Image Loaded', 'Selected image has been loaded successfully.');
-                } catch (error) {
-                    console.error('Error loading selected image:', error);
-                    showToast('error', 'Image Load Failed', 'Failed to load selected image.');
-                }
-            } else {
+            if (!viewport || !selectedFolder) {
                 showToast('error', 'Error', 'No active viewport found.');
+                return;
+            }
+            const imageStack = activeTab === 0 ? selectedFolder.imageIds : selectedFolder.predictedImagesURL?.map((img) => img.preview_link) || [];
+
+            if (!imageStack || imageStack.length === 0) {
+                showToast('warn', 'Warning', 'No images available for display.');
+                return;
+            }
+
+            try {
+                console.log('Image stack:', imageStack[index]);
+
+                viewport.setStack(imageStack, index);
+                viewport.render();
+                setSelectedImageIdIndex(index);
+                showToast('info', 'Image Loaded', 'Selected image has been loaded successfully.');
+            } catch (error) {
+                console.error('Error loading selected image:', error);
+                showToast('error', 'Image Load Failed', 'Failed to load selected image.');
             }
         },
         [selectedFolder, activeTab]
@@ -294,16 +342,47 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
 
     const wizardItems = [
         { label: 'Original', command: () => setActiveTab(0) },
-        { label: 'Predicted', command: () => setActiveTab(1) }
+        {
+            label: 'Predicted',
+            command: () => setActiveTab(1),
+            disabled: !selectedFolder?.predictedImagesURL || selectedFolder.predictedImagesURL.length === 0
+        }
     ];
 
+    const handleCheckboxChange = (image: { filename: string }) => {
+        setSelectedImages((prevSelected) => {
+            if (prevSelected.includes(image.filename)) {
+                return prevSelected.filter((img) => img !== image.filename);
+            } else {
+                return [...prevSelected, image.filename];
+            }
+        });
+    };
+
+    const handleViewExport = () => {
+        // if (selectedFolder?.gifDownloadURL?.preview_link && selectedImages.length > 0) {
+        console.log('selectedImages:', selectedImages);
+
+        setPatientData((prevData) => ({
+            ...prevData,
+            file_name: selectedImages,
+            session_id: selectedFolder?.session_id || '',
+            forecast: selectedFolder?.predictions ? selectedFolder.predictions[0] : []
+        }));
+
+        setExportDialog(true);
+        // } else {
+        //     showToast('warn', 'No Image choose', 'There is no Image predict choose.');
+        // }
+    };
+
     return (
-        <div className="w-full h-full overflow-hidden">
+        <div className="w-full h-full">
             <Toast ref={toast} />
 
             <Splitter style={{ height: '100%' }}>
                 {/* File Preview Panel */}
-                <SplitterPanel size={50} minSize={15} className="border-right-1 p-2 flex flex-column">
+                <SplitterPanel size={10} minSize={10} className="border-right-1 p-2 flex flex-column">
                     <TabMenu model={wizardItems} activeIndex={activeTab} onTabChange={(e) => setActiveTab(e.index)} />
 
                     {/* File List với chiều cao cố định và overflow-auto */}
@@ -318,7 +397,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                                         className={`cursor-pointer p-2 border-1 border-200 border-round hover:surface-200 flex align-items-center ${selectedImageIdIndex === index ? 'bg-bluegray-400' : ''}`}
                                     >
                                         <i className="pi pi-file text-2xl mr-2" />
-                                        <span className="text-overflow-ellipsis flex-grow-1 overflow-hidden whitespace-nowrap">{selectedFolder.files[index]?.name}</span>
+                                        <span className="text-overflow-ellipsis flex-grow-1 overflow-hidden whitespace-nowrap">{typeof selectedFolder.files[index] === 'string' ? selectedFolder.files[index] : selectedFolder.files[index].name}</span>
                                     </div>
                                 ))
                             ) : selectedFolder.predictedImagesURL && selectedFolder.predictedImagesURL.length > 0 ? (
@@ -329,6 +408,13 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                                         onClick={() => handleImageClick(index)}
                                         className={`cursor-pointer p-2 border-1 border-200 border-round hover:surface-200 flex align-items-center ${selectedImageIdIndex === index ? 'bg-bluegray-400' : ''}`}
                                     >
+                                        <input
+                                            type="checkbox"
+                                            className="mr-2"
+                                            checked={selectedImages.includes(image.filename)}
+                                            onChange={() => handleCheckboxChange(image)}
+                                            onClick={(e) => e.stopPropagation()} // Ngăn chặn sự kiện onClick ảnh hưởng đến div
+                                        />
                                         <i className="pi pi-file text-2xl mr-2" />
                                         <span className="text-overflow-ellipsis flex-grow-1 overflow-hidden whitespace-nowrap">{image.filename}</span>
                                     </div>
@@ -340,7 +426,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                 </SplitterPanel>
 
                 {/* Tools and Viewer Panel */}
-                <SplitterPanel size={50} minSize={50} className="p-2 flex-column">
+                <SplitterPanel size={80} minSize={30} className="p-2 flex-column">
                     {/* Toolbar */}
                     <div className="border-bottom-1">
                         <Toolbar
@@ -365,17 +451,23 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                                 </div>
                             }
                             end={
-                                (activeTab === 1 && selectedFolder?.predictedImagesURL) && (
+                                activeTab === 1 &&
+                                selectedFolder?.predictedImagesURL && (
                                     <div className="flex gap-2">
                                         <Button label="Detection" severity="warning" />
-                                        <Button label="Export" severity="help" />
+                                        <Button label="Export Or Save" severity="help" onClick={handleViewExport} />
                                         <Button label="View Gif" severity="info" onClick={handleViewGif} />
                                     </div>
                                 )
                             }
                         />
                     </div>
-                    <div className="h-viewport" ref={elementRef}></div>
+                    <div className="viewport-wrap overflow-y-auto">
+                        <div className="h-viewport" ref={elementRef}></div>
+                    </div>
+                </SplitterPanel>
+                <SplitterPanel size={10} minSize={5} className="p-2 flex-column">
+                    <Messages ref={msgs} />
                 </SplitterPanel>
             </Splitter>
             <Dialog header="GIF Preview" visible={showGifDialog} style={{ width: '50vw' }} onHide={() => setShowGifDialog(false)}>
@@ -383,6 +475,9 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                     {selectedFolder?.gifDownloadURL?.preview_link ? <Image src={selectedFolder.gifDownloadURL.preview_link} alt="GIF Preview" preview /> : <p>No GIF available</p>}
                     <Button label="Download Gif" className="mt-3" onClick={handleDownloadGif} />
                 </div>
+            </Dialog>
+            <Dialog header="Export Preview" visible={ExportDialog} style={{ width: '50vw' }} onHide={() => setExportDialog(false)}>
+                <PatientForm patientData={patientData} setPatientData={setPatientData} />
             </Dialog>
         </div>
     );
