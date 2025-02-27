@@ -39,11 +39,11 @@ const isNumeric = (value: string): boolean => {
 
 // Thêm các Permission
 const addPermissions = async () => {
-    const add = await askQuestion("Do you want to add Permissions?");
-    if (!add) {
-        console.log(`${ICONS.info} Skipped adding Permissions.`);
-        return;
-    }
+    // const add = await askQuestion("Do you want to add Permissions?");
+    // if (!add) {
+    //     console.log(`${ICONS.info} Skipped adding Permissions.`);
+    //     return;
+    // }
 
     const permissions = Object.values(Permissions).map((permission) => ({
         name: permission,
@@ -64,11 +64,11 @@ const addPermissions = async () => {
 
 // Tạo các Role
 const addRoles = async () => {
-    const add = await askQuestion("Do you want to add Roles?");
-    if (!add) {
-        console.log(`${ICONS.info} Skipped adding Roles.`);
-        return;
-    }
+    // const add = await askQuestion("Do you want to add Roles?");
+    // if (!add) {
+    //     console.log(`${ICONS.info} Skipped adding Roles.`);
+    //     return;
+    // }
 
     const allPermissions = await permissionRepository.findAll();
     const permissionsMap = Object.fromEntries(
@@ -107,11 +107,11 @@ const addRoles = async () => {
 
 // Tạo các User
 const addUsers = async () => {
-    const add = await askQuestion("Do you want to add Users?");
-    if (!add) {
-        console.log(`${ICONS.info} Skipped adding Users.`);
-        return;
-    }
+    // const add = await askQuestion("Do you want to add Users?");
+    // if (!add) {
+    //     console.log(`${ICONS.info} Skipped adding Users.`);
+    //     return;
+    // }
 
     const roles = await roleRepository.findAll();
     const roleMap = Object.fromEntries(roles.map((role) => [role.name, role]));

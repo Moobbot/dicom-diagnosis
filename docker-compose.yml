@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  sybil:
+    build:
+      context: ./Sybil
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    networks:
+      - moobbot
+
+  database:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - moobbot
+    
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - path: ./backend/.env
+    environment:
+      - MONGO_DB_URI=mongodb://database:27017/dicom
+      - SYBIL_MODEL_BASE_URL=http://sybil:5000
+    depends_on:
+      - sybil
+      - database
+    volumes:
+      - dicom-uploads:/app/src/data/dicom/uploads
+      - dicom-results:/app/src/data/dicom/results
+      - report:/app/src/data/dicom/gen
+    networks:
+      - moobbot
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - path: ./frontend/.env
+    depends_on:
+      - backend
+    networks:
+      - moobbot
+  
+networks:
+  moobbot:
+    driver: bridge
+
+volumes:
+  mongo-data:
+  dicom-uploads:
+  dicom-results:
+  report:
