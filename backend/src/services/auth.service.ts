@@ -10,6 +10,7 @@ import { UserRepository } from "../repositories/user.repository";
 import { signJwt } from "../utils/jwt";
 import { addTokenToBlockList } from "../utils/token-cache";
 import { Types } from "mongoose";
+import UnauthenticatedError from "../errors/unauthenticated.error";
 
 export class AuthService {
     private readonly userRepository: UserRepository;
@@ -40,23 +41,29 @@ export class AuthService {
     }
 
     refreshToken = async (refreshToken: string) => {
-        jwt.verify(refreshToken, this.refreshAccessSecret);
+        try {
+            jwt.verify(refreshToken, this.refreshAccessSecret);
 
-        const user = await this.userRepository.findUserByRefreshToken(
-            refreshToken
-        );
-        if (!user) {
-            throw new ForbiddenError("Invalid refresh token");
+            const user = await this.userRepository.findUserByRefreshToken(
+                refreshToken
+            );
+            if (!user) {
+                throw new ForbiddenError("Refresh token has been revoked");
+            }
+
+            const { accessToken, refreshToken: newRefreshToken } =
+                this.generateTokens(user._id);
+            await this.userRepository.updateUserRefreshToken(
+                user._id.toString(),
+                newRefreshToken
+            );
+
+            return { accessToken, newRefreshToken };
+        } catch (error) {
+            throw new UnauthenticatedError(
+                "Something went wrong when verifying token"
+            );
         }
-
-        const { accessToken, refreshToken: newRefreshToken } =
-            this.generateTokens(user._id);
-        await this.userRepository.updateUserRefreshToken(
-            user._id.toString(),
-            newRefreshToken
-        );
-
-        return { accessToken, newRefreshToken };
     };
 
     login = async (username: string, password: string) => {
@@ -100,37 +107,22 @@ export class AuthService {
         };
     };
 
-    logout = async (token: string | boolean, refreshToken: string) => {
+    logout = async (userId: string, refreshToken: string) => {
         try {
-            let userId: any;
-            if (token) {
-                await addTokenToBlockList(
-                    token as string,
-                    validateEnv()?.jwtconfig?.accessExpiration as string
-                );
-                const payload = jwt.verify(
-                    token as string,
-                    this.accessSecret
-                ) as any;
-                userId = payload.userId;
+            const payload = jwt.verify(
+                refreshToken,
+                this.refreshAccessSecret
+            ) as any;
+
+            if (payload.userId !== userId) {
+                throw new ForbiddenError("You are not authorized to do this");
             }
 
-            if (refreshToken) {
-                await addTokenToBlockList(
-                    refreshToken,
-                    validateEnv()?.jwtconfig?.refreshAccessExpiration as string
-                );
-                const payload = jwt.verify(
-                    refreshToken,
-                    this.refreshAccessSecret
-                ) as any;
-                userId = payload.userId;
-            }
-            if (userId) {
-                await this.userRepository.updateUserRefreshToken(userId, "");
-            }
+            await this.userRepository.updateUserRefreshToken(userId, "");
         } catch (error) {
-            throw new BadRequestError("Invalid token");
+            throw new UnauthenticatedError(
+                "Something went wrong when verifying token"
+            );
         }
     };
 

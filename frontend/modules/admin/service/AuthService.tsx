@@ -8,24 +8,18 @@ class AuthService {
     }
 
     async login(username: string, password: string): Promise<any> {
-        const response = await api.post(
-            `${this.baseUrl}/login`,
-            {
-                username,
-                password
-            },
-            {
-                withCredentials: true
-            }
-        );
+        const response = await api.post(`${this.baseUrl}/login`, {
+            username,
+            password
+        });
 
         return response.data;
     }
 
-    async logout(): Promise<any> {
-        const response = await api.post(`${this.baseUrl}/logout`, {}, { withCredentials: true });
-
-        return response.data;
+    async logout(refreshToken: string): Promise<any> {
+        await api.post(`${this.baseUrl}/logout`, {
+            refreshToken
+        });
     }
 }
 
