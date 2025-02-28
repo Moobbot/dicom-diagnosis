@@ -190,6 +190,7 @@ const LCRD = () => {
         fileUploadRef.current?.clear();
         showToast('success', 'Success', `Uploaded ${newFolder.files.length} files successfully`);
     };
+
     // Xử lý upload thư mục DICOM
     const handleFolderUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const fileList = event.target.files;
@@ -257,13 +258,13 @@ const LCRD = () => {
                 prevFolders.map((folder) =>
                     folder.id === currentFolderId
                         ? {
-                              ...folder,
-                              predictedImagesURL: updatedData.overlay_images,
-                              gifDownloadURL: updatedData.gif,
-                              session_id: updatedData.session_id,
-                              predictions: updatedData.predictions,
-                              forecast: updatedData.predictions[0] || []
-                          }
+                            ...folder,
+                            predictedImagesURL: updatedData.overlay_images,
+                            gifDownloadURL: updatedData.gif,
+                            session_id: updatedData.session_id,
+                            predictions: updatedData.predictions,
+                            forecast: updatedData.predictions[0] || []
+                        }
                         : folder
                 )
             );

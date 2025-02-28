@@ -1,11 +1,18 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
-import { FileUpload } from 'primereact/fileupload';
-import { Button } from 'primereact/button';
-import { Toast } from 'primereact/toast';
-import cornerstoneDICOMImageLoader from '@cornerstonejs/dicom-image-loader';
-import DCMViewer from '@/layout/DICOMview/cornerstone';
+
+// Global styles
 import '@/styles/dicom/custom.scss';
+
+// React and Next.js imports
+import React, { useContext, useEffect, useRef, useState } from 'react';
+
+// PrimeReact components
+import { Button } from 'primereact/button';
+import { FileUpload } from 'primereact/fileupload';
+import { Toast } from 'primereact/toast';
+
+// DICOM viewer
+import DCMViewer from '@/layout/DICOMview/cornerstone';
 
 interface FolderType {
     id: string;
@@ -21,6 +28,30 @@ interface PreviewFile {
     imageId: string;
 }
 
+declare global {
+    interface Window {
+        __cornerstone_initialized?: boolean;
+        cornerstoneDICOMImageLoader?: any;
+    }
+}
+
+const addPrefixToLinks = (data: PredictionResponse, apiPath: string): Omit<PredictionResponse, 'overlay_images' | 'gif'> & { overlay_images: OverlayImage[]; gif: Gif } => {
+    return {
+        ...data,
+        overlay_images: data.overlay_images.map((filename) => ({
+            filename,
+            download_link: `wadouri:${apiPath}/download/${data.session_id}/${filename}`,
+            preview_link: `wadouri:${apiPath}/preview/${data.session_id}/${filename}`
+        })),
+        gif: {
+            download_link: `${apiPath}/download/${data.session_id}/${data.gif}`,
+            preview_link: `${apiPath}/preview/${data.session_id}/${data.gif}`
+        },
+        predictions: data.predictions,
+        session_id: data.session_id
+    };
+};
+
 const DCMPage = () => {
     const [folders, setFolders] = useState<FolderType[]>([]);
     const [selectedFolder, setSelectedFolder] = useState<FolderType | null>(null);
@@ -29,6 +60,7 @@ const DCMPage = () => {
     const folderInputRef = useRef<HTMLInputElement>(null);
     const toast = useRef<Toast>(null);
 
+    const isMounted = useRef(false);
     const showToast = (severity: 'success' | 'info' | 'warn' | 'error', summary: string, detail: string) => {
         toast.current?.show({
             severity: severity,
@@ -38,65 +70,80 @@ const DCMPage = () => {
         });
     };
 
-    const handleFileUpload = (event: any) => {
-        const files = event.files;
-        if (files.length === 0) {
+    const initCornerstone = async () => {
+        if (typeof window !== 'undefined' && !window.__cornerstone_initialized) {
+            console.log('DICOM Image Loader');
+
+            const cornerstoneDICOMImageLoader = await import('@cornerstonejs/dicom-image-loader');
+            await cornerstoneDICOMImageLoader.init({ maxWebWorkers: 1 });
+
+            // Lưu vào window để sử dụng toàn cục
+            window.__cornerstone_initialized = true;
+            window.cornerstoneDICOMImageLoader = cornerstoneDICOMImageLoader;
+        }
+    };
+    useEffect(() => {
+        if (!isMounted.current) {
+            isMounted.current = true;
+            initCornerstone();
+        }
+    }, []);
+
+    // Hàm xử lý file DICOM (lọc, sắp xếp, và tạo danh sách imageIds)
+    const processFiles = (files: File[], folderName: string) => {
+        if (!window.cornerstoneDICOMImageLoader) {
+            showToast('error', 'Error', 'Cornerstone DICOM Image Loader is not initialized');
+            return null;
+        }
+
+        const dicomFiles = files.filter((file) => file.name.toLowerCase().endsWith('.dcm'));
+
+        if (!dicomFiles.length) {
+            showToast('warn', 'Warning', 'No DICOM files found');
+            return null;
+        }
+
+        // Sắp xếp file theo thứ tự tự nhiên (numeric sort)
+        dicomFiles.sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name));
+
+        return {
+            id: Date.now().toString(),
+            name: folderName,
+            files: dicomFiles,
+            imageIds: dicomFiles.map((file) => window.cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
+        } as FolderType;
+    };
+
+    // Xử lý upload file DICOM riêng lẻ
+    const handleFileUpload = (event: { files: File[] }) => {
+        if (!event.files.length) {
             showToast('warn', 'Warning', 'No files selected');
             return;
         }
 
-        (files as File[]).sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name));
+        const newFolder = processFiles(event.files, `Folder ${folders.length + 1}`);
+        if (!newFolder) return;
 
-        const newFolder: FolderType = {
-            id: Date.now().toString(),
-            name: `Folder ${folders.length + 1}`,
-            files: files,
-            imageIds: (files as File[]).map((file) => cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
-        };
-
-        setFolders([...folders, newFolder]);
-
-        if (fileUploadRef.current) {
-            fileUploadRef.current.clear();
-        }
-
-        showToast('success', 'Success', `Uploaded ${files.length} files successfully`);
+        setFolders((prev) => [...prev, newFolder]);
+        fileUploadRef.current?.clear();
+        showToast('success', 'Success', `Uploaded ${newFolder.files.length} files successfully`);
     };
 
-    const handleFolderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (!event.target.files) {
+    // Xử lý upload thư mục DICOM
+    const handleFolderUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const fileList = event.target.files;
+        if (!fileList?.length) {
             showToast('warn', 'Warning', 'No folder selected');
             return;
         }
 
-        const files = Array.from(event.target.files);
-        files.sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name));
-        const dicomFiles = files.filter((file) => file.name.toLowerCase().endsWith('.dcm'));
+        const folderName = fileList[0].webkitRelativePath.split('/')[0];
+        const newFolder = processFiles(Array.from(fileList), folderName);
+        if (!newFolder) return;
 
-        if (dicomFiles.length === 0) {
-            showToast('warn', 'Warning', 'No DICOM files found in selected folder');
-            return;
-        }
-
-        // Get folder name from the path of the first file
-        const folderPath = event.target.files[0].webkitRelativePath;
-        const folderName = folderPath.split('/')[0];
-
-        const newFolder: FolderType = {
-            id: Date.now().toString(),
-            name: folderName,
-            files: dicomFiles,
-            imageIds: dicomFiles.map((file) => cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
-        };
-
-        setFolders([...folders, newFolder]);
-
-        // Clear the input
-        if (folderInputRef.current) {
-            folderInputRef.current.value = '';
-        }
-
-        showToast('success', 'Success', `Uploaded ${dicomFiles.length} DICOM files from folder "${folderName}"`);
+        setFolders((prev) => [...prev, newFolder]);
+        folderInputRef.current!.value = ''; // Reset input
+        showToast('success', 'Success', `Uploaded ${newFolder.files.length} DICOM files from folder "${folderName}"`);
     };
 
     const selectFolder = (folder: FolderType) => {
