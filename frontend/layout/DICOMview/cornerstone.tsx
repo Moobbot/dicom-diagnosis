@@ -397,7 +397,13 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                                         className={`cursor-pointer p-2 border-1 border-200 border-round hover:surface-200 flex align-items-center ${selectedImageIdIndex === index ? 'bg-bluegray-400' : ''}`}
                                     >
                                         <i className="pi pi-file text-2xl mr-2" />
-                                        <span className="text-overflow-ellipsis flex-grow-1 overflow-hidden whitespace-nowrap">{typeof selectedFolder.files[index] === 'string' ? selectedFolder.files[index] : selectedFolder.files[index].name}</span>
+                                        <span className="text-overflow-ellipsis flex-grow-1 overflow-hidden whitespace-nowrap">
+                                            {Array.isArray(selectedFolder.files) && selectedFolder.files.length > 0
+                                                ? selectedFolder.files[index] instanceof File
+                                                    ? (selectedFolder.files[index] as File).name  // Ép kiểu an toàn
+                                                    : selectedFolder.files[index] as string       // Ép kiểu string nếu không phải File
+                                                : ""}
+                                        </span>
                                     </div>
                                 ))
                             ) : selectedFolder.predictedImagesURL && selectedFolder.predictedImagesURL.length > 0 ? (

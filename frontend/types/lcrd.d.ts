@@ -7,7 +7,7 @@ interface FolderType {
     gifDownloadURL?: Gif;
     session_id?: string;
     predictions?: number[][];
-    patient_info: PatientInfo;
+    patient_info?: PatientInfo;
 }
 
 interface DCMViewerProps {
