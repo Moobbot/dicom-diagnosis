@@ -25,6 +25,7 @@ authRouter.post(
 );
 authRouter.post(
     "/logout",
+    [authMiddleware, accessHistoryMiddleware],
     asyncHandler(authController.logout)
 );
 authRouter.post(

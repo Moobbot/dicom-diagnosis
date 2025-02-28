@@ -25,38 +25,26 @@ export class AuthController {
         const { userData, accessToken, refreshToken } =
             await this.authService.login(username, password);
 
-        res.cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            secure: validateEnv()?.env === "production",
-            sameSite: "strict",
-        })
-            .status(200)
-            .json({
-                success: true,
-                data: userData,
-                message: "Logged in successfully",
-                accessToken,
-            });
+        res.status(200).json({
+            success: true,
+            data: userData,
+            message: "Logged in successfully",
+            accessToken,
+            refreshToken,
+        });
     };
 
     logout = async (req: Request, res: Response) => {
-        const token = extractTokenFromHeader(req);
-        const refreshToken = req.cookies.refreshToken;
+        const { refreshToken } = req.body;
 
-        await this.authService.logout(token, refreshToken);
+        const userId = req.userData.userId;
+
+        if (refreshToken) {
+            await this.authService.logout(userId, refreshToken as string);
+        }
 
         // ✅ Xóa cookie refreshToken chính xác với các options
-        res.clearCookie("refreshToken", {
-            httpOnly: true,
-            secure: validateEnv()?.env === "production",
-            sameSite: "strict",
-            path: "/", // Đảm bảo xóa ở đúng path
-        })
-            .status(200)
-            .json({
-                success: true,
-                message: "Logged out successfully",
-            });
+        res.status(205).json();
     };
 
     changePassword = async (req: Request, res: Response) => {
@@ -119,7 +107,7 @@ export class AuthController {
     };
 
     refreshToken = async (req: Request, res: Response) => {
-        const refreshToken = req.cookies.refreshToken;
+        const { refreshToken } = req.body;
 
         if (!refreshToken) {
             throw new ForbiddenError("Refresh token is required");
@@ -128,16 +116,11 @@ export class AuthController {
         const { accessToken, newRefreshToken } =
             await this.authService.refreshToken(refreshToken as string);
 
-        res.cookie("refreshToken", newRefreshToken, {
-            httpOnly: true,
-            secure: validateEnv()?.env === "production",
-            sameSite: "strict",
-        })
-            .status(200)
-            .json({
-                success: true,
-                message: "Token refreshed successfully",
-                accessToken,
-            });
+        res.status(200).json({
+            success: true,
+            message: "Token refreshed successfully",
+            accessToken,
+            refreshToken: newRefreshToken,
+        });
     };
 }

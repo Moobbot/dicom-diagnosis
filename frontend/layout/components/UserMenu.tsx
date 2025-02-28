@@ -8,11 +8,29 @@ const UserMenu = () => {
 
     const handleLogout = async () => {
         try {
-            await authService.logout();
-            localStorage.removeItem('accessToken');
-            window.location.href = 'auth/login';
+            const tokenData = await fetch('/api/auth', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            const { refreshToken } = await tokenData.json();
+
+            console.log(refreshToken);
+
+            await authService.logout(refreshToken);
         } catch (error) {
             console.error('Error during logout:', error);
+        } finally {
+            localStorage.removeItem('accessToken');
+            await fetch('/api/auth', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
+            });
+            window.location.href = 'auth/login';
         }
     };
 
