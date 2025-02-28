@@ -41,6 +41,15 @@ const LoginPage = () => {
         try {
             const response = await authService.login(data.username, data.password);
             localStorage.setItem('accessToken', response.accessToken);
+
+            await fetch('/api/auth', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(response)
+            });
+
             setUser(response.data);
             router.push('/');
         } catch (error: any) {

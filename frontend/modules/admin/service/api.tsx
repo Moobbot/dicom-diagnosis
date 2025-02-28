@@ -25,7 +25,7 @@ api.interceptors.request.use(
     (request) => {
         if (typeof window !== 'undefined' && !request.url?.includes('/auth/login')) {
             const accessToken = localStorage.getItem('accessToken');
-            if (accessToken) {
+            if (accessToken && !request.url?.includes('/auth/login')) {
                 request.headers['Authorization'] = `Bearer ${accessToken}`;
             }
         }
@@ -45,7 +45,7 @@ api.interceptors.response.use(
 
         const status = response?.status;
 
-        if (status === 401 && !config._retry) {
+        if (status === 401 && !config._retry && !config.url?.includes('/auth/login')) {
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });

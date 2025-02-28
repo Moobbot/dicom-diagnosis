@@ -73,7 +73,7 @@ export const authMiddleware = async (
     } catch (err) {
         next(
             new UnAuthenticatedError(
-                "Something went wrong when verifying tokens"
+                "Something went wrong when verifying token"
             )
         );
     }
