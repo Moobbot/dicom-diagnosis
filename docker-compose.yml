@@ -5,15 +5,11 @@ services:
     build:
       context: ./Sybil
       dockerfile: Dockerfile
-    ports:
-      - "5000:5000"
     networks:
       - moobbot
 
   database:
     image: mongo:latest
-    ports:
-      - "27017:27017"
     volumes:
       - mongo-data:/data/db
     networks:
