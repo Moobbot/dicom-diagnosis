@@ -1,15 +1,8 @@
-import { useRouter } from 'next/navigation';
 import React from 'react';
-import { getCookie } from 'cookies-next';
-import axios from 'axios';
-import { Button } from 'primereact/button';
-import { logout } from '@/app/api/authApi';
-import UserService from '../../modules/admin/service/UserService';
 import AuthService from '@/modules/admin/service/AuthService';
 import { useUserContext } from '../context/usercontext';
 
 const UserMenu = () => {
-    const router = useRouter();
     const authService = new AuthService();
     const { user } = useUserContext();
 
