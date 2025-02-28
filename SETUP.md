@@ -55,7 +55,7 @@ docker -v  # Kiểm tra Docker đã cài đặt chưa
 ## 2️⃣ Clone Source Code về máy
 
 ```sh
-git clone https://github.com/Moobbot/dicom-diagnosis.git
+git clone --recurse-submodules https://github.com/Moobbot/dicom-diagnosis.git
 cd dicom-diagnosis
 ```
 
