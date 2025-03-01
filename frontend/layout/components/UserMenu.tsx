@@ -16,8 +16,6 @@ const UserMenu = () => {
             });
             const { refreshToken } = await tokenData.json();
 
-            console.log(refreshToken);
-
             await authService.logout(refreshToken);
         } catch (error) {
             console.error('Error during logout:', error);
