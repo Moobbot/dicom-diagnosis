@@ -61,11 +61,31 @@ api.interceptors.response.use(
 
             try {
                 console.log('Refreshing token...');
-                const response = await axios.post('/auth/refresh-token', {}, { withCredentials: true });
-                const { accessToken } = response.data;
+
+                const tokenData = await fetch('/api/auth', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const { refreshToken: oldRefreshToken } = await tokenData.json();
+
+                const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/refresh-token`, {
+                    refreshToken: oldRefreshToken
+                });
+
+                const { accessToken, refreshToken } = response.data;
                 // console.log('New access token:', accessToken);
 
                 localStorage.setItem('accessToken', accessToken);
+
+                await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ refreshToken })
+                });
 
                 api.defaults.headers['Authorization'] = `Bearer ${accessToken}`;
 
@@ -75,7 +95,13 @@ api.interceptors.response.use(
             } catch (refreshError) {
                 processQueue(refreshError, null);
                 localStorage.removeItem('accessToken');
-                await axios.post('/auth/logout', {}, { withCredentials: true });
+                await fetch('/api/auth', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
                 window.location.href = '/auth/login';
                 return Promise.reject(refreshError);
             } finally {
