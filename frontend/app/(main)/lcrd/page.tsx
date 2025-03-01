@@ -21,6 +21,8 @@ import PatientService from '@/modules/admin/service/PatientService';
 
 import { VirtualScroller } from 'primereact/virtualscroller';
 
+import JSZip from 'jszip';
+
 declare global {
     interface Window {
         __cornerstone_initialized?: boolean;
@@ -230,12 +232,27 @@ const LCRD = () => {
 
         try {
             setLoading(true);
-            const currentFolderId = selectedFolder.id; // Lưu ID folder cục bộ
+            const currentFolderId = selectedFolder.id;
             console.log('Predicting for folder ID:', currentFolderId);
 
-            // Tạo FormData chứa các file DICOM
+            const zip = new JSZip();
+
+            // Thêm từng file vào ZIP
+            await Promise.all(
+                selectedFolder?.files!.map(async (file, index) => {
+                    if (file instanceof File) {
+                        const fileData = await file.arrayBuffer(); // Đọc dữ liệu file
+                        zip.file(file.name, fileData); // Thêm vào ZIP
+                    }
+                })
+            );
+
+            // Tạo Blob từ ZIP
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+            // Tạo FormData để gửi lên server
             const formData = new FormData();
-            selectedFolder?.files!.forEach((file) => formData.append('files', file));
+            formData.append('file', zipBlob, `${selectedFolder.name}.zip`);
 
             // Gửi request đến API
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/predict`, {
@@ -243,9 +260,8 @@ const LCRD = () => {
                 body: formData
             });
 
-            // Xử lý lỗi nếu response không thành công
             if (!response.ok) {
-                const errorText = await response.text(); // Lấy nội dung lỗi từ server
+                const errorText = await response.text();
                 showToast('error', `${response.status}`, errorText);
                 throw new Error(`Server error (${response.status}): ${errorText}`);
             }
@@ -258,13 +274,13 @@ const LCRD = () => {
                 prevFolders.map((folder) =>
                     folder.id === currentFolderId
                         ? {
-                            ...folder,
-                            predictedImagesURL: updatedData.overlay_images,
-                            gifDownloadURL: updatedData.gif,
-                            session_id: updatedData.session_id,
-                            predictions: updatedData.predictions,
-                            forecast: updatedData.predictions[0] || []
-                        }
+                              ...folder,
+                              predictedImagesURL: updatedData.overlay_images,
+                              gifDownloadURL: updatedData.gif,
+                              session_id: updatedData.session_id,
+                              predictions: updatedData.predictions,
+                              forecast: updatedData.predictions[0] || []
+                          }
                         : folder
                 )
             );
@@ -282,9 +298,11 @@ const LCRD = () => {
                 }
                 return prev;
             });
+
             showToast('success', 'Success', 'Prediction completed successfully');
         } catch (error) {
             showToast('error', 'Error', 'Failed to predict');
+            console.error(error);
         } finally {
             setLoading(false);
         }
