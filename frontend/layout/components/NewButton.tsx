@@ -1,18 +1,12 @@
-import { Permissions } from '@/enums/permissions.enums';
-import { Button } from 'primereact/button';
-import { useUserContext } from '../context/usercontext';
+import GenericButton from './GenericButton';
 
-type Props = {
-    permissions: string[];
-    onClick: () => void;
-    label: string;
-};
-
-const NewButton = ({ permissions, onClick, label }: Props) => {
-    const { user } = useUserContext();
-    const hasPermission = user && (user.grantAll || permissions.every((permission) => user.permissions.includes(permission)));
-
-    return hasPermission && <Button label={label} icon="pi pi-plus" className="p-button-success mr-2" onClick={onClick} />;
+const NewButton = ({ label, onClick, permissions }: { label: string; onClick: () => void; permissions: string[] }) => {
+    return <GenericButton
+        label={label}
+        icon="pi pi-plus" onClick={onClick}
+        permissions={permissions}
+        style={{ width: '100px', height: '40px' }}
+        className="p-button-success" />;
 };
 
 export default NewButton;

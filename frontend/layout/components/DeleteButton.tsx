@@ -1,19 +1,17 @@
-import { Permissions } from '@/enums/permissions.enums';
-import { Button } from 'primereact/button';
-import { useUserContext } from '../context/usercontext';
+import GenericButton from './GenericButton';
 
-type Props = {
-    permissions: string[];
-    onclick: () => void;
-    selected: any[];
-    label: string;
-};
-
-const DeleteButton = ({ permissions, onclick, selected, label }: Props) => {
-    const { user } = useUserContext();
-    const hasPermission = user && (user.grantAll || permissions.every((permission) => user.permissions.includes(permission)));
-
-    return hasPermission && <Button label={label} icon="pi pi-trash" className="p-button-danger" onClick={onclick} disabled={!selected || !selected.length} />;
+const DeleteButton = ({ label, onClick, permissions, selected }: { label: string; onClick: () => void; permissions: string[]; selected: any[] }) => {
+    return (
+        <GenericButton
+            label={label}
+            icon="pi pi-lock"
+            className="p-button-danger"
+            onClick={onClick}
+            permissions={permissions}
+            disabled={!selected || !selected.length}
+            style={{ width: '100px', height: '40px' }} 
+        />
+    );
 };
 
 export default DeleteButton;
