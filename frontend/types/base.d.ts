@@ -79,7 +79,7 @@ declare namespace Base {
         avatar: string | null;
         birth_date: string; // ISODate hoặc string (tùy cách sử dụng)
         address: string;
-        gender: string; // Có thể là "male", "female", hoặc giá trị khác
+        gender: number; // Có thể là "male", "female", hoặc giá trị khác
     }
     export interface User {
         _id: string;

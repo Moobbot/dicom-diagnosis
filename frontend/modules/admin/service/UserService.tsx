@@ -23,7 +23,7 @@ class UserService {
         return response.data;
     }
 
-    async createUser(user: { username: string; roles: Base.Role[]; password: string; detail_user: { user_code: string; name: string; birth_date: string; address: string; gender: string } }): Promise<any> {
+    async createUser(user: { username: string; roles: Base.Role[]; password: string; detail_user: { user_code: string; name: string; birth_date: string; address: string; gender: number } }): Promise<any> {
         const roles = user.roles.map((role) => role._id);
         const userData = { ...user, roles, detail_user: user.detail_user };
         // console.log('Creating user with data:', userData);
