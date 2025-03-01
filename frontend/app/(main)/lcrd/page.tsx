@@ -33,12 +33,12 @@ const addPrefixToLinks = (data: PredictionResponse, apiPath: string): Omit<Predi
         ...data,
         overlay_images: data.overlay_images.map((filename) => ({
             filename,
-            download_link: `wadouri:${apiPath}/download/${data.session_id}/${filename}`,
-            preview_link: `wadouri:${apiPath}/preview/${data.session_id}/${filename}`
+            download_link: `wadouri:${apiPath}/download/results/${data.session_id}/${filename}`,
+            preview_link: `wadouri:${apiPath}/preview/results/${data.session_id}/${filename}`
         })),
         gif: {
-            download_link: `${apiPath}/download/${data.session_id}/${data.gif}`,
-            preview_link: `${apiPath}/preview/${data.session_id}/${data.gif}`
+            download_link: `${apiPath}/download/results/${data.session_id}/${data.gif}`,
+            preview_link: `${apiPath}/preview/results/${data.session_id}/${data.gif}`
         },
         predictions: data.predictions,
         session_id: data.session_id
