@@ -15,6 +15,87 @@ cd dicom-diagnosis
 
 Before running the application, you need to create `.env` files for both the frontend and backend.
 
+### Backend
+
+```sh
+cd ./backend
+```
+
+```sh
+cp .env.example .env
+```
+
+```ini
+# MongoDB connection string (replace 'localhost' and 'mydatabase' with your actual database host and name)
+MONGO_DB_URI=<chuỗi kết nối DB>  # Ví dụ: mongodb://localhost:27017/dicom
+
+# Base URL for the frontend application
+FE_BASE_URL=http://localhost:3000
+
+# Application environment:
+# - development: for development purposes
+# - production: for production deployment
+# - test: for running tests
+NODE_ENV=development
+
+# The port on which the application server will run
+PORT=8080
+
+# Secret key used to sign and verify JSON Web Tokens (JWTs)
+# Keep this value secure and private
+JWT=accesssecretkey
+
+# Access token expiration time in seconds
+# Using the format: 15m, 30d, 1h, 1d
+JWT_EXPIRATION=1m
+
+# Secret key for signing and verifying refresh tokens
+# Keep this value secure and private
+JWT_REFRESH=refreshsecretkey
+
+# Refresh token expiration time in seconds
+# Using the format: 15m, 30d, 1h, 1d
+JWT_REFRESH_EXPIRATION=7d
+
+# Link connect SYBIL API
+SYBIL_MODEL_BASE_URL=http://localhost:5000
+
+LINK_SAVE_DICOM_UPLOADS = "./src/data/dicom/uploads"
+LINK_SAVE_DICOM_RESULTS = "./src/data/dicom/results"
+LINK_TEMPLATE_REPORT = "./src/data/report/format"
+LINK_SAVE_REPORT = "./src/data/dicom/gen"
+
+# Temporary file expiration time
+TEMP_EXPIRATION = 1h
+```
+
+### Frontend
+
+```sh
+cd ../frontend
+```
+
+```sh
+cp .env.example .env
+```
+
+```ini
+# Base URL của API Backend
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api # https://api.example.com
+
+# Server configuration
+PORT=3000
+
+# Environment của ứng dụng (development, staging, production)
+NODE_ENV=development
+
+# Debug mode (Bật/tắt log chi tiết cho development)
+NEXT_PUBLIC_DEBUG=true
+
+# Login page
+NEXT_PUBLIC_LOGIN_PAGE=/login
+```
+
 Now, build and start all services using Docker:
 
 ```sh
