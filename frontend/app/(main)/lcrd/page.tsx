@@ -53,6 +53,7 @@ const LCRD = () => {
     const [selectedFolder, setSelectedFolder] = useState<FolderType | null>(null);
     const fileUploadRef = useRef<FileUpload>(null);
     const folderInputRef = useRef<HTMLInputElement>(null);
+    const zipInputRef = useRef<HTMLInputElement>(null);
     const toast = useRef<Toast>(null);
     const [loading, setLoading] = useState(false);
     const [folderLoading, setFolderLoading] = useState(false);
@@ -210,6 +211,59 @@ const LCRD = () => {
         showToast('success', 'Success', `Uploaded ${newFolder.files.length} DICOM files from folder "${folderName}"`);
     };
 
+    const handleZipUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const fileList = event.target.files;
+        if (!fileList?.length) {
+            showToast('warn', 'Warning', 'No ZIP file selected');
+            return;
+        }
+
+        const zipFile = fileList[0];
+
+        try {
+            const zip = new JSZip();
+            const zipData = await zip.loadAsync(zipFile);
+
+            // Lưu danh sách các file DICOM từ ZIP
+            const dicomFiles: File[] = [];
+
+            await Promise.all(
+                Object.keys(zipData.files).map(async (filename) => {
+                    if (filename.toLowerCase().endsWith('.dcm')) {
+                        const fileData = await zipData.files[filename].async('blob');
+                        const file = new File([fileData], filename, { type: 'application/dicom' });
+                        dicomFiles.push(file);
+                    }
+                })
+            );
+
+            if (dicomFiles.length === 0) {
+                showToast('warn', 'Warning', 'No DICOM files found in ZIP');
+                return;
+            }
+
+            // Sắp xếp file theo thứ tự tự nhiên
+            dicomFiles.sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name));
+
+            const newFolder: FolderType = {
+                id: Date.now().toString(),
+                name: zipFile.name.replace('.zip', ''),
+                files: dicomFiles,
+                imageIds: dicomFiles.map((file) => window.cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
+            };
+
+            setFolders((prev) => [...prev, newFolder]);
+
+            showToast('success', 'Success', `Uploaded and extracted ${dicomFiles.length} files successfully`);
+
+            // Reset input
+            zipInputRef.current!.value = '';
+        } catch (error) {
+            showToast('error', 'Error', 'Failed to extract ZIP');
+            console.error('ZIP extraction error:', error);
+        }
+    };
+
     const selectFolder = (folder: FolderType) => {
         if (selectedFolder?.id !== folder.id) {
             console.log('Folder selected: ', folder.name);
@@ -318,6 +372,10 @@ const LCRD = () => {
                     <input ref={folderInputRef} type="file" webkitdirectory="true" directory="" style={{ display: 'none' }} onChange={handleFolderUpload} />
 
                     <Button label="Upload Folder" className="ml-2" icon="pi pi-folder-open" onClick={() => folderInputRef.current?.click()} />
+
+                    <Button label="Upload ZIP" className="ml-2" icon="pi pi-file-zip" onClick={() => zipInputRef.current?.click()} />
+                    <input ref={zipInputRef} type="file" accept=".zip" style={{ display: 'none' }} onChange={handleZipUpload} />
+
                     <Button label="Predict" className="ml-2" icon="pi pi-play" onClick={handlePredict} loading={loading} disabled={!selectedFolder} />
                 </div>
 
