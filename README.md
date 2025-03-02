@@ -44,5 +44,7 @@ This product is a Dicom Diagnosis
 - `Rate limiting và CORS`: Bảo vệ API khỏi tấn công brute-force và điều chỉnh quyền truy cập.
 - `HTTPS`: Sử dụng để mã hóa dữ liệu trao đổi giữa client và server.
 
-# 4. [Hướng dẫn build](./SETUP.md)
+# 4. Hướng dẫn build
+- [Build trực tiếp](./SETUP.md)
+- [Build docker](./SETUPDOCKER.md)
 
