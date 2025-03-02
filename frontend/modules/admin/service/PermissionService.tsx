@@ -7,7 +7,7 @@ class PermissionService {
         this.baseUrl = '/permissions';
     }
 
-    async getPermissions(page: number, limit: number): Promise<any> {
+    async getPermissions(page?: number, limit?: number): Promise<any> {
         const response = await api.get(this.baseUrl, {
             params: { page, limit }
         });
