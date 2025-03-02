@@ -88,7 +88,7 @@ export class PatientService {
                 const overlayImages = saveFiles.filter((file) =>
                     file.endsWith(".dcm")
                 );
-                const gif = "animation.gif";
+                const gif = saveFiles.find((file) => file.endsWith(".gif")) || null;
 
                 const patientInfo = (({ folder, prediction, ...rest }) => rest)(
                     patient.toObject()
