@@ -55,14 +55,18 @@ class SybilController {
         };
 
     predictSybil = async (req: Request, res: Response) => {
-        const files = req.files as Express.Multer.File[];
-        if (!files || files.length === 0) {
-            throw new BadRequestError("Only .dcm files are allowed");
+        if (!req.file) {
+            throw new BadRequestError("Only .zip files are allowed");
         }
 
         const folderUUID = (req as any).uploadFolder as string;
 
-        const result = await this.sybilService.predictSybil(folderUUID, files);
+        const zipFilePath = path.join(req.file.destination, req.file.filename);
+
+        const result = await this.sybilService.predictSybil(
+            folderUUID,
+            zipFilePath
+        );
 
         res.status(200).json({
             message: "Prediction completed",
@@ -73,8 +77,18 @@ class SybilController {
 
     generateReport = async (req: Request, res: Response): Promise<void> => {
         const {
-            patient_id, group, collectFees, name, age, sex, address,
-            diagnosis, general_conclusion, session_id, file_name, forecast
+            patient_id,
+            group,
+            collectFees,
+            name,
+            age,
+            sex,
+            address,
+            diagnosis,
+            general_conclusion,
+            session_id,
+            file_name,
+            forecast,
         } = req.body;
 
         if (!session_id || !file_name.length) {
@@ -84,18 +98,24 @@ class SybilController {
         console.log("Bắt đầu tạo báo cáo...");
 
         // Tạo thư mục lưu report nếu chưa có
-        const reportFolder = path.join(validateEnv().linkSaveReport, session_id);
-        if (!fs.existsSync(reportFolder)) fs.mkdirSync(reportFolder, { recursive: true });
+        const reportFolder = path.join(
+            validateEnv().linkSaveReport,
+            session_id
+        );
+        if (!fs.existsSync(reportFolder))
+            fs.mkdirSync(reportFolder, { recursive: true });
 
         // Lấy đường dẫn các file DICOM
-        const dicomPaths = file_name.map((file: string) => 
+        const dicomPaths = file_name.map((file: string) =>
             path.join(validateEnv().linkSaveDicomResults, session_id, file)
         );
 
         // Kiểm tra xem tất cả các file DICOM có tồn tại không
         dicomPaths.forEach((filePath: string) => {
             if (!fs.existsSync(filePath)) {
-            throw new BadRequestError(`DICOM file not found: ${path.basename(filePath)}`);
+                throw new BadRequestError(
+                    `DICOM file not found: ${path.basename(filePath)}`
+                );
             }
         });
 
