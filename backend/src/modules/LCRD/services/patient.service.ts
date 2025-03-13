@@ -120,10 +120,30 @@ export class PatientService {
     };
 
     deletePatientById = async (patientId: string) => {
-        const patient = await this.patientRepository.deleteById(patientId);
+        const patient = await this.patientRepository.findExtendedPatientById(patientId);
 
         if (!patient) {
             throw new NotFoundError("Patient not found");
         }
+
+        const folderUUID = patient.folder.folderUUID;
+        const uploadPath = path.join(this.uploadPath, folderUUID);
+        const savePath = path.join(this.savePath, folderUUID);
+
+        fs.rmSync(uploadPath, {
+            recursive: true,
+            force: true,
+        });
+
+        fs.rmSync(savePath, {
+            recursive: true,
+            force: true,
+        });
+
+        await this.folderRepository.deleteById(patient.folder._id.toString());
+
+        await this.predictionRepository.deleteById(patient.prediction._id.toString());
+
+        await this.patientRepository.deleteById(patientId);
     };
 }
