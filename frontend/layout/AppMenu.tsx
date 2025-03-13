@@ -26,7 +26,7 @@ const AppMenu = () => {
             items: [
                 { label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/' },
                 // { label: "DICOM Viewer and Predict 1", icon: 'pi pi-fw pi-image', to: '/dicom-viewer' },
-                { label: "DICOM Viewer and Predict 2", icon: 'pi pi-fw pi-image', to: '/lcrd' },
+                { label: "DICOM Viewer and Predict", icon: 'pi pi-fw pi-image', to: '/lcrd' },
                 ...[
                     { label: 'User management', icon: 'pi pi-fw pi-user', to: '/users', requiredPermissions: [Permissions.LIST_ALL_USERS] },
                     { label: 'Manage roles and permissions', icon: 'pi pi-fw pi-circle', to: '/role-permissions', requiredPermissions: [Permissions.LIST_ALL_ROLES, Permissions.LIST_ALL_PERMISSIONS] }
