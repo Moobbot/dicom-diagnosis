@@ -9,11 +9,7 @@ const AppFooter = () => {
     return (
         <div className="layout-footer">
             {/* <img src={`/layout/images/logo.svg`} alt="Logo" height="20" className="mr-2" /> */}
-            <span className="mr-2">
-                Copyright © 2024
-            </span>
-            Phát triển bởi
-            <span className="font-medium ml-2">NewLife Team</span>
+            <span className="mr-2">Copyright © 2024 </span> developed by <span className="font-medium ml-2">NewLife Team</span>
         </div>
     );
 };
