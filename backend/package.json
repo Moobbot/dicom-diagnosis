@@ -18,7 +18,7 @@
     "API",
     "Express"
   ],
-  "author": "Moobbot",
+  "author": "NewLife team",
   "license": "ISC",
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",

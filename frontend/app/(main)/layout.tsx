@@ -8,7 +8,7 @@ interface AppLayoutProps {
 
 export const metadata: Metadata = {
     title: 'Newlife LCRD - Lung Cancer Risk Diagnosis',
-    description: 'Moobbot Team to develop this application. The ultimate collection of design-agnostic, flexible and accessible React UI Components.',
+    description: 'NewLife Team to develop this application. The ultimate collection of design-agnostic, flexible and accessible React UI Components.',
     robots: { index: false, follow: false },
     openGraph: {
         type: 'website',

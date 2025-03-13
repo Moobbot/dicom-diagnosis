@@ -13,7 +13,7 @@ const AppFooter = () => {
                 Copyright © 2024
             </span>
             Phát triển bởi
-            <span className="font-medium ml-2">Moobbot Team</span>
+            <span className="font-medium ml-2">NewLife Team</span>
         </div>
     );
 };
