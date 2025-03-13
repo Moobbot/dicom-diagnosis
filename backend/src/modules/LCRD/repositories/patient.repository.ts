@@ -23,4 +23,10 @@ export class PatientRepository extends BaseRepository<IPatient> {
             "prediction",
         ]);
     };
+
+    findPatientByFolderId = (folderId: string) => {
+        return PatientModel.findOne({
+            folder: folderId,
+        });
+    };
 }

@@ -8,6 +8,7 @@ interface FolderType {
     session_id?: string;
     predictions?: number[][];
     patient_info?: PatientInfo;
+    from_server?: boolean;
 }
 
 interface DCMViewerProps {
@@ -59,6 +60,7 @@ interface ServerResponse {
 }
 
 interface ServerFolder {
+    _id: string;
     session_id: string;
     predictions: number[][];
     patient_info: PatientInfo;

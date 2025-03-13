@@ -19,6 +19,10 @@ class PatientService {
         const { data, total, limit: responseLimit, pages } = response.data;
         return { data, total, limit: responseLimit, pages };
     }
+
+    async deletePatient(id: string): Promise<void> {
+        await api.delete(`${this.baseUrl}/${id}`);
+    }
 }
 
 export default new PatientService();
