@@ -1,8 +1,5 @@
 'use client';
 
-// Global styles
-import '@/styles/dicom/custom.scss';
-
 // React and Next.js imports
 import React, { useContext, useEffect, useRef, useState } from 'react';
 
@@ -23,6 +20,7 @@ import { VirtualScroller } from 'primereact/virtualscroller';
 
 import JSZip from 'jszip';
 import { confirmDialog, ConfirmDialog } from 'primereact/confirmdialog';
+import { InputText } from 'primereact/inputtext';
 
 declare global {
     interface Window {
@@ -63,6 +61,9 @@ const LCRD = () => {
     const [currentPage, setCurrentPage] = useState(0);
     const rowsPerPage = 10; // Số folder trên mỗi lần tải
 
+    const [searchTerm, setSearchTerm] = useState(''); // Giá trị tìm kiếm
+    const [appliedSearchTerm, setAppliedSearchTerm] = useState(''); // Giá trị đã áp dụng vào API
+
     const isMounted = useRef(false);
 
     const initCornerstone = async () => {
@@ -78,12 +79,12 @@ const LCRD = () => {
         }
     };
 
-    const loadFolders = async (page: number) => {
+    const loadFolders = async (page: number, search: string) => {
         if (loading) return; // Tránh gọi API nhiều lần khi đang tải
         setFolderLoading(true);
 
         try {
-            const response = await PatientService.getPatients(page + 1, rowsPerPage);
+            const response = await PatientService.getPatients(page + 1, rowsPerPage, search);
             const serverData = response as ServerResponse;
 
             // Xử lý dữ liệu
@@ -148,9 +149,18 @@ const LCRD = () => {
         if (!isMounted.current) {
             isMounted.current = true;
             initCornerstone();
-            loadFolders(0); // Gọi API lần đầu tiên
+            loadFolders(0, searchTerm); // Gọi API lần đầu tiên
         }
     }, []);
+
+    // Xử lý tìm kiếm khi người dùng bấm nút "Tìm kiếm"
+    const handleSearch = () => {
+        setFolders((prevFolders) => prevFolders.filter((folder) => !folder.from_server));
+        setTotalRecords(0); // Reset tổng số folder
+        setCurrentPage(0); // Reset trang hiện tại
+        setAppliedSearchTerm(searchTerm);
+        loadFolders(0, searchTerm);
+    };
 
     const showToast = (severity: 'success' | 'info' | 'warn' | 'error', summary: string, detail: string) => {
         toast.current?.show({ severity, summary, detail, life: 3000 });
@@ -191,7 +201,7 @@ const LCRD = () => {
         const newFolder = processFiles(event.files, `Folder ${folders.length + 1}`);
         if (!newFolder) return;
 
-        setFolders((prev) => [...prev, newFolder]);
+        setFolders((prev) => [newFolder, ...prev]);
         fileUploadRef.current?.clear();
         showToast('success', 'Success', `Uploaded ${newFolder.files.length} files successfully`);
     };
@@ -208,7 +218,7 @@ const LCRD = () => {
         const newFolder = processFiles(Array.from(fileList), folderName);
         if (!newFolder) return;
 
-        setFolders((prev) => [...prev, newFolder]);
+        setFolders((prev) => [newFolder, ...prev]);
         folderInputRef.current!.value = ''; // Reset input
         showToast('success', 'Success', `Uploaded ${newFolder.files.length} DICOM files from folder "${folderName}"`);
     };
@@ -254,7 +264,7 @@ const LCRD = () => {
                 imageIds: dicomFiles.map((file) => window.cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
             };
 
-            setFolders((prev) => [...prev, newFolder]);
+            setFolders((prev) => [newFolder, ...prev]);
 
             showToast('success', 'Success', `Uploaded and extracted ${dicomFiles.length} files successfully`);
 
@@ -330,13 +340,13 @@ const LCRD = () => {
                 prevFolders.map((folder) =>
                     folder.id === currentFolderId
                         ? {
-                              ...folder,
-                              predictedImagesURL: updatedData.overlay_images,
-                              gifDownloadURL: updatedData.gif,
-                              session_id: updatedData.session_id,
-                              predictions: updatedData.predictions,
-                              forecast: updatedData.predictions[0] || []
-                          }
+                            ...folder,
+                            predictedImagesURL: updatedData.overlay_images,
+                            gifDownloadURL: updatedData.gif,
+                            session_id: updatedData.session_id,
+                            predictions: updatedData.predictions,
+                            forecast: updatedData.predictions[0] || []
+                        }
                         : folder
                 )
             );
@@ -393,7 +403,7 @@ const LCRD = () => {
             icon: 'pi pi-exclamation-triangle',
             acceptClassName: folder.from_server ? 'p-button-danger' : 'p-button-warning',
             accept: () => handleDeleteFolder(folder),
-            reject: () => {}
+            reject: () => { }
         });
     };
 
@@ -401,6 +411,11 @@ const LCRD = () => {
         <div className="content-full">
             <Toast ref={toast} />
             <div className="card p-card card-custom overflow-hidden">
+                {/* Thanh tìm kiếm */}
+                <div className="p-inputgroup p-mb-3">
+                    <InputText placeholder="Search folder..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    <Button icon="pi pi-search" label="Search" onClick={handleSearch} />
+                </div>
                 <div className="card-header flex align-items-center">
                     <FileUpload ref={fileUploadRef} className="mr-2" mode="basic" name="files" multiple accept=".dcm" customUpload uploadHandler={handleFileUpload} auto chooseLabel="Upload DCM Files" />
                     {/* @ts-ignore */}
@@ -416,26 +431,35 @@ const LCRD = () => {
 
                 <div className="card-body p-card-content">
                     <Splitter className="dicom-panel">
-                        <SplitterPanel size={10} minSize={5}>
+                        <SplitterPanel
+                            size={15}
+                            minSize={15}
+                            className="folder-list-panel">
                             <VirtualScroller
                                 items={folders}
                                 itemSize={80} // Chiều cao mỗi item
                                 lazy
                                 onLazyLoad={(e) => {
                                     if (folders.length < totalRecords) {
-                                        loadFolders(currentPage + 1);
+                                        loadFolders(currentPage + 1, appliedSearchTerm);
                                     }
                                 }}
-                                className="w-full h-full"
+                                className="list-folder w-full h-full"
                                 itemTemplate={(folder) => (
-                                    <div key={folder.id} className={`flex justify-content-between align-items-center cursor-pointer p-3 border-round hover:surface-200 ${selectedFolder?.id === folder.id ? 'surface-200' : ''}`}>
-                                        <div className="flex flex-column" onClick={() => selectFolder(folder)}>
-                                            <i className="pi pi-folder text-4xl flex justify-content-center" />
-                                            <div className="text-center mt-2">{folder.name}</div>
+                                    <div
+                                        key={folder.id}
+                                        className={`relative cursor-pointer p-3 mb-1 border-round hover:surface-200 ${selectedFolder?.id === folder.id ? 'surface-200' : ''}`}
+                                        style={{ height: '80px', backgroundColor: '#1E2124' }}>
+                                        <div className="flex align-items-center gap-3" style={{ transform: "translate(0, 50%)", maxWidth: "calc(100% - 80px)" }}
+                                            onClick={() => selectFolder(folder)}>
+                                            {/* 📌 Kiểm tra nếu là folder local thì thêm icon upload */}
+                                            <i className={`pi ${folder.from_server ? 'pi-folder' : 'pi-cloud-upload'} text-4xl`} style={{ color: folder.from_server ? '#4169E1' : 'green' }} />
+                                            <div className="text-lg font-medium overflow-hidden text-overflow-ellipsis white-space-nowrap"
+                                            >{folder.name}</div>
                                         </div>
                                         <Button
                                             icon="pi pi-trash"
-                                            className="p-button-danger p-button-rounded p-button-sm"
+                                            className="absolute p-button-danger p-button-rounded p-button-sm" style={{ right: '10px', bottom: '50%', transform: 'translate(0, 50%)' }}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 confirmDelete(folder);
@@ -446,7 +470,7 @@ const LCRD = () => {
                             />
                             <ConfirmDialog />
                         </SplitterPanel>
-                        <SplitterPanel size={90} minSize={70}>
+                        <SplitterPanel size={85} minSize={70}>
                             <DCMViewer selectedFolder={selectedFolder} />
                         </SplitterPanel>
                     </Splitter>

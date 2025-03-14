@@ -6,6 +6,7 @@ const predictionSchema = new Schema<IPrediction>(
         session_id: {
             type: String,
             required: [true, "Session ID is required"],
+            unique: true,
         },
         predictions: {
             type: [[Number]],

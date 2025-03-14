@@ -1,8 +1,5 @@
 'use client';
 
-// Global styles
-import '@/styles/dicom/custom.scss';
-
 // React and Next.js imports
 import React, { useContext, useEffect, useRef, useState } from 'react';
 

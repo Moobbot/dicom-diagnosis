@@ -16,7 +16,12 @@ export class PatientRepository extends BaseRepository<IPatient> {
         page?: number,
         limit?: number
     ) => {
-        const query = super.findAll(filter, sort, page, limit);
+        const query = super.findAll(
+            filter,
+            { createdAt: -1, ...sort }, // Default sort by createdAt desc
+            page,
+            limit
+        );
 
         return query.populate<{ folder: IFolder; prediction: IPrediction }>([
             "folder",
