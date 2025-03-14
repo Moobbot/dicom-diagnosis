@@ -43,14 +43,14 @@ export class PatientService {
             throw new NotFoundError("Folder not found");
         }
 
-        const existingPatient =
-            await this.patientRepository.findPatientByFolderId(
-                folder._id.toString()
-            );
+        // const existingPatient =
+        //     await this.patientRepository.findPatientByFolderId(
+        //         folder._id.toString()
+        //     );
 
-        if (existingPatient) {
-            throw new BadRequestError("Patient already exists");
-        }
+        // if (existingPatient) {
+        //     throw new BadRequestError("Patient already exists");
+        // }
 
         const prediction =
             await this.predictionRepository.getPredictionBySessionId(
@@ -72,7 +72,7 @@ export class PatientService {
     listAllPatients = async (query: z.infer<typeof FindQuerySchema>) => {
         const { search, sort, page, limit } = query;
 
-        const filter = buildSearchFilter(search);
+        const filter = buildSearchFilter(search, ["patient_id", "name"]);
 
         const sortOptions = buildSortQuery(sort);
 
@@ -92,13 +92,13 @@ export class PatientService {
                 const savePath = path.join(this.savePath, folderUUID);
 
                 const uploadFiles = fs.readdirSync(uploadPath);
-                const saveFiles = fs.readdirSync(savePath);
+                // const saveFiles = fs.readdirSync(savePath);
 
-                const overlayImages = saveFiles.filter((file) =>
-                    file.endsWith(".dcm")
-                );
-                const gif =
-                    saveFiles.find((file) => file.endsWith(".gif")) || null;
+                // const overlayImages = saveFiles.filter((file) =>
+                //     file.endsWith(".dcm")
+                // );
+                // const gif =
+                //     saveFiles.find((file) => file.endsWith(".gif")) || null;
 
                 const patientInfo = (({ folder, prediction, ...rest }) => rest)(
                     patient.toObject()
@@ -110,8 +110,10 @@ export class PatientService {
                     session_id: folderUUID,
                     predictions: patient.prediction.predictions,
                     upload_images: uploadFiles,
-                    overlay_images: overlayImages,
-                    gif,
+                    // overlay_images: overlayImages,
+                    overlay_images: [],
+                    // gif,
+                    gif: "abc",
                 };
             })
         );
@@ -120,7 +122,9 @@ export class PatientService {
     };
 
     deletePatientById = async (patientId: string) => {
-        const patient = await this.patientRepository.findExtendedPatientById(patientId);
+        const patient = await this.patientRepository.findExtendedPatientById(
+            patientId
+        );
 
         if (!patient) {
             throw new NotFoundError("Patient not found");
@@ -142,7 +146,9 @@ export class PatientService {
 
         await this.folderRepository.deleteById(patient.folder._id.toString());
 
-        await this.predictionRepository.deleteById(patient.prediction._id.toString());
+        await this.predictionRepository.deleteById(
+            patient.prediction._id.toString()
+        );
 
         await this.patientRepository.deleteById(patientId);
     };
