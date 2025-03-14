@@ -43,14 +43,14 @@ export class PatientService {
             throw new NotFoundError("Folder not found");
         }
 
-        // const existingPatient =
-        //     await this.patientRepository.findPatientByFolderId(
-        //         folder._id.toString()
-        //     );
+        const existingPatient =
+            await this.patientRepository.findPatientByFolderId(
+                folder._id.toString()
+            );
 
-        // if (existingPatient) {
-        //     throw new BadRequestError("Patient already exists");
-        // }
+        if (existingPatient) {
+            throw new BadRequestError("Patient already exists");
+        }
 
         const prediction =
             await this.predictionRepository.getPredictionBySessionId(
@@ -92,13 +92,13 @@ export class PatientService {
                 const savePath = path.join(this.savePath, folderUUID);
 
                 const uploadFiles = fs.readdirSync(uploadPath);
-                // const saveFiles = fs.readdirSync(savePath);
+                const saveFiles = fs.readdirSync(savePath);
 
-                // const overlayImages = saveFiles.filter((file) =>
-                //     file.endsWith(".dcm")
-                // );
-                // const gif =
-                //     saveFiles.find((file) => file.endsWith(".gif")) || null;
+                const overlayImages = saveFiles.filter((file) =>
+                    file.endsWith(".dcm")
+                );
+                const gif =
+                    saveFiles.find((file) => file.endsWith(".gif")) || null;
 
                 const patientInfo = (({ folder, prediction, ...rest }) => rest)(
                     patient.toObject()
@@ -110,10 +110,10 @@ export class PatientService {
                     session_id: folderUUID,
                     predictions: patient.prediction.predictions,
                     upload_images: uploadFiles,
-                    // overlay_images: overlayImages,
-                    overlay_images: [],
-                    // gif,
-                    gif: "abc",
+                    overlay_images: overlayImages,
+                    // overlay_images: [],
+                    gif,
+                    // gif: "abc",
                 };
             })
         );
