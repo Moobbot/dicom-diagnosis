@@ -1,8 +1,5 @@
 'use client';
 
-// Global styles
-import '@/styles/dicom/custom.scss';
-
 // React and Next.js imports
 import React, { useContext, useEffect, useRef, useState } from 'react';
 
@@ -343,13 +340,13 @@ const LCRD = () => {
                 prevFolders.map((folder) =>
                     folder.id === currentFolderId
                         ? {
-                              ...folder,
-                              predictedImagesURL: updatedData.overlay_images,
-                              gifDownloadURL: updatedData.gif,
-                              session_id: updatedData.session_id,
-                              predictions: updatedData.predictions,
-                              forecast: updatedData.predictions[0] || []
-                          }
+                            ...folder,
+                            predictedImagesURL: updatedData.overlay_images,
+                            gifDownloadURL: updatedData.gif,
+                            session_id: updatedData.session_id,
+                            predictions: updatedData.predictions,
+                            forecast: updatedData.predictions[0] || []
+                        }
                         : folder
                 )
             );
@@ -406,7 +403,7 @@ const LCRD = () => {
             icon: 'pi pi-exclamation-triangle',
             acceptClassName: folder.from_server ? 'p-button-danger' : 'p-button-warning',
             accept: () => handleDeleteFolder(folder),
-            reject: () => {}
+            reject: () => { }
         });
     };
 
@@ -434,7 +431,10 @@ const LCRD = () => {
 
                 <div className="card-body p-card-content">
                     <Splitter className="dicom-panel">
-                        <SplitterPanel size={10} minSize={5}>
+                        <SplitterPanel
+                            size={15}
+                            minSize={15}
+                            className="folder-list-panel">
                             <VirtualScroller
                                 items={folders}
                                 itemSize={80} // Chiều cao mỗi item
@@ -444,21 +444,22 @@ const LCRD = () => {
                                         loadFolders(currentPage + 1, appliedSearchTerm);
                                     }
                                 }}
-                                className="w-full h-full"
+                                className="list-folder w-full h-full"
                                 itemTemplate={(folder) => (
                                     <div
                                         key={folder.id}
-                                        className={`flex justify-content-between align-items-center cursor-pointer p-3 border-round hover:surface-200 ${selectedFolder?.id === folder.id ? 'surface-200' : ''}`}
-                                        style={{ height: '80px' }}
-                                    >
-                                        <div className="flex flex-row align-items-center gap-3" onClick={() => selectFolder(folder)}>
+                                        className={`relative cursor-pointer p-3 mb-1 border-round hover:surface-200 ${selectedFolder?.id === folder.id ? 'surface-200' : ''}`}
+                                        style={{ height: '80px', backgroundColor: '#1E2124' }}>
+                                        <div className="flex align-items-center gap-3" style={{ transform: "translate(0, 50%)", maxWidth: "calc(100% - 80px)" }}
+                                            onClick={() => selectFolder(folder)}>
                                             {/* 📌 Kiểm tra nếu là folder local thì thêm icon upload */}
-                                            <i className={`pi ${folder.from_server ? 'pi-folder' : 'pi-cloud-upload'} text-4xl`} style={{ color: folder.from_server ? 'blue' : 'green' }} />
-                                            <div className="text-lg font-medium">{folder.name}</div>
+                                            <i className={`pi ${folder.from_server ? 'pi-folder' : 'pi-cloud-upload'} text-4xl`} style={{ color: folder.from_server ? '#4169E1' : 'green' }} />
+                                            <div className="text-lg font-medium overflow-hidden text-overflow-ellipsis white-space-nowrap"
+                                            >{folder.name}</div>
                                         </div>
                                         <Button
                                             icon="pi pi-trash"
-                                            className="p-button-danger p-button-rounded p-button-sm"
+                                            className="absolute p-button-danger p-button-rounded p-button-sm" style={{ right: '10px', bottom: '50%', transform: 'translate(0, 50%)' }}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 confirmDelete(folder);
@@ -469,7 +470,7 @@ const LCRD = () => {
                             />
                             <ConfirmDialog />
                         </SplitterPanel>
-                        <SplitterPanel size={90} minSize={70}>
+                        <SplitterPanel size={85} minSize={70}>
                             <DCMViewer selectedFolder={selectedFolder} />
                         </SplitterPanel>
                     </Splitter>
