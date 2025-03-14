@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { PatientService } from "../services/patient.service";
 import { CreatePatientSchema } from "../../validation/patient.validation";
 import { FindQuerySchema } from "../../../validation/find-query.validation";
+import { idSchema } from "../../../validation/objectid.validation";
 
 class PatientController {
     private readonly patientService: PatientService;
@@ -42,6 +43,16 @@ class PatientController {
             pages: limit ? Math.ceil(total / limit) : undefined,
             data: patients,
             success: true,
+        });
+    };
+
+    deletePatientById = async (req: Request, res: Response) => {
+        const { id } = idSchema.parse(req.params);
+
+        await this.patientService.deletePatientById(id);
+
+        res.status(200).json({
+            message: "Delete Patient success",
         });
     };
 }

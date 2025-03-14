@@ -16,5 +16,10 @@ patientRouter.post(
     [authMiddleware, accessHistoryMiddleware],
     asyncHandler(patientController.createPatient)
 );
+patientRouter.delete(
+    "/:id",
+    [authMiddleware, accessHistoryMiddleware],
+    asyncHandler(patientController.deletePatientById)
+);
 
 export default patientRouter;

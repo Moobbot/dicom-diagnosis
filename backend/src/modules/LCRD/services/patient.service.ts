@@ -43,6 +43,15 @@ export class PatientService {
             throw new NotFoundError("Folder not found");
         }
 
+        const existingPatient =
+            await this.patientRepository.findPatientByFolderId(
+                folder._id.toString()
+            );
+
+        if (existingPatient) {
+            throw new BadRequestError("Patient already exists");
+        }
+
         const prediction =
             await this.predictionRepository.getPredictionBySessionId(
                 data.session_id
@@ -88,13 +97,15 @@ export class PatientService {
                 const overlayImages = saveFiles.filter((file) =>
                     file.endsWith(".dcm")
                 );
-                const gif = saveFiles.find((file) => file.endsWith(".gif")) || null;
+                const gif =
+                    saveFiles.find((file) => file.endsWith(".gif")) || null;
 
                 const patientInfo = (({ folder, prediction, ...rest }) => rest)(
                     patient.toObject()
                 );
 
                 return {
+                    _id: patient._id,
                     patient_info: patientInfo,
                     session_id: folderUUID,
                     predictions: patient.prediction.predictions,
@@ -106,5 +117,33 @@ export class PatientService {
         );
 
         return { total, patients: enrichedPatients };
+    };
+
+    deletePatientById = async (patientId: string) => {
+        const patient = await this.patientRepository.findExtendedPatientById(patientId);
+
+        if (!patient) {
+            throw new NotFoundError("Patient not found");
+        }
+
+        const folderUUID = patient.folder.folderUUID;
+        const uploadPath = path.join(this.uploadPath, folderUUID);
+        const savePath = path.join(this.savePath, folderUUID);
+
+        fs.rmSync(uploadPath, {
+            recursive: true,
+            force: true,
+        });
+
+        fs.rmSync(savePath, {
+            recursive: true,
+            force: true,
+        });
+
+        await this.folderRepository.deleteById(patient.folder._id.toString());
+
+        await this.predictionRepository.deleteById(patient.prediction._id.toString());
+
+        await this.patientRepository.deleteById(patientId);
     };
 }

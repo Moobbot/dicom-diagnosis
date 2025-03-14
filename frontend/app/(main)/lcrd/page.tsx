@@ -22,6 +22,7 @@ import PatientService from '@/modules/admin/service/PatientService';
 import { VirtualScroller } from 'primereact/virtualscroller';
 
 import JSZip from 'jszip';
+import { confirmDialog, ConfirmDialog } from 'primereact/confirmdialog';
 
 declare global {
     interface Window {
@@ -112,7 +113,7 @@ const LCRD = () => {
                 };
 
                 return {
-                    id: sessionId,
+                    id: folder._id,
                     name: folder.patient_info.name,
                     files: sortedUploadImages,
                     session_id: sessionId,
@@ -120,7 +121,8 @@ const LCRD = () => {
                     imageIds,
                     predictedImagesURL,
                     gifDownloadURL,
-                    predictions: folder.predictions
+                    predictions: folder.predictions,
+                    from_server: true
                 };
             });
 
@@ -362,6 +364,39 @@ const LCRD = () => {
         }
     };
 
+    const handleDeleteFolder = async (folder: FolderType) => {
+        if (folder.from_server) {
+            // Xóa folder từ API
+            try {
+                await PatientService.deletePatient(folder.id);
+
+                setFolders((prev) => prev.filter((f) => f.id !== folder.id));
+                showToast('success', 'Success', 'Folder deleted successfully from database');
+            } catch (error) {
+                console.error('Error deleting folder:', error);
+                showToast('error', 'Error', 'Failed to delete folder from database');
+            }
+        } else {
+            // Xóa folder do người dùng upload (chỉ trên UI)
+            if (selectedFolder?.id === folder.id) {
+                setSelectedFolder(null);
+            }
+            setFolders((prev) => prev.filter((f) => f.id !== folder.id));
+            showToast('success', 'Success', 'Folder removed locally');
+        }
+    };
+
+    const confirmDelete = (folder: FolderType) => {
+        confirmDialog({
+            message: folder.from_server ? 'This folder is stored in the database. Deleting it will remove it permanently. Are you sure?' : 'This folder is only stored locally. Do you want to remove it?',
+            header: 'Confirm Deletion',
+            icon: 'pi pi-exclamation-triangle',
+            acceptClassName: folder.from_server ? 'p-button-danger' : 'p-button-warning',
+            accept: () => handleDeleteFolder(folder),
+            reject: () => {}
+        });
+    };
+
     return (
         <div className="content-full">
             <Toast ref={toast} />
@@ -393,12 +428,23 @@ const LCRD = () => {
                                 }}
                                 className="w-full h-full"
                                 itemTemplate={(folder) => (
-                                    <div key={folder.id} onClick={() => selectFolder(folder)} className={`cursor-pointer p-3 border-round hover:surface-200 ${selectedFolder?.id === folder.id ? 'surface-200' : ''}`}>
-                                        <i className="pi pi-folder text-4xl flex justify-content-center" />
-                                        <div className="text-center mt-2">{folder.name}</div>
+                                    <div key={folder.id} className={`flex justify-content-between align-items-center cursor-pointer p-3 border-round hover:surface-200 ${selectedFolder?.id === folder.id ? 'surface-200' : ''}`}>
+                                        <div className="flex flex-column" onClick={() => selectFolder(folder)}>
+                                            <i className="pi pi-folder text-4xl flex justify-content-center" />
+                                            <div className="text-center mt-2">{folder.name}</div>
+                                        </div>
+                                        <Button
+                                            icon="pi pi-trash"
+                                            className="p-button-danger p-button-rounded p-button-sm"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                confirmDelete(folder);
+                                            }}
+                                        />
                                     </div>
                                 )}
                             />
+                            <ConfirmDialog />
                         </SplitterPanel>
                         <SplitterPanel size={90} minSize={70}>
                             <DCMViewer selectedFolder={selectedFolder} />

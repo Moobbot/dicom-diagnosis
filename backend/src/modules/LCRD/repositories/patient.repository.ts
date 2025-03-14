@@ -1,4 +1,4 @@
-import { FilterQuery } from "mongoose";
+import { FilterQuery, Query, Types } from "mongoose";
 import { BaseRepository } from "../../../repositories/base.repository";
 import { IPatient } from "../interfaces/patient.interface";
 import { PatientModel } from "../models/patient.model";
@@ -22,5 +22,20 @@ export class PatientRepository extends BaseRepository<IPatient> {
             "folder",
             "prediction",
         ]);
+    };
+
+    findExtendedPatientById = (id: string) => {
+        const query = super.findById(id);
+
+        return query.populate<{
+            folder: IFolder & { _id: Types.ObjectId };
+            prediction: IPrediction & { _id: Types.ObjectId };
+        }>(["folder", "prediction"]);
+    };
+
+    findPatientByFolderId = (folderId: string) => {
+        return PatientModel.findOne({
+            folder: folderId,
+        });
     };
 }
