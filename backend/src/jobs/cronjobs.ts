@@ -3,9 +3,11 @@ import fs from "fs";
 import path from "path";
 import { FolderRepository } from "../modules/LCRD/repositories/folder.repository";
 import { validateEnv } from "../config/env.config";
+import { PredictionRepository } from "../modules/LCRD/repositories/prediction.repository";
 
 class CronJobs {
     private readonly folderRepository: FolderRepository;
+    private readonly predictionRepository: PredictionRepository;
     private readonly uploadPath: string;
     private readonly savePath: string;
     private readonly saveReport: string;
@@ -13,6 +15,7 @@ class CronJobs {
 
     constructor() {
         this.folderRepository = new FolderRepository();
+        this.predictionRepository = new PredictionRepository();
         this.uploadPath = validateEnv().linkSaveDicomUploads;
         this.savePath = validateEnv().linkSaveDicomResults;
         this.saveReport = validateEnv().linkSaveReport;
@@ -72,6 +75,10 @@ class CronJobs {
 
                         await this.folderRepository.deleteById(
                             folder._id.toString()
+                        );
+
+                        await this.predictionRepository.deletePredictionBySessionId(
+                            folder.folderUUID
                         );
                     } catch (err) {
                         console.error(

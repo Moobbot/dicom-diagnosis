@@ -12,9 +12,9 @@ class PatientService {
         return response.data;
     }
 
-    async getPatients(page: number, limit: number): Promise<{ data: any[]; total: number; limit: number; pages: number }> {
+    async getPatients(page: number, limit: number, search?: string): Promise<{ data: any[]; total: number; limit: number; pages: number }> {
         const response = await api.get(this.baseUrl, {
-            params: { page, limit }
+            params: { page, limit, search }
         });
         const { data, total, limit: responseLimit, pages } = response.data;
         return { data, total, limit: responseLimit, pages };

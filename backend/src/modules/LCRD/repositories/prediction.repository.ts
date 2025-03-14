@@ -10,4 +10,8 @@ export class PredictionRepository extends BaseRepository<IPrediction> {
     getPredictionBySessionId = (session_id: string) => {
         return PredictionModel.findOne({ session_id });
     };
+
+    deletePredictionBySessionId = (session_id: string) => {
+        return PredictionModel.deleteOne({ session_id });
+    };
 }
