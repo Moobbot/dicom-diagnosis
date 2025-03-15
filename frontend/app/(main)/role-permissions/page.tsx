@@ -1,7 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 
-import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
 import { Toast } from 'primereact/toast';
 import { BreadCrumb } from 'primereact/breadcrumb';
@@ -9,15 +8,16 @@ import { confirmDialog, ConfirmDialog } from 'primereact/confirmdialog';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 
-import RoleService from '../../../modules/admin/service/RoleService';
-import PermissionService from '../../../modules/admin/service/PermissionService';
-import '../../../modules/admin/styles/RolePermissionTable.scss';
+import RoleService from '@/modules/admin/service/RoleService';
+import PermissionService from '@/modules/admin/service/PermissionService';
+import '@/modules/admin/styles/RolePermissionTable.scss';
 
 import { Base } from '@/types';
 import { withPermissions } from '../withPermissions';
 import { Permissions } from '@/enums/permissions.enums';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
+import GenericButton from '@/layout/components/GenericButton';
 
 const RolePermissionTable = () => {
     const [roles, setRoles] = useState<Base.Role[]>([]);
@@ -37,13 +37,13 @@ const RolePermissionTable = () => {
     useEffect(() => {
         const fetchRoles = async () => {
             try {
-                const response = await roleService.getRoles(1, 30);
+                const response = await roleService.getRoles();
                 const rolesData = response.data
                     .filter((role: any) => role.status !== false)
                     .map((role: any) => {
-                    const rolePermissions = role.grantAll ? permissions.map(p => p.name) : role.permissions;
-                    return { ...role, permissions: rolePermissions };
-                });
+                        const rolePermissions = role.grantAll ? permissions.map(p => p.name) : role.permissions;
+                        return { ...role, permissions: rolePermissions };
+                    });
                 setRoles(rolesData);
             } catch (error) {
                 if (toast.current) {
@@ -54,8 +54,8 @@ const RolePermissionTable = () => {
 
         const fetchPermissions = async () => {
             try {
-                const response = await permissionService.getPermissions(1, 30);
-                setPermissions(response.permissions);
+                const permissionsData = await permissionService.getPermissions();
+                setPermissions(permissionsData.data); 
             } catch (error) {
                 if (toast.current) {
                     toast.current.show({ severity: 'error', summary: 'Error', detail: 'Failed to fetch permissions' });
@@ -71,41 +71,47 @@ const RolePermissionTable = () => {
         const initializeSelectedPermissions = () => {
             const initialSelectedPermissions: Base.Permissions = {};
             roles.forEach(role => {
-                if (role && role._id && role.permissions && Array.isArray(role.permissions)) {
+                if (role && role._id) {
+                    // Ensure permissions is an array
+                    const rolePermissions = role.permissions || [];
                     permissions.forEach(permission => {
                         const key = `${role._id}-${permission._id}`;
-                        initialSelectedPermissions[key] = role.grantAll || role.permissions.includes(permission._id);
+                        initialSelectedPermissions[key] = role.grantAll || 
+                            (Array.isArray(rolePermissions) && rolePermissions.includes(permission._id));
                     });
-                } else {
-                    console.error(`Permissions for role ${role?._id ?? 'undefined'} are not defined or not an array`);
                 }
             });
             setSelectedPermissions(initialSelectedPermissions);
         };
     
-        initializeSelectedPermissions();
+        if (roles && roles.length > 0 && permissions && permissions.length > 0) {
+            initializeSelectedPermissions();
+        }
     }, [roles, permissions]);
-    
+
     const handlePermissionChange = (roleId: string, permissionId: string) => {
         setRoles(prevRoles =>
-            prevRoles.map(role =>
-                role._id === roleId
-                    ? {
-                          ...role,
-                          permissions: role.permissions.includes(permissionId)
-                              ? role.permissions.filter((p: string) => p !== permissionId)
-                              : [...role.permissions, permissionId],
-                          grantAll: false // Khi thay đổi quyền, grantAll sẽ được đặt thành false
-                      }
-                    : role
-            )
+            prevRoles.map(role => {
+                if (role._id === roleId) {
+                    const currentPermissions = Array.isArray(role.permissions) ? role.permissions : [];
+                    return {
+                        ...role,
+                        permissions: currentPermissions.includes(permissionId)
+                            ? currentPermissions.filter(p => p !== permissionId)
+                            : [...currentPermissions, permissionId],
+                        grantAll: false
+                    };
+                }
+                return role;
+            })
         );
     
-        setSelectedPermissions((prevSelectedPermissions: Base.Permissions) => {
-            const newSelectedPermissions = { ...prevSelectedPermissions };
+        setSelectedPermissions(prevSelectedPermissions => {
             const key = `${roleId}-${permissionId}`;
-            newSelectedPermissions[key] = !prevSelectedPermissions[key];
-            return newSelectedPermissions;
+            return {
+                ...prevSelectedPermissions,
+                [key]: !prevSelectedPermissions[key]
+            };
         });
     };
 
@@ -124,36 +130,36 @@ const RolePermissionTable = () => {
             showToast('error', 'Error', 'Failed to create permission');
         }
     };
-    
-const saveRole = async () => {
-    try {
-        const response = await roleService.createRole(newRoleName);
-        const createdRole = response.data;
 
-        // Lấy danh sách vai trò mới nhất
-        const updatedRolesResponse = await roleService.getRoles(1, 30);
-        const updatedRoles = updatedRolesResponse.data
-            .filter((role: { status: boolean; }) => role.status !== false)
-            .map((role: { grantAll: any; permissions: any; }) => ({
-                ...role,
-                permissions: role.grantAll ? permissions.map(p => p.name) : role.permissions,
-            }));
+    const saveRole = async () => {
+        try {
+            const response = await roleService.createRole(newRoleName);
+            const createdRole = response.data;
 
-        // Cập nhật danh sách vai trò
-        setRoles(updatedRoles);
+            // Lấy danh sách vai trò mới nhất
+            const updatedRolesResponse = await roleService.getRoles(1, 30);
+            const updatedRoles = updatedRolesResponse.data
+                .filter((role: { status: boolean; }) => role.status !== false)
+                .map((role: { grantAll: any; permissions: any; }) => ({
+                    ...role,
+                    permissions: role.grantAll ? permissions.map(p => p.name) : role.permissions,
+                }));
 
-        setRoleDialog(false);
-        showToast('success', 'Successful', `Role "${createdRole.name}" created and updated successfully.`);
-    } catch (error) {
-        showToast('error', 'Error', 'Failed to create or update role.');
-    }
-};
+            // Cập nhật danh sách vai trò
+            setRoles(updatedRoles);
+
+            setRoleDialog(false);
+            showToast('success', 'Successful', `Role "${createdRole.name}" created and updated successfully.`);
+        } catch (error) {
+            showToast('error', 'Error', 'Failed to create or update role.');
+        }
+    };
 
     const openNewPermissionDialog = () => {
         setNewPermissionName('');
         setPermissionDialog(true);
     };
-    
+
     const openNewRoleDialog = () => {
         setNewRoleName('');
         setRoleDialog(true);
@@ -215,7 +221,7 @@ const saveRole = async () => {
                 if (role.name) updatedData.name = role.name;
                 if (role.permissions) updatedData.permissions = role.permissions;
                 if (role.grantAll !== undefined) updatedData.grantAll = role.grantAll;
-    
+
                 await roleService.updateRole(role._id, updatedData);
             }
             if (toast.current) {
@@ -232,17 +238,18 @@ const saveRole = async () => {
         <div className="layout-main">
             <div className="col-12">
                 <BreadCrumb home={breadcrumbHome} model={breadcrumbItems} />
-                <div className="role-permission-table">
+                <div className="card">
                     <Toast ref={toast} />
                     <div className="button-container">
-                        <Button label="Thêm quyền" icon="pi pi-plus" className="p-button-primary" onClick={openNewPermissionDialog} />
-                        <Button label="Thêm vai trò" icon="pi pi-plus" className="p-button-primary" onClick={openNewRoleDialog} />
+                        {/* <GenericButton label="Thêm quyền" icon="pi pi-plus" className="p-button-primary" onClick={openNewPermissionDialog} /> */}
+                        <GenericButton label="Thêm vai trò" icon="pi pi-plus" className="p-button-primary" onClick={openNewRoleDialog} />
                     </div>
 
                     {/* Sử dụng DataTable */}
                     <DataTable value={permissions} className="p-datatable-sm">
                         {/* Cột quyền */}
                         <Column field="name" header="Tên quyền" />
+                        <Column field="description" header="Mô tả quyền" />
 
                         {/* Các cột vai trò */}
                         {roles.map((role) => (
@@ -251,8 +258,8 @@ const saveRole = async () => {
                                 header={
                                     <>
                                         {role.name}
-                                        <Button icon="pi pi-pencil" className="p-button-rounded p-button-text p-button-secondary" onClick={() => onEditRole(role.name)} />
-                                        <Button icon="pi pi-trash" className="p-button-rounded p-button-text p-button-secondary" onClick={() => onDeleteRole(role._id)} />
+                                        <GenericButton icon="pi pi-pencil" className="p-button-rounded p-button-text p-button-secondary" onClick={() => onEditRole(role.name)} />
+                                        <GenericButton icon="pi pi-trash" className="p-button-rounded p-button-text p-button-secondary" onClick={() => onDeleteRole(role._id)} />
                                     </>
                                 }
                                 body={(permission) => (
@@ -266,13 +273,23 @@ const saveRole = async () => {
                     </DataTable>
 
                     <div className="save-button-container">
-                        <Button
+                        <GenericButton
                             label="Lưu"
                             className={`${isSaved ? 'p-button-success' : 'p-button-primary'} p-mt-3`}
                             onClick={saveChanges}
                         />
                     </div>
                     <ConfirmDialog />
+
+                    <Dialog visible={roleDialog} style={{ width: '450px' }} header="Thêm vai trò" modal className="p-fluid" footer={<>
+                        <GenericButton label="Hủy" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
+                        <GenericButton label="Lưu" icon="pi pi-check" className="p-button-text" onClick={saveRole} />
+                    </>} onHide={hideDialog}>
+                        <div className="field">
+                            <label htmlFor="roleName">Tên vai trò</label>
+                            <InputText id="roleName" value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} required autoFocus />
+                        </div>
+                    </Dialog>
                     {/* Các dialog vẫn giữ nguyên */}
                 </div>
             </div>

@@ -7,7 +7,7 @@ class RoleService {
         this.baseUrl = '/roles';
     }
 
-    async getRoles(page: number, limit: number): Promise<any> {
+    async getRoles(page?: number, limit?: number): Promise<any> {
         const response = await api.get(this.baseUrl, {
             params: { page, limit }
         });

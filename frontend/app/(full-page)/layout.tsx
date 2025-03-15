@@ -8,7 +8,7 @@ interface SimpleLayoutProps {
 
 export const metadata: Metadata = {
     title: 'Newlife LCRD - Lung Cancer Risk Diagnosis',
-    description: 'Moobbot team to develop this application'
+    description: 'NewLife team to develop this application'
 };
 
 export default function SimpleLayout({ children }: SimpleLayoutProps) {

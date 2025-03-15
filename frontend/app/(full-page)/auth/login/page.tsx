@@ -113,15 +113,7 @@ const LoginPage = () => {
                                             )}
                                         />
 
-                                        <div className="flex align-items-center justify-content-between mb-5 gap-5">
-                                            <div className="flex align-items-center">
-                                                <Checkbox inputId="rememberme1" checked={checked} onChange={(e) => setChecked(e.checked ?? false)} className="mr-2"></Checkbox>
-                                                <label htmlFor="rememberme1">Remember me</label>
-                                            </div>
-                                            <a className="font-medium no-underline ml-2 text-right cursor-pointer" style={{ color: 'var(--primary-color)' }}>
-                                                Forgot password?
-                                            </a>
-                                        </div>
+                                        <div className=""></div>
                                         <Button type="submit" label="Sign In" className="w-full p-3 text-xl"></Button>
                                     </div>
                                 </form>
