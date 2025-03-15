@@ -10,7 +10,11 @@ import PatientService from '@/modules/admin/service/PatientService';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Toast } from 'primereact/toast';
 
-const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Dispatch<React.SetStateAction<PatientData>> }> = ({ patientData, setPatientData }) => {
+const PatientForm: React.FC<{
+    patientData: PatientData,
+    setPatientData: React.Dispatch<React.SetStateAction<PatientData>>,
+    toastRef: React.RefObject<Toast>
+}> = ({ patientData, setPatientData, toastRef }) => {
     const [loading, setLoading] = useState(false);
 
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -20,10 +24,13 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
         { label: 'Female', value: 'Female' }
     ];
 
-    const toast = useRef<Toast>(null);
-
     const showToast = (severity: 'success' | 'info' | 'warn' | 'error', summary: string, detail: string) => {
-        toast.current?.show({ severity, summary, detail, life: 3000 });
+        console.log(`🔔 Toast called - ${severity}: ${summary} - ${detail}`);
+        if (toastRef?.current) {
+            toastRef.current.show({ severity, summary, detail, life: 3000 });
+        } else {
+            console.log('❌ Toast component not found!');
+        }
     };
 
     const handleChange = (
@@ -53,63 +60,86 @@ const PatientForm: React.FC<{ patientData: PatientData, setPatientData: React.Di
         console.log('Call Submit');
         console.log("Patient Data Save:", patientData);
 
-        if (validate()) {
-            try {
-                console.log("Patient Data Save send:", patientData);
-                const response = await PatientService.createPatient(patientData);
-
-                // Kiểm tra phản hồi từ BE
-                if (response.status === 201) {
-                    showToast('success', 'Success', 'Save Patient success');
-                } else {
-                    showToast('warn', 'Warning', 'Patient saved, but unexpected response.');
-                }
-            } catch (error) {
-                console.error('Error create patient', error);
-                showToast('error', 'Error', 'Failed to save patient');
-            }
-        } else {
+        if (!validate()) {
             showToast('warn', 'Validation Failed', 'Please check patient data');
+            setLoading(false);
+            return;
         }
-        setLoading(false);
+
+        try {
+            console.log("Patient Data Save send:", patientData);
+            const response = await PatientService.createPatient(patientData);
+
+            if (response.status === 201) {
+                showToast('success', 'Success', 'Save Patient success');
+            } else {
+                showToast('warn', 'Warning', 'Patient saved, but unexpected response.');
+            }
+        } catch (error: any) {
+            if (error.response) {
+                const errorMessage = error.response.data?.message || 'Unknown error from server';
+                showToast('error', 'Error', errorMessage);
+                console.log('🔍 Full response from API:', error.response);
+            } else if (error.request) {
+                console.log('❌ No response received from server:', error.request);
+                showToast('error', 'Error', 'No response from server');
+            } else {
+                console.log('❌ Unexpected error:', error);
+                showToast('error', 'Error', 'Unexpected error occurred');
+            }
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleSubmit = async () => {
         setLoading(true);
         console.log('Call Submit');
+        console.log("Patient Data Report:", patientData);
 
-        if (validate()) {
-            try {
-                console.log("Patient Data Report:", patientData);
+        if (!validate()) {
+            showToast('warn', 'Validation Failed', 'Please check patient data');
+            setLoading(false);
+            return;
+        }
 
-                const response = await fetch(
-                    `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/generate-report`,
-                    {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(patientData),
-                    }
-                );
+        try {
+            console.log("Patient Data Report:", patientData);
 
-                if (!response.ok) {
-                    throw new Error("Failed to generate report");
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/generate-report`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(patientData),
                 }
+            );
 
-                // Lấy file DOCX từ API
-                const blob = await response.blob();
+            const responseData = await response.json();
 
-                // Tạo link tải file
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement("a");
-
-                a.href = url;
-                a.download = "Patient_Report.docx";
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            } catch (error) {
-                console.error('Error create patient', error);
+            if (!response.ok) {
+                console.log('❌ API Error:', responseData);
+                showToast('error', 'Error', responseData.message || 'Failed to generate report');
+                throw new Error(responseData.message || `Failed: ${response.statusText}`);
             }
+
+            const blob = await response.blob();
+
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+
+            a.href = url;
+            a.download = "Patient_Report.docx";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            showToast('success', 'Success', 'Report generated successfully');
+        } catch (error) {
+            console.log('Error generating report:', error);
+            showToast('error', 'Error', 'Failed to generate report');
+        } finally {
+            setLoading(false);
         }
     };
 

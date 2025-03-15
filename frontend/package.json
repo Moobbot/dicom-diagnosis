@@ -3,6 +3,8 @@
     "version": "10.1.0",
     "private": true,
     "scripts": {
+        "dev:win": "set NODE_OPTIONS=--inspect && next dev",
+        "dev:unix": "NODE_OPTIONS='--inspect' next dev",
         "dev": "next dev",
         "build": "next build && tsc && ts-node ./scripts/copyEnv.ts",
         "start": "next start",

@@ -8,7 +8,6 @@ import { ISybilPredictionResponse } from "../interfaces/sybil.interface";
 import BadGatewayError from "../../../errors/bad-gateway.error";
 import HttpException from "../../../errors/http-exception.error";
 import { FolderRepository } from "../repositories/folder.repository";
-import { FolderType } from "../enums/folder-type.enum";
 import { PredictionRepository } from "../repositories/prediction.repository";
 import AdmZip from "adm-zip";
 
