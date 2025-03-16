@@ -91,8 +91,11 @@ class SybilController {
             forecast,
         } = req.body;
 
-        if (!session_id || !file_name.length) {
-            throw new BadRequestError("Missing session_id or file_name");
+        if (!session_id) {
+            throw new BadRequestError("Missing session_id");
+        }
+        if (!file_name.length) {
+            throw new BadRequestError("Missing file_name");
         }
 
         console.log("Bắt đầu tạo báo cáo...");

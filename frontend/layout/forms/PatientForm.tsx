@@ -9,6 +9,7 @@ import '@/styles/dicom/report.scss';
 import PatientService from '@/modules/admin/service/PatientService';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Toast } from 'primereact/toast';
+import { ProgressSpinner } from 'primereact/progressspinner';
 
 const PatientForm: React.FC<{
     patientData: PatientData,
@@ -70,10 +71,10 @@ const PatientForm: React.FC<{
             console.log("Patient Data Save send:", patientData);
             const response = await PatientService.createPatient(patientData);
 
-            if (response.status === 201) {
+            if (Number(response.status) === 201 || response.ok) {
                 showToast('success', 'Success', 'Save Patient success');
             } else {
-                showToast('warn', 'Warning', 'Patient saved, but unexpected response.');
+                showToast('warn', 'Warning', `Patient saved, but unexpected response: ${response.status}`);
             }
         } catch (error: any) {
             if (error.response) {
@@ -145,7 +146,12 @@ const PatientForm: React.FC<{
 
     return (
         <Card title="Patient Information Form" className="p-4">
-            <div className="p-fluid grid">
+            {loading && (
+                <div className="loading-overlay">
+                    <ProgressSpinner />
+                </div>
+            )}
+            <div className={`p-fluid grid ${loading ? 'disabled-form' : ''}`}>
                 <div className="input-wrap field col-12 md:col-6">
                     <label>Patient ID</label>
                     <InputText
@@ -228,10 +234,18 @@ const PatientForm: React.FC<{
                 </div>
                 <div className="col-12 flex">
                     <div className="col-6">
-                        <Button label="Generate Report" icon="pi pi-file" onClick={handleSubmit} className="p-button-success" />
+                        <Button label="Generate Report"
+                            icon="pi pi-file"
+                            onClick={handleSubmit}
+                            className="p-button-success"
+                            disabled={loading} />
                     </div>
                     <div className="col-6">
-                        <Button label="Save Patient" icon="pi pi-file" onClick={handleSave} className="p-button-primary" />
+                        <Button label="Save Patient"
+                            icon="pi pi-file"
+                            onClick={handleSave}
+                            className="p-button-primary"
+                            disabled={loading} />
                     </div>
                 </div>
             </div>
