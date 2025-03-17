@@ -7,7 +7,7 @@ interface AppLayoutProps {
 }
 
 export const metadata: Metadata = {
-    title: 'Newlife LCRD - Lung Cancer Risk Diagnosis',
+    title: 'NewLife LCRD - Lung Cancer Risk Diagnosis',
     description: 'NewLife Team to develop this application. The ultimate collection of design-agnostic, flexible and accessible React UI Components.',
     robots: { index: false, follow: false },
     openGraph: {

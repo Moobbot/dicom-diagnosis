@@ -7,7 +7,7 @@ interface SimpleLayoutProps {
 }
 
 export const metadata: Metadata = {
-    title: 'Newlife LCRD - Lung Cancer Risk Diagnosis',
+    title: 'NewLife LCRD - Lung Cancer Risk Diagnosis',
     description: 'NewLife team to develop this application'
 };
 
