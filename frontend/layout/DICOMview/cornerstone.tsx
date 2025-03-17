@@ -222,7 +222,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                 setSelectedImageIdIndex(index);
                 showToast('info', 'Image Loaded', 'Selected image has been loaded successfully.');
             } catch (error) {
-                console.error('Error loading selected image:', error);
+                console.log('Error loading selected image:', error);
                 showToast('error', 'Image Load Failed', 'Failed to load selected image.');
             }
         },
@@ -306,7 +306,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
 
                 showToast('success', 'Reset Success', 'Viewport has been completely reset to default settings.');
             } catch (error) {
-                console.error('Error resetting viewport:', error);
+                console.log('Error resetting viewport:', error);
                 showToast('error', 'Reset Failed', 'Failed to reset view.');
             }
         } else {
@@ -483,7 +483,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                 </div>
             </Dialog>
             <Dialog header="Export Preview" visible={ExportDialog} style={{ width: '50vw' }} onHide={() => setExportDialog(false)}>
-                <PatientForm patientData={patientData} setPatientData={setPatientData} />
+                <PatientForm patientData={patientData} setPatientData={setPatientData} toastRef={toast} />
             </Dialog>
         </div>
     );
