@@ -47,9 +47,6 @@ const PatientForm: React.FC<{
         if (!patientData.name) errs.name = "Patient Patient Name is required";
         if (!patientData.sex) errs.sex = "Sex is required";
         if (!patientData.age) errs.age = "Valid Age is required";
-        if (!patientData.address) errs.address = "Address is required";
-        if (!patientData.diagnosis) errs.diagnosis = "Diagnosis is required";
-        if (!patientData.general_conclusion) errs.general_conclusion = "General Conclusion is required";
         setErrors(errs);
         return Object.keys(errs).length === 0;
     };
@@ -189,10 +186,10 @@ const PatientForm: React.FC<{
                     />
                     {errors.sex && <small className="p-error">{errors.sex}</small>}
                 </div>
-                <div className="input-wrap field col-12">
+                <div className="input-wrap field col-12 md:col-6">
                     <label>Address</label>
                     <InputText
-                        value={patientData.address}
+                        value={patientData.address || ''}
                         onChange={(e) => handleChange(e, "address")}
                         className={errors.address ? "p-invalid" : ""}
                     />
@@ -201,7 +198,7 @@ const PatientForm: React.FC<{
                 <div className="input-wrap field col-12">
                     <label>Initial Diagnosis or Chief Complain</label>
                     <InputTextarea
-                        value={patientData.diagnosis}
+                        value={patientData.diagnosis || ''}
                         onChange={(e) => handleChange(e, "diagnosis")}
                         className={errors.diagnosis ? "p-invalid" : ""}
                     />
@@ -210,7 +207,7 @@ const PatientForm: React.FC<{
                 <div className="input-wrap field col-12">
                     <label>General Conclusion</label>
                     <InputTextarea
-                        value={patientData.general_conclusion}
+                        value={patientData.general_conclusion || ''}
                         onChange={(e) => handleChange(e, "general_conclusion")}
                         className={errors.general_conclusion ? "p-invalid" : ""}
                     />

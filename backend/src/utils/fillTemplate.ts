@@ -17,9 +17,9 @@ interface DataForm {
     name: string;
     age: string;
     sex: string;
-    address: string;
-    diagnosis: string;
-    general_conclusion: string;
+    address?: string | null;
+    diagnosis?: string | null;
+    general_conclusion?: string | null;
     session_id?: string;
     file_name: string[];
     forecast: number[];

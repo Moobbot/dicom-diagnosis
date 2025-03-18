@@ -50,9 +50,9 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
         name: '',
         age: '',
         sex: '',
-        address: '',
-        diagnosis: '',
-        general_conclusion: '',
+        address: null,
+        diagnosis: null,
+        general_conclusion: null,
         session_id: '',
         file_name: [],
         forecast: []

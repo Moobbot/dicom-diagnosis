@@ -5,9 +5,9 @@ export interface IPatient {
     name: string;
     age: string;
     sex: string;
-    address: string;
-    diagnosis: string;
-    general_conclusion?: string;
+    address?: string | null;
+    diagnosis?: string | null;
+    general_conclusion?: string | null;
     createdAt: Date;
     updatedAt: Date;
     createdBy?: Types.ObjectId;
