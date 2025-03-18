@@ -17,7 +17,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
             <head>
                 <link id="theme-css" href={`/themes/bootstrap4-dark-purple/theme.css`} rel="stylesheet" />
             </head>
-            <body>
+            <body suppressHydrationWarning>
                 <PrimeReactProvider>
                     <UserProvider>
                         <LayoutProvider>{children}</LayoutProvider>

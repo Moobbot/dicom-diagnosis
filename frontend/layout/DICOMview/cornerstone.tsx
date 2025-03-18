@@ -26,6 +26,8 @@ import { ImContrast } from 'react-icons/im';
 import { RiResetLeftFill } from 'react-icons/ri';
 import PatientForm from '../forms/PatientForm';
 import { Messages } from 'primereact/messages';
+import { DCMViewerProps } from '@/types/lcrd';
+import { PatientData } from '@/types/lcrd';
 
 const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     const [selectedImageIdIndex, setSelectedImageIdIndex] = useState<number | null>(null);
@@ -46,57 +48,81 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     const msgs = useRef<Messages>(null);
 
     const [patientData, setPatientData] = useState<PatientData>({
+        _id: '',
         patient_id: '',
-        group: '',
-        collectFees: '',
         name: '',
         age: '',
         sex: '',
-        address: '',
-        diagnosis: '',
-        general_conclusion: '',
+        address: null,
+        diagnosis: null,
+        general_conclusion: null,
         session_id: '',
         file_name: [],
         forecast: []
     });
 
+    // Thêm state để kiểm soát việc hiển thị overlay
+    const [showOverlay, setShowOverlay] = useState(true);
+
+    // Thêm state để kiểm soát việc khởi tạo toolGroup
+    const [toolGroupInitialized, setToolGroupInitialized] = useState(false);
+
     useEffect(() => {
         const initializeViewer = async () => {
-            await cornerstone.init();
-            await cornerstoneTools.init();
+            try {
+                await cornerstone.init();
+                await cornerstoneTools.init();
 
-            const renderingEngine = new RenderingEngine(renderingEngineId);
-            renderingEngineRef.current = renderingEngine;
+                const renderingEngine = new RenderingEngine(renderingEngineId);
+                renderingEngineRef.current = renderingEngine;
 
-            renderingEngine.enableElement({
-                viewportId,
-                type: Enums.ViewportType.STACK,
-                element: elementRef.current!,
-                defaultOptions: {
-                    orientation: Enums.OrientationAxis.SAGITTAL
+                renderingEngine.enableElement({
+                    viewportId,
+                    type: Enums.ViewportType.STACK,
+                    element: elementRef.current!,
+                    defaultOptions: {
+                        orientation: Enums.OrientationAxis.SAGITTAL
+                    }
+                });
+
+                cornerstoneTools.addTool(ZoomTool);
+                cornerstoneTools.addTool(PanTool);
+                cornerstoneTools.addTool(WindowLevelTool);
+                cornerstoneTools.addTool(StackScrollTool);
+                cornerstoneTools.addTool(LengthTool);
+
+                const toolGroup = cornerstoneTools.ToolGroupManager.createToolGroup(toolGroupId);
+                if (toolGroup) {
+                    toolGroup.addTool(ZoomTool.toolName);
+                    toolGroup.addTool(PanTool.toolName);
+                    toolGroup.addTool(WindowLevelTool.toolName);
+                    toolGroup.addTool(StackScrollTool.toolName);
+                    toolGroup.addTool(LengthTool.toolName);
+                    toolGroup.addViewport(viewportId, renderingEngineId);
+                    toolGroupRef.current = toolGroup;
+
+                    // Kích hoạt StackScrollTool mặc định
+                    toolGroup.setToolActive(StackScrollTool.toolName, { bindings: [{ mouseButton: cornerstoneTools.Enums.MouseBindings.Wheel }] });
+                    setActiveTool(StackScrollTool.toolName);
+                    setToolGroupInitialized(true);
+                } else {
+                    console.error('Failed to create tool group');
+                    showToast('error', 'Initialization Error', 'Failed to initialize viewer tools.');
                 }
-            });
-
-            cornerstoneTools.addTool(ZoomTool);
-            cornerstoneTools.addTool(PanTool);
-            cornerstoneTools.addTool(WindowLevelTool);
-            cornerstoneTools.addTool(StackScrollTool);
-            cornerstoneTools.addTool(LengthTool);
-
-            const toolGroup = cornerstoneTools.ToolGroupManager.createToolGroup(toolGroupId);
-            if (toolGroup) {
-                toolGroup.addTool(ZoomTool.toolName);
-                toolGroup.addTool(PanTool.toolName);
-                toolGroup.addTool(WindowLevelTool.toolName);
-                toolGroup.addTool(StackScrollTool.toolName);
-                toolGroup.addTool(LengthTool.toolName);
-                toolGroup.addViewport(viewportId, renderingEngineId);
-                toolGroupRef.current = toolGroup;
-                toolGroup.setToolActive(StackScrollTool.toolName, { bindings: [{ mouseButton: cornerstoneTools.Enums.MouseBindings.Wheel }] });
+            } catch (error) {
+                console.error('Error initializing viewer:', error);
+                showToast('error', 'Initialization Error', 'Failed to initialize viewer.');
             }
         };
 
         initializeViewer();
+
+        // Cleanup function
+        return () => {
+            if (toolGroupRef.current) {
+                cornerstoneTools.ToolGroupManager.destroyToolGroup(toolGroupId);
+            }
+        };
     }, []);
 
     useEffect(() => {
@@ -230,6 +256,11 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     );
 
     const handleToolClick = (toolName: string) => {
+        if (!toolGroupInitialized) {
+            showToast('warn', 'Warning', 'Viewer tools are not ready yet. Please wait.');
+            return;
+        }
+
         if (!toolGroupRef.current) {
             showToast('warn', 'Warning', 'Tool group is not initialized.');
             return;
@@ -255,6 +286,11 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     };
 
     const handleReset = async () => {
+        if (!toolGroupInitialized) {
+            showToast('warn', 'Warning', 'Viewer tools are not ready yet. Please wait.');
+            return;
+        }
+
         const viewport = renderingEngineRef.current?.getViewport(viewportId) as Types.IStackViewport;
         const toolGroup = cornerstoneTools.ToolGroupManager.getToolGroup(toolGroupId);
 
@@ -337,7 +373,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     };
 
     const showToast = (severity: 'success' | 'info' | 'warn' | 'error', summary: string, detail: string) => {
-        toast.current?.show({ severity, summary, detail, life: 3000 });
+        toast.current?.show({ severity, summary, detail, life: 5000 });
     };
 
     const wizardItems = [
@@ -360,21 +396,34 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     };
 
     const handleViewExport = () => {
-        // if (selectedFolder?.gifDownloadURL?.preview_link && selectedImages.length > 0) {
-        console.log('selectedImages:', selectedImages);
+        console.log('selectedFolder:', selectedFolder);
 
         setPatientData((prevData) => ({
             ...prevData,
+            _id: selectedFolder?.patient_info?._id || '',
+            patient_id: selectedFolder?.patient_info?.patient_id || '',
+            name: selectedFolder?.patient_info?.name || '',
+            age: selectedFolder?.patient_info?.age || '',
+            sex: selectedFolder?.patient_info?.sex || '',
+            address: selectedFolder?.patient_info?.address || null,
+            diagnosis: selectedFolder?.patient_info?.diagnosis || null,
+            general_conclusion: selectedFolder?.patient_info?.general_conclusion || null,
             file_name: selectedImages,
             session_id: selectedFolder?.session_id || '',
             forecast: selectedFolder?.predictions ? selectedFolder.predictions[0] : []
         }));
 
         setExportDialog(true);
-        // } else {
-        //     showToast('warn', 'No Image choose', 'There is no Image predict choose.');
-        // }
     };
+
+    // Thêm useEffect để cập nhật trạng thái overlay
+    useEffect(() => {
+        if (selectedFolder && selectedFolder.imageIds && selectedFolder.imageIds.length > 0) {
+            setShowOverlay(false);
+        } else {
+            setShowOverlay(true);
+        }
+    }, [selectedFolder]);
 
     return (
         <div className="w-full h-full">
@@ -400,8 +449,8 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                                         <span className="text-overflow-ellipsis flex-grow-1 overflow-hidden whitespace-nowrap">
                                             {Array.isArray(selectedFolder.files) && selectedFolder.files.length > 0
                                                 ? selectedFolder.files[index] instanceof File
-                                                    ? (selectedFolder.files[index] as File).name  // Ép kiểu an toàn
-                                                    : selectedFolder.files[index] as string       // Ép kiểu string nếu không phải File
+                                                    ? (selectedFolder.files[index] as File).name
+                                                    : selectedFolder.files[index] as string
                                                 : ""}
                                         </span>
                                     </div>
@@ -419,7 +468,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                                             className="mr-2"
                                             checked={selectedImages.includes(image.filename)}
                                             onChange={() => handleCheckboxChange(image)}
-                                            onClick={(e) => e.stopPropagation()} // Ngăn chặn sự kiện onClick ảnh hưởng đến div
+                                            onClick={(e) => e.stopPropagation()}
                                         />
                                         <i className="pi pi-file text-2xl mr-2" />
                                         <span className="text-overflow-ellipsis flex-grow-1 overflow-hidden whitespace-nowrap">{image.filename}</span>
@@ -438,23 +487,30 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                         <Toolbar
                             className="p-1 pl-2"
                             start={
-                                <div className="flex gap-2">
-                                    <Button rounded severity={activeTool === 'Length' ? 'success' : 'secondary'} onClick={() => handleToolClick(LengthTool.toolName)}>
-                                        <CiRuler />
-                                    </Button>
-                                    <Button rounded severity={activeTool === 'Zoom' ? 'success' : 'secondary'} onClick={() => handleToolClick(ZoomTool.toolName)}>
-                                        <TiZoom />
-                                    </Button>
-                                    <Button rounded severity={activeTool === 'Pan' ? 'success' : 'secondary'} onClick={() => handleToolClick(PanTool.toolName)}>
-                                        <IoIosMove />
-                                    </Button>
-                                    <Button rounded severity={activeTool === 'WindowLevel' ? 'success' : 'secondary'} onClick={() => handleToolClick(WindowLevelTool.toolName)}>
-                                        <ImContrast />
-                                    </Button>
-                                    <Button rounded onClick={handleReset}>
-                                        <RiResetLeftFill />
-                                    </Button>
-                                </div>
+                                toolGroupInitialized ? (
+                                    <div className="flex gap-2">
+                                        <Button rounded severity={activeTool === 'Length' ? 'success' : 'secondary'} onClick={() => handleToolClick(LengthTool.toolName)}>
+                                            <CiRuler />
+                                        </Button>
+                                        <Button rounded severity={activeTool === 'Zoom' ? 'success' : 'secondary'} onClick={() => handleToolClick(ZoomTool.toolName)}>
+                                            <TiZoom />
+                                        </Button>
+                                        <Button rounded severity={activeTool === 'Pan' ? 'success' : 'secondary'} onClick={() => handleToolClick(PanTool.toolName)}>
+                                            <IoIosMove />
+                                        </Button>
+                                        <Button rounded severity={activeTool === 'WindowLevel' ? 'success' : 'secondary'} onClick={() => handleToolClick(WindowLevelTool.toolName)}>
+                                            <ImContrast />
+                                        </Button>
+                                        <Button rounded onClick={handleReset}>
+                                            <RiResetLeftFill />
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="flex align-items-center">
+                                        <i className="pi pi-spin pi-spinner mr-2"></i>
+                                        <span>Initializing viewer tools...</span>
+                                    </div>
+                                )
                             }
                             end={
                                 activeTab === 1 &&
@@ -468,8 +524,16 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                             }
                         />
                     </div>
-                    <div className="viewport-wrap overflow-y-auto">
+                    <div className="viewport-wrap overflow-y-auto relative">
                         <div className="h-viewport" ref={elementRef}></div>
+                        {showOverlay && (
+                            <div className="absolute top-0 left-0 w-full h-full flex align-items-center justify-content-center bg-black-alpha-50 z-5">
+                                <div className="text-center">
+                                    <i className="pi pi-image text-6xl mb-3 text-white"></i>
+                                    <p className="text-white text-xl">Please select a folder or photo to see!</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </SplitterPanel>
                 <SplitterPanel size={10} minSize={5} className="p-2 flex-column">

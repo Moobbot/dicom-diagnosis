@@ -12,6 +12,7 @@ import { PredictionRepository } from "../repositories/prediction.repository";
 import { FindQuerySchema } from "../../../validation/find-query.validation";
 import { Types } from "mongoose";
 import { buildSearchFilter, buildSortQuery } from "../../../utils/util";
+import { UpdatePatientSchema } from "../../validation/patient.validation";
 
 export class PatientService {
     private readonly patientRepository: PatientRepository;
@@ -152,4 +153,29 @@ export class PatientService {
 
         await this.patientRepository.deleteById(patientId);
     };
+
+    updatePatient = async (patientId: string, data: z.infer<typeof UpdatePatientSchema>, userId: string) => {
+        const patient = await this.patientRepository.findExtendedPatientById(patientId);
+
+        if (!patient) {
+            throw new NotFoundError("Patient not found");
+        }
+
+        // Cập nhật thông tin bệnh nhân
+        const updatedPatient = await this.patientRepository.updateById(patientId, {
+            patient_id: data.patient_id,
+            name: data.name,
+            age: data.age,
+            sex: data.sex,
+            address: data.address,
+            diagnosis: data.diagnosis,
+            general_conclusion: data.general_conclusion,
+            updatedAt: new Date(),
+            updatedBy: new Types.ObjectId(userId)
+        });
+
+        return updatedPatient;
+    };
 }
+
+export default new PatientService();

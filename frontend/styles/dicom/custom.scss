@@ -1,3 +1,12 @@
+.wrap-input {
+    position: relative;
+
+    div.p-error {
+        position: absolute;
+        bottom: 0.5rem;
+    }
+}
+
 @media screen and (min-width: 1960px) {
 
     .layout-main,

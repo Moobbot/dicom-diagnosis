@@ -78,8 +78,6 @@ class SybilController {
     generateReport = async (req: Request, res: Response): Promise<void> => {
         const {
             patient_id,
-            group,
-            collectFees,
             name,
             age,
             sex,
@@ -95,7 +93,7 @@ class SybilController {
             throw new BadRequestError("Missing session_id");
         }
         if (!file_name.length) {
-            throw new BadRequestError("Missing file_name");
+            throw new BadRequestError("No chosen diagnostic photography!");
         }
 
         console.log("Bắt đầu tạo báo cáo...");
@@ -128,8 +126,6 @@ class SybilController {
         const dataForm = {
             patient_id: patient_id,
             name: name,
-            group: group,
-            collectFees: collectFees,
             age: age,
             sex: sex,
             address: address,

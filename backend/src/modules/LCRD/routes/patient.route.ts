@@ -16,6 +16,11 @@ patientRouter.post(
     [authMiddleware, accessHistoryMiddleware],
     asyncHandler(patientController.createPatient)
 );
+patientRouter.put(
+    "/:id",
+    [authMiddleware, accessHistoryMiddleware],
+    asyncHandler(patientController.updatePatient)
+);
 patientRouter.delete(
     "/:id",
     [authMiddleware, accessHistoryMiddleware],

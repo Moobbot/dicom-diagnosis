@@ -159,7 +159,7 @@ const Crud = () => {
                 setUsers(updatedUsers || null);
                 setUserDialog(false);
                 setUser(emptyUser);
-                toast.current?.show({ severity: 'success', summary: 'Successful', detail: 'User Updated', life: 3000 });
+                toast.current?.show({ severity: 'success', summary: 'Successful', detail: 'User Updated', life: 5000 });
             } catch (error) {
                 toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Failed to update user' });
             }
@@ -185,7 +185,7 @@ const Crud = () => {
                     });
                     const index = findIndexById(user._id);
                     _users[index] = updatedUser;
-                    toast.current?.show({ severity: 'success', summary: 'Successful', detail: 'User Updated', life: 3000 });
+                    toast.current?.show({ severity: 'success', summary: 'Successful', detail: 'User Updated', life: 5000 });
                 } catch (error) {
                     toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Failed to update user' });
                 }
@@ -193,7 +193,7 @@ const Crud = () => {
                 try {
                     const createdUser = await userService.createUser(_user);
                     _users.push(createdUser);
-                    toast.current?.show({ severity: 'success', summary: 'Successful', detail: 'User Created', life: 3000 });
+                    toast.current?.show({ severity: 'success', summary: 'Successful', detail: 'User Created', life: 5000 });
                 } catch (error) {
                     toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Failed to create user' });
                 }
@@ -244,7 +244,7 @@ const Crud = () => {
                 severity: 'success',
                 summary: 'Successful',
                 detail: 'User status updated',
-                life: 3000
+                life: 5000
             });
 
             // Tải lại dữ liệu sau khi cập nhật
@@ -286,7 +286,7 @@ const Crud = () => {
                 );
                 setUsers((prevUsers) => prevUsers?.map((user) => updatedUsers.find((updatedUser) => updatedUser._id === user._id) || user) || null);
                 setFilteredUsers((prevUsers) => prevUsers?.map((user) => updatedUsers.find((updatedUser) => updatedUser._id === user._id) || user) || null); // Cập nhật lại filteredUsers
-                toast.current?.show({ severity: 'success', summary: 'Successful', detail: 'Users status updated', life: 3000 });
+                toast.current?.show({ severity: 'success', summary: 'Successful', detail: 'Users status updated', life: 5000 });
             } catch (error) {
                 toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Failed to update users status' });
             }
@@ -298,7 +298,7 @@ const Crud = () => {
         setUsers(_users || null);
         setDeleteUsersDialog(false);
         setSelectedUsers(null);
-        toast.current?.show({ severity: 'success', summary: 'Successful', detail: 'Users Deleted', life: 3000 });
+        toast.current?.show({ severity: 'success', summary: 'Successful', detail: 'Users Deleted', life: 5000 });
     };
 
     const onInputChange = (e: React.ChangeEvent<HTMLInputElement>, name: string) => {
@@ -493,8 +493,8 @@ const Crud = () => {
                         cursor: 'pointer',
                         padding: 0
                     }}
-                    aria-label="Xem chi tiết"
-                    data-pr-tooltip="Xem chi tiết"
+                    aria-label="Details"
+                    data-pr-tooltip="Details"
                 >
                     <FaEye
                         size={20}
@@ -514,8 +514,8 @@ const Crud = () => {
                         cursor: 'pointer',
                         padding: 0
                     }}
-                    aria-label="Chỉnh sửa người dùng"
-                    data-pr-tooltip="Chỉnh sửa"
+                    aria-label="Edit user"
+                    data-pr-tooltip="Edit user"
                 >
                     <FaPencilAlt
                         size={20}
@@ -535,8 +535,8 @@ const Crud = () => {
                         cursor: 'pointer',
                         padding: 0
                     }}
-                    aria-label="Khóa người dùng"
-                    data-pr-tooltip="Khóa"
+                    aria-label="Lock User"
+                    data-pr-tooltip="Lock User"
                 >
                     <FaUserLock
                         size={20}
@@ -561,7 +561,7 @@ const Crud = () => {
 
     const moreInfoTemplate = (rowData: any) => (
         <div className="flex justify-content-center">
-            <i className="pi pi-eye" style={{ cursor: 'pointer', color: '#0D6EFD' }} onClick={() => showDetailDialog(rowData)} data-pr-tooltip="Xem chi tiết" />
+            <i className="pi pi-eye" style={{ cursor: 'pointer', color: '#0D6EFD' }} onClick={() => showDetailDialog(rowData)} data-pr-tooltip="Details" />
             <Tooltip target=".pi-eye" />
         </div>
     );

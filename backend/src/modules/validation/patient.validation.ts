@@ -4,12 +4,21 @@ import { z } from "zod";
 export const CreatePatientSchema = z.object({
     patient_id: z.string().min(1, "Patient ID is required"),
     name: z.string().min(1, "Name is required"),
-    group: z.string().min(1, "Group is required"),
-    collectFees: z.string().min(1, "Collect fees is required"),
     age: z.string().min(1, "Age is required"),
     sex: z.string().min(1, "Sex is required"),
-    address: z.string().min(1, "Address is required"),
-    diagnosis: z.string().min(1, "Diagnosis is required"),
-    general_conclusion: z.string().optional(),
+    address: z.string().nullable(),
+    diagnosis: z.string().nullable(),
+    general_conclusion: z.string().nullable(),
     session_id: z.string().min(1, "Session ID is required"),
+});
+
+// Schema cho việc cập nhật thông tin bệnh nhân
+export const UpdatePatientSchema = z.object({
+    patient_id: z.string().min(1, "Patient ID is required"),
+    name: z.string().min(1, "Name is required"),
+    age: z.string().min(1, "Age is required"),
+    sex: z.string().min(1, "Sex is required"),
+    address: z.string().nullable(),
+    diagnosis: z.string().nullable(),
+    general_conclusion: z.string().nullable(),
 });

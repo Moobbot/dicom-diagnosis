@@ -10,6 +10,8 @@ import PatientService from '@/modules/admin/service/PatientService';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Toast } from 'primereact/toast';
 import { ProgressSpinner } from 'primereact/progressspinner';
+import { Tooltip } from 'primereact/tooltip';
+import { PatientData } from '@/types/lcrd';
 
 const PatientForm: React.FC<{
     patientData: PatientData,
@@ -17,6 +19,7 @@ const PatientForm: React.FC<{
     toastRef: React.RefObject<Toast>
 }> = ({ patientData, setPatientData, toastRef }) => {
     const [loading, setLoading] = useState(false);
+    const [isExistingPatient, setIsExistingPatient] = useState(false);
 
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -28,30 +31,37 @@ const PatientForm: React.FC<{
     const showToast = (severity: 'success' | 'info' | 'warn' | 'error', summary: string, detail: string) => {
         console.log(`🔔 Toast called - ${severity}: ${summary} - ${detail}`);
         if (toastRef?.current) {
-            toastRef.current.show({ severity, summary, detail, life: 3000 });
+            toastRef.current.show({ severity, summary, detail, life: 5000 });
         } else {
             console.log('❌ Toast component not found!');
         }
     };
+
+    useEffect(() => {
+        // Kiểm tra nếu có _id thì là bệnh nhân đã tồn tại
+        console.log("Patient Data id:", patientData._id);
+        if (patientData._id) {
+            setIsExistingPatient(true);
+        }
+    }, [patientData._id]);
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
         field: keyof PatientData
     ) => {
         setPatientData({ ...patientData, [field]: e.target.value });
+        // Nếu thay đổi patient_id, cập nhật trạng thái isExistingPatient
+        if (field === 'patient_id') {
+            setIsExistingPatient(false);
+        }
     };
 
     const validate = () => {
         let errs: Record<string, string> = {};
         if (!patientData.patient_id) errs.patient_id = "Patient ID is required";
         if (!patientData.name) errs.name = "Patient Patient Name is required";
-        if (!patientData.group) errs.group = "Group is required";
-        if (!patientData.collectFees) errs.collectFees = "collectFees is required";
         if (!patientData.sex) errs.sex = "Sex is required";
         if (!patientData.age) errs.age = "Valid Age is required";
-        if (!patientData.address) errs.address = "Address is required";
-        if (!patientData.diagnosis) errs.diagnosis = "Diagnosis is required";
-        if (!patientData.general_conclusion) errs.general_conclusion = "General Conclusion is required";
         setErrors(errs);
         return Object.keys(errs).length === 0;
     };
@@ -69,12 +79,24 @@ const PatientForm: React.FC<{
 
         try {
             console.log("Patient Data Save send:", patientData);
-            const response = await PatientService.createPatient(patientData);
-
-            if (Number(response.status) === 201 || response.ok) {
-                showToast('success', 'Success', 'Save Patient success');
+            let response;
+            console.log("Patient Data id:", patientData._id);
+            if (patientData._id) {
+                response = await PatientService.updatePatient(patientData._id, patientData);
             } else {
-                showToast('warn', 'Warning', `Patient saved, but unexpected response: ${response.status}`);
+                response = await PatientService.createPatient(patientData);
+            }
+            console.log(response);
+
+            if (response.status || response.status === 201 || response.status === 200) {
+                // Cập nhật patientData với dữ liệu mới từ server
+                if (response.data) {
+                    setPatientData(response.data);
+                    setIsExistingPatient(true);
+                }
+                showToast('success', 'Success', patientData._id ? 'Update Patient success' : 'Save Patient success');
+            } else {
+                showToast('warn', 'Warning', `Patient ${patientData._id ? 'updated' : 'saved'}, but unexpected response: ${response.status}`);
             }
         } catch (error: any) {
             if (error.response) {
@@ -93,9 +115,9 @@ const PatientForm: React.FC<{
         }
     };
 
-    const handleSubmit = async () => {
+    const handleGenerateReport = async () => {
         setLoading(true);
-        console.log('Call Submit');
+        console.log('Call Generate Report');
         console.log("Patient Data Report:", patientData);
 
         if (!validate()) {
@@ -111,29 +133,34 @@ const PatientForm: React.FC<{
                 `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/generate-report`,
                 {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Cache-Control": "no-cache, no-store, must-revalidate",
+                        "Pragma": "no-cache",
+                        "Expires": "0"
+                    },
                     body: JSON.stringify(patientData),
                 }
             );
 
-            const responseData = await response.json();
-
             if (!response.ok) {
-                console.log('❌ API Error:', responseData);
-                showToast('error', 'Error', responseData.message || 'Failed to generate report');
-                throw new Error(responseData.message || `Failed: ${response.statusText}`);
+                const errorData = await response.json();
+                console.log('❌ API Error:', errorData);
+                showToast('error', 'Error', errorData.message || 'Failed to generate report');
+                throw new Error(errorData.message || `Failed: ${response.statusText}`);
             }
 
             const blob = await response.blob();
-
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
-
+            // Thêm timestamp vào tên file để tránh cache
+            const timestamp = new Date().getTime();
             a.href = url;
-            a.download = "Patient_Report.docx";
+            a.download = `Patient_Report_${timestamp}.docx`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
 
             showToast('success', 'Success', 'Report generated successfully');
         } catch (error) {
@@ -170,20 +197,6 @@ const PatientForm: React.FC<{
                     />
                     {errors.name && <small className="p-error">{errors.name}</small>}
                 </div>
-                <div className="input-wrap field col-12 md:col-3">
-                    <label>Group</label>
-                    <InputText value={patientData.group} onChange={(e) => handleChange(e, "group")}
-                        className={errors.group ? "p-invalid" : ""}
-                    />
-                    {errors.group && <small className="p-error">{errors.group}</small>}
-                </div>
-                <div className="input-wrap field col-12 md:col-3">
-                    <label>Collect Fees</label>
-                    <InputText value={patientData.collectFees} onChange={(e) => handleChange(e, "collectFees")}
-                        className={errors.collectFees ? "p-invalid" : ""}
-                    />
-                    {errors.collectFees && <small className="p-error">{errors.collectFees}</small>}
-                </div>
                 <div className="input-wrap field col-6 md:col-3">
                     <label>Age</label>
                     <InputText
@@ -205,10 +218,10 @@ const PatientForm: React.FC<{
                     />
                     {errors.sex && <small className="p-error">{errors.sex}</small>}
                 </div>
-                <div className="input-wrap field col-12">
+                <div className="input-wrap field col-12 md:col-6">
                     <label>Address</label>
                     <InputText
-                        value={patientData.address}
+                        value={patientData.address || ''}
                         onChange={(e) => handleChange(e, "address")}
                         className={errors.address ? "p-invalid" : ""}
                     />
@@ -217,7 +230,7 @@ const PatientForm: React.FC<{
                 <div className="input-wrap field col-12">
                     <label>Initial Diagnosis or Chief Complain</label>
                     <InputTextarea
-                        value={patientData.diagnosis}
+                        value={patientData.diagnosis || ''}
                         onChange={(e) => handleChange(e, "diagnosis")}
                         className={errors.diagnosis ? "p-invalid" : ""}
                     />
@@ -226,7 +239,7 @@ const PatientForm: React.FC<{
                 <div className="input-wrap field col-12">
                     <label>General Conclusion</label>
                     <InputTextarea
-                        value={patientData.general_conclusion}
+                        value={patientData.general_conclusion || ''}
                         onChange={(e) => handleChange(e, "general_conclusion")}
                         className={errors.general_conclusion ? "p-invalid" : ""}
                     />
@@ -234,18 +247,39 @@ const PatientForm: React.FC<{
                 </div>
                 <div className="col-12 flex">
                     <div className="col-6">
-                        <Button label="Generate Report"
-                            icon="pi pi-file"
-                            onClick={handleSubmit}
-                            className="p-button-success"
-                            disabled={loading} />
+                        <div className="wrap-report-button">
+                            <Button
+                                onClick={handleGenerateReport}
+                                icon="pi pi-file"
+                                className="p-button-success"
+                                disabled={loading || !patientData.file_name?.length}
+                                label="Generate Report"
+                                aria-label="Generate Report"
+                                data-pr-tooltip="Generate Report"
+                            />
+                        </div>
+                        <Tooltip
+                            target=".wrap-report-button"
+                            content="You need to select images to make reports!"
+                            mouseTrack mouseTrackLeft={10}
+                        />
                     </div>
                     <div className="col-6">
-                        <Button label="Save Patient"
-                            icon="pi pi-file"
-                            onClick={handleSave}
-                            className="p-button-primary"
-                            disabled={loading} />
+                        <div className="wrap-save-button">
+                            <Button
+                                label={isExistingPatient ? "Update Patient" : "Save Patient"}
+                                icon="pi pi-file"
+                                onClick={handleSave}
+                                className="p-button-primary"
+                                disabled={loading}
+                            />
+                        </div>
+                        <Tooltip
+                            target=".wrap-save-button"
+                            content={isExistingPatient ? "Update patient information" : "Save new patient"}
+                            mouseTrack
+                            mouseTrackLeft={10}
+                        />
                     </div>
                 </div>
             </div>
