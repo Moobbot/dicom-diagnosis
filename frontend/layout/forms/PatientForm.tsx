@@ -10,6 +10,8 @@ import PatientService from '@/modules/admin/service/PatientService';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Toast } from 'primereact/toast';
 import { ProgressSpinner } from 'primereact/progressspinner';
+import GenericButton from '../components/GenericButton';
+import { Tooltip } from 'primereact/tooltip';
 
 const PatientForm: React.FC<{
     patientData: PatientData,
@@ -28,7 +30,7 @@ const PatientForm: React.FC<{
     const showToast = (severity: 'success' | 'info' | 'warn' | 'error', summary: string, detail: string) => {
         console.log(`🔔 Toast called - ${severity}: ${summary} - ${detail}`);
         if (toastRef?.current) {
-            toastRef.current.show({ severity, summary, detail, life: 3000 });
+            toastRef.current.show({ severity, summary, detail, life: 5000 });
         } else {
             console.log('❌ Toast component not found!');
         }
@@ -88,9 +90,9 @@ const PatientForm: React.FC<{
         }
     };
 
-    const handleSubmit = async () => {
+    const handleGenerateReport = async () => {
         setLoading(true);
-        console.log('Call Submit');
+        console.log('Call Generate Report');
         console.log("Patient Data Report:", patientData);
 
         if (!validate()) {
@@ -106,29 +108,34 @@ const PatientForm: React.FC<{
                 `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/generate-report`,
                 {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Cache-Control": "no-cache, no-store, must-revalidate",
+                        "Pragma": "no-cache",
+                        "Expires": "0"
+                    },
                     body: JSON.stringify(patientData),
                 }
             );
 
-            const responseData = await response.json();
-
             if (!response.ok) {
-                console.log('❌ API Error:', responseData);
-                showToast('error', 'Error', responseData.message || 'Failed to generate report');
-                throw new Error(responseData.message || `Failed: ${response.statusText}`);
+                const errorData = await response.json();
+                console.log('❌ API Error:', errorData);
+                showToast('error', 'Error', errorData.message || 'Failed to generate report');
+                throw new Error(errorData.message || `Failed: ${response.statusText}`);
             }
 
             const blob = await response.blob();
-
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
-
+            // Thêm timestamp vào tên file để tránh cache
+            const timestamp = new Date().getTime();
             a.href = url;
-            a.download = "Patient_Report.docx";
+            a.download = `Patient_Report_${timestamp}.docx`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
 
             showToast('success', 'Success', 'Report generated successfully');
         } catch (error) {
@@ -215,18 +222,39 @@ const PatientForm: React.FC<{
                 </div>
                 <div className="col-12 flex">
                     <div className="col-6">
-                        <Button label="Generate Report"
-                            icon="pi pi-file"
-                            onClick={handleSubmit}
-                            className="p-button-success"
-                            disabled={loading} />
+                        <div className="wrap-report-button">
+                            <Button
+                                onClick={handleGenerateReport}
+                                icon="pi pi-file"
+                                className="p-button-success"
+                                disabled={loading || patientData.file_name.length === 0}
+                                label="Generate Report"
+                                aria-label="Generate Report"
+                                data-pr-tooltip="Generate Report"
+                            />
+                        </div>
+                        <Tooltip
+                            target=".wrap-report-button"
+                            content="You need to select images to make reports!"
+                            mouseTrack mouseTrackLeft={10}
+                        />
                     </div>
                     <div className="col-6">
-                        <Button label="Save Patient"
-                            icon="pi pi-file"
-                            onClick={handleSave}
-                            className="p-button-primary"
-                            disabled={loading} />
+                        <div className="wrap-save-button">
+                            <Button 
+                                label="Save Patient"
+                                icon="pi pi-file"
+                                onClick={handleSave}
+                                className="p-button-primary"
+                                disabled={loading || patientData.patient_id.length > 0} 
+                            />
+                        </div>
+                        <Tooltip
+                            target=".wrap-save-button"
+                            content="This patient has already been created!"
+                            mouseTrack 
+                            mouseTrackLeft={10}
+                        />
                     </div>
                 </div>
             </div>

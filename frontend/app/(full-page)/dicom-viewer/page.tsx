@@ -63,7 +63,7 @@ const DCMPage = () => {
             severity: severity,
             summary: summary,
             detail: detail,
-            life: 3000
+            life: 5000
         });
     };
 

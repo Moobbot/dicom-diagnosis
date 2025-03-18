@@ -163,7 +163,7 @@ const LCRD = () => {
     };
 
     const showToast = (severity: 'success' | 'info' | 'warn' | 'error', summary: string, detail: string) => {
-        toast.current?.show({ severity, summary, detail, life: 3000 });
+        toast.current?.show({ severity, summary, detail, life: 5000 });
     };
 
     // Hàm xử lý file DICOM (lọc, sắp xếp, và tạo danh sách imageIds)

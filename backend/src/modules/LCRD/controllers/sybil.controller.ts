@@ -93,7 +93,7 @@ class SybilController {
             throw new BadRequestError("Missing session_id");
         }
         if (!file_name.length) {
-            throw new BadRequestError("Missing file_name");
+            throw new BadRequestError("No chosen diagnostic photography!");
         }
 
         console.log("Bắt đầu tạo báo cáo...");

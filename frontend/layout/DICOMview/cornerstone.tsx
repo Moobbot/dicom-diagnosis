@@ -335,7 +335,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     };
 
     const showToast = (severity: 'success' | 'info' | 'warn' | 'error', summary: string, detail: string) => {
-        toast.current?.show({ severity, summary, detail, life: 3000 });
+        toast.current?.show({ severity, summary, detail, life: 5000 });
     };
 
     const wizardItems = [
