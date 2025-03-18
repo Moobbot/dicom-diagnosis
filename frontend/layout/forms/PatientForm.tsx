@@ -12,6 +12,7 @@ import { Toast } from 'primereact/toast';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import GenericButton from '../components/GenericButton';
 import { Tooltip } from 'primereact/tooltip';
+import { PatientData } from '@/types/lcrd';
 
 const PatientForm: React.FC<{
     patientData: PatientData,
@@ -19,6 +20,7 @@ const PatientForm: React.FC<{
     toastRef: React.RefObject<Toast>
 }> = ({ patientData, setPatientData, toastRef }) => {
     const [loading, setLoading] = useState(false);
+    const [isExistingPatient, setIsExistingPatient] = useState(false);
 
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -36,11 +38,23 @@ const PatientForm: React.FC<{
         }
     };
 
+    useEffect(() => {
+        // Kiểm tra nếu có _id thì là bệnh nhân đã tồn tại
+        console.log("Patient Data id:", patientData._id);
+        if (patientData._id) {
+            setIsExistingPatient(true);
+        }
+    }, [patientData._id]);
+
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
         field: keyof PatientData
     ) => {
         setPatientData({ ...patientData, [field]: e.target.value });
+        // Nếu thay đổi patient_id, cập nhật trạng thái isExistingPatient
+        if (field === 'patient_id') {
+            setIsExistingPatient(false);
+        }
     };
 
     const validate = () => {
@@ -66,12 +80,19 @@ const PatientForm: React.FC<{
 
         try {
             console.log("Patient Data Save send:", patientData);
-            const response = await PatientService.createPatient(patientData);
-
-            if (Number(response.status) === 201 || response.ok) {
-                showToast('success', 'Success', 'Save Patient success');
+            let response;
+            console.log("Patient Data id:", patientData._id);
+            if (patientData._id) {
+                response = await PatientService.updatePatient(patientData._id, patientData);
             } else {
-                showToast('warn', 'Warning', `Patient saved, but unexpected response: ${response.status}`);
+                response = await PatientService.createPatient(patientData);
+            }
+            console.log(response);
+
+            if (response.status || response.status === 201 || response.status === 200) {
+                showToast('success', 'Success', patientData._id ? 'Update Patient success' : 'Save Patient success');
+            } else {
+                showToast('warn', 'Warning', `Patient ${patientData._id ? 'updated' : 'saved'}, but unexpected response: ${response.status}`);
             }
         } catch (error: any) {
             if (error.response) {
@@ -160,6 +181,7 @@ const PatientForm: React.FC<{
                         value={patientData.patient_id}
                         onChange={(e) => handleChange(e, "patient_id")}
                         className={errors.patient_id ? "p-invalid" : ""}
+                        disabled={isExistingPatient}
                     />
                     {errors.patient_id && <small className="p-error">{errors.patient_id}</small>}
                 </div>
@@ -241,18 +263,18 @@ const PatientForm: React.FC<{
                     </div>
                     <div className="col-6">
                         <div className="wrap-save-button">
-                            <Button 
-                                label="Save Patient"
+                            <Button
+                                label={isExistingPatient ? "Update Patient" : "Save Patient"}
                                 icon="pi pi-file"
                                 onClick={handleSave}
                                 className="p-button-primary"
-                                disabled={loading || patientData.patient_id.length > 0} 
+                                disabled={loading}
                             />
                         </div>
                         <Tooltip
                             target=".wrap-save-button"
-                            content="This patient has already been created!"
-                            mouseTrack 
+                            content={isExistingPatient ? "Update patient information" : "Save new patient"}
+                            mouseTrack
                             mouseTrackLeft={10}
                         />
                     </div>

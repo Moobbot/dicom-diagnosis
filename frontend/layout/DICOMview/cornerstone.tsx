@@ -26,6 +26,8 @@ import { ImContrast } from 'react-icons/im';
 import { RiResetLeftFill } from 'react-icons/ri';
 import PatientForm from '../forms/PatientForm';
 import { Messages } from 'primereact/messages';
+import { DCMViewerProps } from '@/types/lcrd';
+import { PatientData } from '@/types/lcrd';
 
 const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     const [selectedImageIdIndex, setSelectedImageIdIndex] = useState<number | null>(null);
@@ -46,6 +48,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     const msgs = useRef<Messages>(null);
 
     const [patientData, setPatientData] = useState<PatientData>({
+        _id: '',
         patient_id: '',
         name: '',
         age: '',
@@ -358,20 +361,24 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     };
 
     const handleViewExport = () => {
-        // if (selectedFolder?.gifDownloadURL?.preview_link && selectedImages.length > 0) {
-        console.log('selectedImages:', selectedImages);
+        console.log('selectedFolder:', selectedFolder);
 
         setPatientData((prevData) => ({
             ...prevData,
+            _id: selectedFolder?.patient_info?._id || '',
+            patient_id: selectedFolder?.patient_info?.patient_id || '',
+            name: selectedFolder?.patient_info?.name || '',
+            age: selectedFolder?.patient_info?.age || '',
+            sex: selectedFolder?.patient_info?.sex || '',
+            address: selectedFolder?.patient_info?.address || null,
+            diagnosis: selectedFolder?.patient_info?.diagnosis || null,
+            general_conclusion: selectedFolder?.patient_info?.general_conclusion || null,
             file_name: selectedImages,
             session_id: selectedFolder?.session_id || '',
             forecast: selectedFolder?.predictions ? selectedFolder.predictions[0] : []
         }));
 
         setExportDialog(true);
-        // } else {
-        //     showToast('warn', 'No Image choose', 'There is no Image predict choose.');
-        // }
     };
 
     return (

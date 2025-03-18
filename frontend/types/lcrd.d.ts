@@ -1,4 +1,4 @@
-interface FolderType {
+export interface FolderType {
     id: string;
     name: string;
     files: File[] | string[];
@@ -11,11 +11,11 @@ interface FolderType {
     from_server?: boolean;
 }
 
-interface DCMViewerProps {
+export interface DCMViewerProps {
     selectedFolder: FolderType | null;
 }
 
-interface PredictionResponse {
+export interface PredictionResponse {
     session_id: string;
     message: string;
     predictions: number[][];
@@ -24,18 +24,19 @@ interface PredictionResponse {
     gif: string;
 }
 
-interface OverlayImage {
+export interface OverlayImage {
     filename: string;
     download_link: string;
     preview_link: string;
 }
 
-interface Gif {
+export interface Gif {
     download_link: string;
     preview_link: string;
 }
 
-interface PatientData {
+export interface PatientInfo {
+    _id?: string;
     patient_id: string;
     name: string;
     age: string;
@@ -43,12 +44,16 @@ interface PatientData {
     address?: string | null;
     diagnosis?: string | null;
     general_conclusion?: string | null;
+}
+
+export interface PatientData extends PatientInfo {
     session_id: string;
     file_name: string[];
     forecast: number[];
 }
 
-interface ServerResponse {
+// type PatientInfo = Omits<PatientData, 'session_id' | 'file_name' | 'forecast'>;
+export interface ServerResponse {
     page: number;
     limit: number;
     total: number;
@@ -57,7 +62,7 @@ interface ServerResponse {
     data: ServerFolder[];
 }
 
-interface ServerFolder {
+export interface ServerFolder {
     _id: string;
     session_id: string;
     predictions: number[][];
@@ -66,16 +71,3 @@ interface ServerFolder {
     overlay_images: string[];
     gif: string;
 }
-
-interface PatientInfo {
-    _id: string;
-    patient_id: string;
-    name: string;
-    age: string;
-    sex: string;
-    address?: string | null;
-    diagnosis?: string | null;
-    general_conclusion?: string | null;
-}
-
-type PatientInfo = Omits<PatientData, 'session_id' | 'file_name' | 'forecast'>;

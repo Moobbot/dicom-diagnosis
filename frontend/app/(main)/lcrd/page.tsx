@@ -21,6 +21,7 @@ import { VirtualScroller } from 'primereact/virtualscroller';
 import JSZip from 'jszip';
 import { confirmDialog, ConfirmDialog } from 'primereact/confirmdialog';
 import { InputText } from 'primereact/inputtext';
+import { FolderType, Gif, OverlayImage, PredictionResponse, ServerResponse } from '@/types/lcrd';
 
 declare global {
     interface Window {
