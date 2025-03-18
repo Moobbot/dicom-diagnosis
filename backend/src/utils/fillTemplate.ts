@@ -15,8 +15,6 @@ const TEMPLATE_PATH = path.join(validateEnv().linkTemplateReport, "report-hospit
 interface DataForm {
     patient_id: string;
     name: string;
-    group: string;
-    collectFees: string;
     age: string;
     sex: string;
     address: string;
@@ -117,8 +115,6 @@ export async function fillTemplate({
         const reportData = {
             patient_id: dataForm.patient_id,
             name: dataForm.name,
-            group: dataForm.group,
-            collectFees: dataForm.collectFees,
             age: dataForm.age,
             sex: dataForm.sex,
             address: dataForm.address,
@@ -217,8 +213,6 @@ export async function fillTemplate_v0({
         const reportData = {
             patient_id: dataForm.patient_id,
             name: dataForm.name,
-            group: dataForm.group,
-            collectFees: dataForm.collectFees,
             age: dataForm.age,
             sex: dataForm.sex,
             address: dataForm.address,

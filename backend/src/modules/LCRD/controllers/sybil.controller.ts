@@ -78,8 +78,6 @@ class SybilController {
     generateReport = async (req: Request, res: Response): Promise<void> => {
         const {
             patient_id,
-            group,
-            collectFees,
             name,
             age,
             sex,
@@ -128,8 +126,6 @@ class SybilController {
         const dataForm = {
             patient_id: patient_id,
             name: name,
-            group: group,
-            collectFees: collectFees,
             age: age,
             sex: sex,
             address: address,

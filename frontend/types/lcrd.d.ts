@@ -37,8 +37,6 @@ interface Gif {
 
 interface PatientData {
     patient_id: string;
-    group: string;
-    collectFees: string;
     name: string;
     age: string;
     sex: string;
@@ -73,8 +71,6 @@ interface PatientInfo {
     _id: string;
     patient_id: string;
     name: string;
-    group: string;
-    collectFees: string;
     age: string;
     sex: string;
     address: string;

@@ -45,8 +45,6 @@ const PatientForm: React.FC<{
         let errs: Record<string, string> = {};
         if (!patientData.patient_id) errs.patient_id = "Patient ID is required";
         if (!patientData.name) errs.name = "Patient Patient Name is required";
-        if (!patientData.group) errs.group = "Group is required";
-        if (!patientData.collectFees) errs.collectFees = "collectFees is required";
         if (!patientData.sex) errs.sex = "Sex is required";
         if (!patientData.age) errs.age = "Valid Age is required";
         if (!patientData.address) errs.address = "Address is required";
@@ -169,20 +167,6 @@ const PatientForm: React.FC<{
                         className={errors.name ? "p-invalid" : ""}
                     />
                     {errors.name && <small className="p-error">{errors.name}</small>}
-                </div>
-                <div className="input-wrap field col-12 md:col-3">
-                    <label>Group</label>
-                    <InputText value={patientData.group} onChange={(e) => handleChange(e, "group")}
-                        className={errors.group ? "p-invalid" : ""}
-                    />
-                    {errors.group && <small className="p-error">{errors.group}</small>}
-                </div>
-                <div className="input-wrap field col-12 md:col-3">
-                    <label>Collect Fees</label>
-                    <InputText value={patientData.collectFees} onChange={(e) => handleChange(e, "collectFees")}
-                        className={errors.collectFees ? "p-invalid" : ""}
-                    />
-                    {errors.collectFees && <small className="p-error">{errors.collectFees}</small>}
                 </div>
                 <div className="input-wrap field col-6 md:col-3">
                     <label>Age</label>

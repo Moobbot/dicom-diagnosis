@@ -3,8 +3,6 @@ import { Types } from "mongoose";
 export interface IPatient {
     patient_id: string;
     name: string;
-    group: string;
-    collectFees: string;
     age: string;
     sex: string;
     address: string;

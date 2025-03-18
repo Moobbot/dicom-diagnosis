@@ -47,8 +47,6 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
 
     const [patientData, setPatientData] = useState<PatientData>({
         patient_id: '',
-        group: '',
-        collectFees: '',
         name: '',
         age: '',
         sex: '',
