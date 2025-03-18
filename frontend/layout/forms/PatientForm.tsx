@@ -10,7 +10,6 @@ import PatientService from '@/modules/admin/service/PatientService';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Toast } from 'primereact/toast';
 import { ProgressSpinner } from 'primereact/progressspinner';
-import GenericButton from '../components/GenericButton';
 import { Tooltip } from 'primereact/tooltip';
 import { PatientData } from '@/types/lcrd';
 
@@ -186,7 +185,6 @@ const PatientForm: React.FC<{
                         value={patientData.patient_id}
                         onChange={(e) => handleChange(e, "patient_id")}
                         className={errors.patient_id ? "p-invalid" : ""}
-                        disabled={isExistingPatient}
                     />
                     {errors.patient_id && <small className="p-error">{errors.patient_id}</small>}
                 </div>
