@@ -2,6 +2,7 @@
 
 // React and Next.js imports
 import React, { useContext, useEffect, useRef, useState } from 'react';
+import * as dicomParser from 'dicom-parser';
 
 // PrimeReact components
 import { Button } from 'primereact/button';
@@ -184,12 +185,102 @@ const LCRD = () => {
         // Sắp xếp file theo thứ tự tự nhiên (numeric sort)
         dicomFiles.sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name));
 
-        return {
+        // Đọc thông tin DICOM từ file đầu tiên
+        const readDicomInfo = async (file: File) => {
+            try {
+                // Đọc file dưới dạng ArrayBuffer
+                const arrayBuffer = await file.arrayBuffer();
+
+                // Phân tích dữ liệu DICOM
+                const dicomData = dicomParser.parseDicom(new Uint8Array(arrayBuffer));
+
+                // Trích xuất thông tin bệnh nhân
+                const rawPatientName = dicomData.string('x00100010') || 'Unknown';
+                // Xử lý patientName từ định dạng DICOM (ví dụ: "CU^VAN^TUONG")
+                const patientName = rawPatientName !== 'Unknown'
+                    ? rawPatientName.split('^').filter(Boolean).join(' ')
+                    : 'Unknown';
+
+                const patientId = dicomData.string('x00100020') || 'Unknown';
+
+                // Xử lý patientSex từ định dạng DICOM (ví dụ: "M")
+                const rawPatientSex = dicomData.string('x00100040') || 'Unknown';
+                const patientSex = rawPatientSex !== 'Unknown'
+                    ? rawPatientSex === 'M' ? 'Male'
+                        : rawPatientSex === 'F' ? 'Female'
+                            : rawPatientSex
+                    : 'Unknown';
+
+                // Xử lý patientAge từ định dạng DICOM (ví dụ: "082Y")
+                const rawPatientAge = dicomData.string('x00101010') || 'Unknown';
+                let patientAge = 'Unknown';
+                if (rawPatientAge !== 'Unknown') {
+                    // Lấy số từ chuỗi (bỏ qua ký tự cuối như Y, M, D)
+                    const ageMatch = rawPatientAge.match(/\d+/);
+                    if (ageMatch) {
+                        patientAge = ageMatch[0];
+                    }
+                }
+
+                const studyDescription = dicomData.string('x00081030') || 'Unknown';
+
+                console.log("DICOM Info:", {
+                    patientName,
+                    patientId,
+                    patientSex,
+                    patientAge,
+                    studyDescription
+                });
+
+                return {
+                    patientName,
+                    patientId,
+                    patientSex,
+                    patientAge,
+                    studyDescription
+                };
+            } catch (error) {
+                console.error('Error reading DICOM info:', error);
+                showToast('warn', 'Warning', 'Could not read DICOM information');
+                return null;
+            }
+        };
+
+        // Tạo folder mới với thông tin DICOM
+        const newFolder: FolderType = {
             id: Date.now().toString(),
             name: folderName,
             files: dicomFiles,
-            imageIds: dicomFiles.map((file) => window.cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
-        } as FolderType;
+            imageIds: dicomFiles.map((file) => window.cornerstoneDICOMImageLoader.wadouri.fileManager.add(file)),
+            patient_info: {
+                _id: '',
+                patient_id: '',
+                name: '',
+                age: '',
+                sex: '',
+                address: null,
+                diagnosis: null,
+                general_conclusion: null
+            }
+        };
+
+        // Đọc thông tin DICOM từ file đầu tiên
+        readDicomInfo(dicomFiles[0]).then(dicomInfo => {
+            if (dicomInfo) {
+                newFolder.patient_info = {
+                    _id: '',
+                    patient_id: dicomInfo.patientId,
+                    name: dicomInfo.patientName,
+                    age: dicomInfo.patientAge,
+                    sex: dicomInfo.patientSex,
+                    address: null,
+                    diagnosis: dicomInfo.studyDescription,
+                    general_conclusion: null
+                };
+            }
+        });
+
+        return newFolder;
     };
 
     // Xử lý upload file DICOM riêng lẻ
