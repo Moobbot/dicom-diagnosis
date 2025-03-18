@@ -1,5 +1,5 @@
 import { api } from './api';
-import { PatientData } from '../../../types/lcrd';
+import { PatientData } from '@/types/lcrd';
 
 class PatientService {
     private baseUrl: string;

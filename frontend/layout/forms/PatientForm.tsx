@@ -90,6 +90,11 @@ const PatientForm: React.FC<{
             console.log(response);
 
             if (response.status || response.status === 201 || response.status === 200) {
+                // Cập nhật patientData với dữ liệu mới từ server
+                if (response.data) {
+                    setPatientData(response.data);
+                    setIsExistingPatient(true);
+                }
                 showToast('success', 'Success', patientData._id ? 'Update Patient success' : 'Save Patient success');
             } else {
                 showToast('warn', 'Warning', `Patient ${patientData._id ? 'updated' : 'saved'}, but unexpected response: ${response.status}`);
@@ -249,7 +254,7 @@ const PatientForm: React.FC<{
                                 onClick={handleGenerateReport}
                                 icon="pi pi-file"
                                 className="p-button-success"
-                                disabled={loading || patientData.file_name.length === 0}
+                                disabled={loading || !patientData.file_name?.length}
                                 label="Generate Report"
                                 aria-label="Generate Report"
                                 data-pr-tooltip="Generate Report"

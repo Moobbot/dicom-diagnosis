@@ -13,7 +13,6 @@ class PatientController {
 
     createPatient = async (req: Request, res: Response) => {
         const validatedData = CreatePatientSchema.parse(req.body);
-
         const userId = req.userData.userId;
 
         const patient = await this.patientService.createPatient(
