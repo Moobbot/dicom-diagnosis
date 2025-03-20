@@ -70,7 +70,7 @@ export async function fillTemplate({
         ensureDirectoryExistence(reportFolder);
         const OUTPUT_DOCX_PATH = path.join(reportFolder, "report.docx");
 
-        console.log(`📂 Đang xử lý báo cáo cho session: ${session_id}`);
+        console.log(`📂 Processing report for session: ${session_id}`);
 
         // 2️⃣ Chuyển đổi tất cả ảnh DICOM sang PNG bằng API Flask
         const formData = new FormData();
@@ -84,29 +84,29 @@ export async function fillTemplate({
 
         const { images } = response.data;
         if (!images || images.length === 0) {
-            throw new Error("❌ Không nhận được ảnh từ API");
+            throw new Error("❌ Did not receive images from API");
         }
 
-        console.log(`✅ Ảnh PNG đã được tạo từ API:`, images.map((img: { filename: string }) => img.filename));
+        console.log(`✅ Images created from API:`, images.map((img: { filename: string }) => img.filename));
 
-        // 3️⃣ Đọc file template DOCX
+        // 3️⃣ Read DOCX template
         const templateBuffer = fs.readFileSync(TEMPLATE_PATH);
 
-        // 4️⃣ Chuẩn bị dữ liệu
+        // 4️⃣ Prepare data
         const forecastData = dataForm.forecast.map((value, index) =>
             value ? `${(value * 100).toFixed(2)}%` : "N/A"
         );
 
-        const columns = 2; // Số ảnh mỗi hàng
-        // 5️⃣ Chuyển nhiều ảnh PNG thành danh sách Base64
+        const columns = 2; // Number of images per row
+        // 5️⃣ Convert multiple PNG images to Base64 list
         const images_predict = images.map((image: { image_base64: string }) => ({
             width: 7, // cm  
             height: 7, // cm
-            data: image.image_base64, // ✅ Dùng image_base64 thay vì object image
+            data: image.image_base64, // ✅ Use image_base64 instead of object image
             extension: ".png",
         }));
 
-        // Chia danh sách ảnh thành mảng 2D, mỗi hàng chứa `columns` ảnh
+        // Divide the list of images into 2D arrays, each line contains `columns` images'
         const images_predict_rows = [];
         for (let i = 0; i < images_predict.length; i += columns) {
             images_predict_rows.push(images_predict.slice(i, i + columns));
@@ -129,19 +129,19 @@ export async function fillTemplate({
             images_predict_rows
         };
 
-        // 6️⃣ Tạo file DOCX từ template
+        // 6️⃣ Create DOCX file from template
         const buffer = await createReport({
             template: templateBuffer,
             data: reportData,
             cmdDelimiter: ["{", "}"],
         });
 
-        // 5️⃣ Lưu file DOCX mới
+        // 5️⃣ Save new DOCX file
         fs.writeFileSync(OUTPUT_DOCX_PATH, buffer);
-        console.log(`✅ Báo cáo đã được tạo thành công: ${OUTPUT_DOCX_PATH}`);
+        console.log(`✅ Report created successfully: ${OUTPUT_DOCX_PATH}`);
         return OUTPUT_DOCX_PATH;
     } catch (error) {
-        console.error("❌ Lỗi khi tạo báo cáo:", error);
+        console.error("❌ Error when creating report:", error);
         return null;
     }
 }
@@ -157,45 +157,45 @@ export async function fillTemplate_v0({
     dataForm: DataForm;
 }): Promise<string | null> {
     try {
-        // 1️⃣ Tạo session_id và thư mục lưu báo cáo
+        // 1️⃣ Create session_id and report directory
         const session_id = dataForm.session_id ?? Date.now().toString();
         const reportFolder = path.join(validateEnv().linkSaveReport, session_id);
         ensureDirectoryExistence(reportFolder);
         const OUTPUT_DOCX_PATH = path.join(reportFolder, "report.docx");
 
-        console.log(`📂 Đang xử lý báo cáo cho session: ${session_id}`);
+        console.log(`📂 Processing report for session: ${session_id}`);
 
-        // 2️⃣ Chuyển đổi tất cả ảnh DICOM sang PNG
+        // 2️⃣ Convert all DICOM images to PNG
         const pngPaths: string[] = [];
         for (const [index, dicomPath] of dicomPaths.entries()) {
             const pngPath = path.join(reportFolder, `dicom-image-${index + 1}.png`);
             await convertDicomToPng(dicomPath, pngPath);
 
-            // Kiểm tra lại file PNG (đợi nếu chưa có)
+            // Check PNG file again (wait if not created)
             let retryCount = 0;
             while (!fs.existsSync(pngPath) || fs.statSync(pngPath).size === 0) {
-                if (retryCount >= 5) throw new Error(`❌ File PNG không được tạo thành công: ${pngPath}`);
-                console.log(`🔄 Đợi file PNG ${index + 1} được tạo...`);
-                await new Promise((resolve) => setTimeout(resolve, 500)); // Đợi 500ms
+                if (retryCount >= 5) throw new Error(`❌ PNG file ${index + 1} was not created: ${pngPath}`);
+                console.log(`🔄 Waiting for PNG file ${index + 1} to be created...`);
+                await new Promise((resolve) => setTimeout(resolve, 500)); // Wait 500ms
                 retryCount++;
             }
 
-            console.log(`✅ Ảnh PNG ${index + 1} đã được tạo: ${pngPath}`);
+            console.log(`✅ Image PNG ${index + 1} created: ${pngPath}`);
             pngPaths.push(pngPath);
         }
 
-        console.log(`✅ Ảnh PNG đã được tạo: ${pngPaths}`);
+        console.log(`✅ PNG images created: ${pngPaths}`);
 
-        // 3️⃣ Đọc file template DOCX
+        // 3️⃣ Read DOCX template
         const templateBuffer = fs.readFileSync(TEMPLATE_PATH);
 
-        // 4️⃣ Chuẩn bị dữ liệu
+        // 4️⃣ Prepare data
         const forecastData = dataForm.forecast.map((value, index) =>
             value ? `${(value * 100).toFixed(2)}%` : "N/A"
         );
 
-        const columns = 2; // Số ảnh mỗi hàng
-        // 5️⃣ Chuyển nhiều ảnh PNG thành danh sách Base64
+        const columns = 2; // Number of images per row
+        // 5️⃣ Convert multiple PNG images to Base64 list
         const images_predict = await Promise.all(
             pngPaths.map(async (pngPath) => ({
                 width: 7, // cm  
@@ -204,7 +204,7 @@ export async function fillTemplate_v0({
                 extension: ".png",
             }))
         );
-        // Chia danh sách ảnh thành mảng 2D, mỗi hàng chứa `columns` ảnh
+        // Divide the list of images into 2D arrays, each line contains `columns` images
         const images_predict_rows = [];
         for (let i = 0; i < images_predict.length; i += columns) {
             images_predict_rows.push(images_predict.slice(i, i + columns));
@@ -227,19 +227,19 @@ export async function fillTemplate_v0({
             images_predict_rows
         };
 
-        // 6️⃣ Tạo file DOCX từ template
+        // 6️⃣ Create DOCX file from template
         const buffer = await createReport({
             template: templateBuffer,
             data: reportData,
             cmdDelimiter: ["{", "}"],
         });
 
-        // 5️⃣ Lưu file DOCX mới
+        // 5️⃣ Save new DOCX file
         fs.writeFileSync(OUTPUT_DOCX_PATH, buffer);
-        console.log(`✅ Báo cáo đã được tạo thành công: ${OUTPUT_DOCX_PATH}`);
+        console.log(`✅ Report created successfully: ${OUTPUT_DOCX_PATH}`);
         return OUTPUT_DOCX_PATH;
     } catch (error) {
-        console.error("❌ Lỗi khi tạo báo cáo:", error);
+        console.error("❌ Error when creating report:", error);
         return null;
     }
 }
