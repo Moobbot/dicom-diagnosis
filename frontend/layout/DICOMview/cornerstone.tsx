@@ -67,9 +67,21 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     // Thêm state để kiểm soát việc khởi tạo toolGroup
     const [toolGroupInitialized, setToolGroupInitialized] = useState(false);
 
+    // Thêm ref để theo dõi việc khởi tạo
+    const initializationRef = useRef(false);
+
     useEffect(() => {
         const initializeViewer = async () => {
+            // Kiểm tra xem đã khởi tạo chưa
+            if (initializationRef.current || toolGroupRef.current || toolGroupInitialized) {
+                console.log('[Cornerstone] ⚠️ Viewer already initialized, skipping...');
+                return;
+            }
+
             try {
+                console.log('[Cornerstone] 🚀 Starting viewer initialization...');
+                initializationRef.current = true;
+
                 await cornerstone.init();
                 await cornerstoneTools.init();
 
@@ -94,48 +106,93 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                 // Thêm hàm delay
                 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-                // Thêm cơ chế retry
                 const createToolGroupWithRetry = async (maxRetries = 3, delayMs = 3000) => {
-                    for (let i = 0; i < maxRetries; i++) {
-                        const toolGroup = cornerstoneTools.ToolGroupManager.createToolGroup(toolGroupId);
-                        if (toolGroup) {
-                            return toolGroup;
+                    // Kiểm tra và dọn dẹp tool group cũ nếu tồn tại
+                    const existingToolGroup = cornerstoneTools.ToolGroupManager.getToolGroup(toolGroupId);
+                    if (existingToolGroup) {
+                        console.log('[Cornerstone] 🔧 Cleaning up existing tool group...');
+                        try {
+                            cornerstoneTools.ToolGroupManager.destroyToolGroup(toolGroupId);
+                            console.log('[Cornerstone] ✅ Existing tool group cleaned up successfully');
+                        } catch (cleanupError) {
+                            console.warn('[Cornerstone] ⚠️ Failed to clean up existing tool group:', cleanupError);
                         }
-                        console.log(`Retry ${i + 1}/${maxRetries} creating tool group...`);
+                        // Đợi một chút để đảm bảo cleanup hoàn tất
+                        await delay(1000);
+                    }
+
+                    for (let i = 0; i < maxRetries; i++) {
+                        console.log(`[Cornerstone] Attempt ${i + 1}/${maxRetries} to create tool group...`);
+                        try {
+                            const toolGroup = cornerstoneTools.ToolGroupManager.createToolGroup(toolGroupId);
+                            if (toolGroup) {
+                                console.log(`[Cornerstone] ✅ Tool group created successfully on attempt ${i + 1}`);
+                                return toolGroup;
+                            }
+                        } catch (createError) {
+                            console.warn(`[Cornerstone] ⚠️ Error on attempt ${i + 1}:`, createError);
+                        }
+                        console.log(`[Cornerstone] ⏳ Waiting ${delayMs}ms before next attempt...`);
                         await delay(delayMs);
                     }
+                    console.log('[Cornerstone] ❌ Failed to create tool group after all retries');
                     return null;
                 };
 
                 const toolGroup = await createToolGroupWithRetry();
                 if (!toolGroup) {
-                    console.error('Failed to create tool group after multiple retries');
+                    const existingGroup = cornerstoneTools.ToolGroupManager.getToolGroup(toolGroupId);
+                    console.log('[Cornerstone] ❌ Tool group creation failed. ToolGroupManager state:', {
+                        toolGroupId,
+                        toolGroupExists: existingGroup !== undefined,
+                        existingGroupState: existingGroup ? {
+                            viewports: existingGroup.getViewportIds(),
+                            activeTool: StackScrollTool.toolName
+                        } : null
+                    });
                     showToast('error', 'Initialization Error', 'Failed to initialize viewer tools after multiple attempts.');
+                    initializationRef.current = false;
                     return;
                 }
 
                 try {
+                    console.log('[Cornerstone] 🔧 Adding tools to tool group...');
                     toolGroup.addTool(ZoomTool.toolName);
                     toolGroup.addTool(PanTool.toolName);
                     toolGroup.addTool(WindowLevelTool.toolName);
                     toolGroup.addTool(StackScrollTool.toolName);
                     toolGroup.addTool(LengthTool.toolName);
+                    console.log('[Cornerstone] ✅ All tools added successfully');
+
+                    console.log('[Cornerstone] 🔧 Adding viewport to tool group...');
                     toolGroup.addViewport(viewportId, renderingEngineId);
+                    console.log('[Cornerstone] ✅ Viewport added successfully');
+
                     toolGroupRef.current = toolGroup;
 
-                    // Kích hoạt StackScrollTool mặc định
+                    console.log('[Cornerstone] 🔧 Setting up default tool (StackScrollTool)...');
                     toolGroup.setToolActive(StackScrollTool.toolName, { bindings: [{ mouseButton: cornerstoneTools.Enums.MouseBindings.Wheel }] });
                     setActiveTool(StackScrollTool.toolName);
                     setToolGroupInitialized(true);
+                    console.log('[Cornerstone] ✅ Tool group initialization completed successfully');
                 } catch (toolError) {
-                    console.error('Error adding tools to tool group:', toolError);
+                    console.log('[Cornerstone] ❌ Error adding tools to tool group:', {
+                        error: toolError,
+                        toolGroupState: {
+                            viewportId,
+                            renderingEngineId,
+                            activeTool: StackScrollTool.toolName
+                        }
+                    });
                     showToast('error', 'Tool Initialization Error', 'Failed to add tools to viewer. Please check console for details.');
                     cornerstoneTools.ToolGroupManager.destroyToolGroup(toolGroupId);
+                    initializationRef.current = false;
                     return;
                 }
             } catch (error) {
-                console.error('Error initializing viewer:', error);
+                console.log('[Cornerstone] ❌ Error initializing viewer:', error);
                 showToast('error', 'Initialization Error', 'Failed to initialize viewer.');
+                initializationRef.current = false;
             }
         };
 
@@ -144,10 +201,14 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
         // Cleanup function
         return () => {
             if (toolGroupRef.current) {
+                console.log('[Cornerstone] 🧹 Cleaning up tool group on unmount...');
                 cornerstoneTools.ToolGroupManager.destroyToolGroup(toolGroupId);
+                toolGroupRef.current = null;
+                setToolGroupInitialized(false);
+                initializationRef.current = false;
             }
         };
-    }, []);
+    }, []); // Empty dependency array to run only once on mount
 
     useEffect(() => {
         if (selectedFolder && renderingEngineRef.current) {
