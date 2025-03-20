@@ -91,8 +91,30 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                 cornerstoneTools.addTool(StackScrollTool);
                 cornerstoneTools.addTool(LengthTool);
 
-                const toolGroup = cornerstoneTools.ToolGroupManager.createToolGroup(toolGroupId);
-                if (toolGroup) {
+                // Thêm hàm delay
+                const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+                // Thêm cơ chế retry
+                const createToolGroupWithRetry = async (maxRetries = 3, delayMs = 3000) => {
+                    for (let i = 0; i < maxRetries; i++) {
+                        const toolGroup = cornerstoneTools.ToolGroupManager.createToolGroup(toolGroupId);
+                        if (toolGroup) {
+                            return toolGroup;
+                        }
+                        console.log(`Retry ${i + 1}/${maxRetries} creating tool group...`);
+                        await delay(delayMs);
+                    }
+                    return null;
+                };
+
+                const toolGroup = await createToolGroupWithRetry();
+                if (!toolGroup) {
+                    console.error('Failed to create tool group after multiple retries');
+                    showToast('error', 'Initialization Error', 'Failed to initialize viewer tools after multiple attempts.');
+                    return;
+                }
+
+                try {
                     toolGroup.addTool(ZoomTool.toolName);
                     toolGroup.addTool(PanTool.toolName);
                     toolGroup.addTool(WindowLevelTool.toolName);
@@ -105,9 +127,11 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                     toolGroup.setToolActive(StackScrollTool.toolName, { bindings: [{ mouseButton: cornerstoneTools.Enums.MouseBindings.Wheel }] });
                     setActiveTool(StackScrollTool.toolName);
                     setToolGroupInitialized(true);
-                } else {
-                    console.error('Failed to create tool group');
-                    showToast('error', 'Initialization Error', 'Failed to initialize viewer tools.');
+                } catch (toolError) {
+                    console.error('Error adding tools to tool group:', toolError);
+                    showToast('error', 'Tool Initialization Error', 'Failed to add tools to viewer. Please check console for details.');
+                    cornerstoneTools.ToolGroupManager.destroyToolGroup(toolGroupId);
+                    return;
                 }
             } catch (error) {
                 console.error('Error initializing viewer:', error);

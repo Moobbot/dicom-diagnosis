@@ -7,9 +7,7 @@ import { validateEnv } from "../../../config/env.config";
 
 import BadRequestError from "../../../errors/bad-request.error";
 import BadGatewayError from "../../../errors/bad-gateway.error";
-import HttpException from "../../../errors/http-exception.error";
 
-import { ISybilPredictionResponse } from "../interfaces/sybil.interface";
 import { SybilService } from "../services/sybil.service";
 import { fillTemplate } from "../../../utils/fillTemplate";
 
@@ -96,59 +94,113 @@ class SybilController {
             throw new BadRequestError("No chosen diagnostic photography!");
         }
 
-        console.log("Bắt đầu tạo báo cáo...");
+        console.log("Start creating report...");
+        try {
+            // Create report directory if it doesn't exist
+            const reportFolder = path.join(validateEnv().linkSaveReport, session_id);
+            if (!fs.existsSync(reportFolder)) fs.mkdirSync(reportFolder, { recursive: true });
 
-        // Tạo thư mục lưu report nếu chưa có
-        const reportFolder = path.join(
-            validateEnv().linkSaveReport,
-            session_id
-        );
-        if (!fs.existsSync(reportFolder))
-            fs.mkdirSync(reportFolder, { recursive: true });
+            // Get DICOM file paths
+            const dicomPaths = file_name.map((file: string) =>
+                path.join(validateEnv().linkSaveDicomResults, session_id, file)
+            );
 
-        // Lấy đường dẫn các file DICOM
-        const dicomPaths = file_name.map((file: string) =>
-            path.join(validateEnv().linkSaveDicomResults, session_id, file)
-        );
-
-        // Kiểm tra xem tất cả các file DICOM có tồn tại không
-        dicomPaths.forEach((filePath: string) => {
-            if (!fs.existsSync(filePath)) {
-                throw new BadRequestError(
-                    `DICOM file not found: ${path.basename(filePath)}`
-                );
-            }
-        });
-
-        // Đọc file DICOM
-        console.log("Đọc file DICOM...");
-        // Chạy hàm fillTemplate
-        const dataForm = {
-            patient_id: patient_id,
-            name: name,
-            age: age,
-            sex: sex,
-            address: address,
-            diagnosis: diagnosis,
-            general_conclusion: general_conclusion,
-            session_id: session_id,
-            file_name: file_name,
-            forecast: forecast,
-        };
-
-        const link_report = await fillTemplate({ dicomPaths, dataForm });
-        // Gửi file DOCX về FE để tải xuống ngay
-        if (link_report) {
-            res.download(link_report, "Patient_Report.docx", (err) => {
-                if (err) {
-                    console.error("❌ Lỗi khi gửi file:", err);
-                    res.status(500).json({ error: "Failed to send report" });
+            // Check if all DICOM files exist
+            dicomPaths.forEach((filePath: string) => {
+                if (!fs.existsSync(filePath)) {
+                    throw new BadRequestError(
+                        `DICOM file not found: ${path.basename(filePath)}`
+                    );
                 }
             });
-        } else {
-            res.status(500).json({ error: "Report generation failed" });
+
+            // Read DICOM file
+            console.log("Reading DICOM file...");
+
+            // Run fillTemplate function
+            const dataForm = {
+                patient_id: patient_id,
+                name: name,
+                age: age,
+                sex: sex,
+                address: address,
+                diagnosis: diagnosis,
+                general_conclusion: general_conclusion,
+                session_id: session_id,
+                file_name: file_name,
+                forecast: forecast,
+            };
+
+            const link_report = await fillTemplate({ dicomPaths, dataForm });
+            if (!link_report) {
+                throw new BadGatewayError("Failed to generate report - Python service error");
+            }
+
+            // Check if the report file exists
+            if (!fs.existsSync(link_report)) {
+                throw new BadGatewayError("Report file was not created successfully");
+            }
+
+            // Check the file size
+            const stats = fs.statSync(link_report);
+            if (stats.size === 0) {
+                throw new BadGatewayError("Generated report is empty");
+            }
+
+            // Send DOCX file to FE to download immediately
+            res.download(link_report, "Patient_Report.docx", (err) => {
+                if (err) {
+                    console.error("❌ Error when sending file:", err);
+                    res.status(500).json({
+                        status: 500,
+                        message: "Failed to send report",
+                        error: err.message
+                    });
+                } else {
+                    // Delete the temporary file after successful sending
+                    try {
+                        fs.unlinkSync(link_report);
+                        console.log("✅ Temporary report file deleted successfully");
+                    } catch (unlinkErr) {
+                        console.error("❌ Error deleting temporary report file:", unlinkErr);
+                    }
+                }
+            });
+        } catch (error: any) {
+            console.error("❌ Error when creating report:", error);
+
+            // Handle specific error types
+            if (error.message?.includes("Incomplete IF/END-IF statement")) {
+                res.status(400).json({
+                    status: 400,
+                    message: "Template error: Missing END-IF statement in Word template",
+                    error: "Template Syntax Error"
+                });
+            } else if (error.code === 'ECONNREFUSED') {
+                res.status(503).json({
+                    status: 503,
+                    message: "Python service is not available. Please try again later.",
+                    error: "Service Unavailable"
+                });
+            } else if (error instanceof BadRequestError) {
+                res.status(400).json({
+                    status: 400,
+                    message: error.message
+                });
+            } else if (error instanceof BadGatewayError) {
+                res.status(502).json({
+                    status: 502,
+                    message: error.message
+                });
+            } else {
+                res.status(500).json({
+                    status: 500,
+                    message: "Internal server error",
+                    error: error.message
+                });
+            }
         }
-    };
+    }
 }
 
 export default new SybilController();

@@ -163,9 +163,9 @@ const PatientForm: React.FC<{
             window.URL.revokeObjectURL(url);
 
             showToast('success', 'Success', 'Report generated successfully');
-        } catch (error) {
-            console.log('Error generating report:', error);
-            showToast('error', 'Error', 'Failed to generate report');
+        } catch (error: any) {
+            console.log('Error generating report:', error?.response?.data.message);
+            showToast('error', 'Error', error?.response?.data.message || 'Failed to generate report');
         } finally {
             setLoading(false);
         }
