@@ -1,9 +1,8 @@
 import React from 'react';
-import AuthService from '@/modules/admin/service/AuthService';
 import { useUserContext } from '../context/usercontext';
+import { api } from '@/modules/admin/api/api';
 
 const UserMenu = () => {
-    const authService = new AuthService();
     const { user } = useUserContext();
 
     const handleLogout = async () => {
@@ -16,7 +15,7 @@ const UserMenu = () => {
             });
             const { refreshToken } = await tokenData.json();
 
-            await authService.logout(refreshToken);
+            await api.post('/auth/logout', { refreshToken });
         } catch (error) {
             console.error('Error during logout:', error);
         } finally {
