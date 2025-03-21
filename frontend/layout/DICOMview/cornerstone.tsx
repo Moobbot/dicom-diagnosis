@@ -29,7 +29,7 @@ import { Messages } from 'primereact/messages';
 import { DCMViewerProps } from '@/types/lcrd';
 import { PatientData } from '@/types/lcrd';
 
-const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
+const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder, reloadFolders }) => {
     const [selectedImageIdIndex, setSelectedImageIdIndex] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState(0); // 0: Original, 1: Predicted
     const [activeTool, setActiveTool] = useState<string | null>(null);
@@ -650,7 +650,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                 </div>
             </Dialog>
             <Dialog header="Export Preview" visible={ExportDialog} style={{ width: '50vw' }} onHide={() => setExportDialog(false)}>
-                <PatientForm patientData={patientData} setPatientData={setPatientData} toastRef={toast} />
+                <PatientForm patientData={patientData} setPatientData={setPatientData} toastRef={toast} reloadFolders={reloadFolders} />
             </Dialog>
         </div>
     );
