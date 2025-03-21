@@ -1,12 +1,13 @@
 import React from 'react';
+import { logout } from '@/app/api/authApi';
 import { useUserContext } from '../context/usercontext';
-import { api } from '@/modules/admin/api/api';
 
 const UserMenu = () => {
     const { user } = useUserContext();
 
     const handleLogout = async () => {
         try {
+            // Gọi API logout
             const tokenData = await fetch('/api/auth', {
                 method: 'GET',
                 headers: {
@@ -14,10 +15,9 @@ const UserMenu = () => {
                 }
             });
             const { refreshToken } = await tokenData.json();
-
-            await api.post('/auth/logout', { refreshToken });
+            await logout(refreshToken);
         } catch (error) {
-            console.error('Error during logout:', error);
+            console.error('❌ Error during logout:', error);
         } finally {
             localStorage.removeItem('accessToken');
             await fetch('/api/auth', {
@@ -70,7 +70,7 @@ const UserMenu = () => {
                     onMouseEnter={(e) => (e.currentTarget.style.background = '#f9f9f9')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                    <img src={user?.detail_user.avatar || '/layout/images/logo.png'} alt="User Information" style={{ width: '20px', height: '20px', borderRadius: '50%' }} />
+                    <img src={user?.detail_user?.avatar || '/layout/images/logo.png'} alt="User Information" style={{ width: '20px', height: '20px', borderRadius: '50%' }} />
                     <a href="/user-info" style={{ textDecoration: 'none', color: '#333' }}>
                         Thông tin người dùng
                     </a>
