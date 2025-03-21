@@ -28,11 +28,25 @@ class PatientService {
     };
 
     async getPatients(page: number, limit: number, search?: string): Promise<{ data: any[]; total: number; limit: number; pages: number }> {
-        const response = await api.get(this.baseUrl, {
-            params: { page, limit, search }
-        });
-        const { data, total, limit: responseLimit, pages } = response.data;
-        return { data, total, limit: responseLimit, pages };
+        try {
+            // Đảm bảo page và limit là số dương
+            const validPage = Math.max(1, page);
+            const validLimit = Math.max(1, limit);
+            
+            const response = await api.get(this.baseUrl, {
+                params: { 
+                    page: validPage,
+                    limit: validLimit,
+                    ...(search && search.trim() !== '' ? { search: search.trim() } : {})
+                }
+            });
+            
+            const { data, total, limit: responseLimit, pages } = response.data;
+            return { data, total, limit: responseLimit, pages };
+        } catch (error: any) {
+            console.log('Error fetching patients:', error.response?.data || error.message);
+            throw error;
+        }
     }
 
     async deletePatient(id: string): Promise<void> {

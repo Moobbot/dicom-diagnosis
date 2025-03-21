@@ -22,7 +22,7 @@ import { VirtualScroller } from 'primereact/virtualscroller';
 import JSZip from 'jszip';
 import { confirmDialog, ConfirmDialog } from 'primereact/confirmdialog';
 import { InputText } from 'primereact/inputtext';
-import { FolderType, Gif, OverlayImage, PredictionResponse, ServerResponse } from '@/types/lcrd';
+import { FolderType, Gif, OverlayImage, PredictionResponse, ServerResponse, PatientInfo } from '@/types/lcrd';
 
 declare global {
     interface Window {
@@ -89,52 +89,73 @@ const LCRD = () => {
             const response = await PatientService.getPatients(page + 1, rowsPerPage, search);
             const serverData = response as ServerResponse;
 
+            if (!serverData || !Array.isArray(serverData.data)) {
+                showToast('error', 'Error', 'Invalid data format received from server');
+                return;
+            }
+
             // Xử lý dữ liệu
-            const processedFolders = serverData.data.map((folder) => {
-                const sessionId = folder.session_id;
+            const processedFolders: FolderType[] = serverData.data
+                .map((folder): FolderType | null => {
+                    if (!folder || !folder.session_id) {
+                        console.warn('Invalid folder data:', folder);
+                        return null;
+                    }
 
-                // Sắp xếp upload_images theo thứ tự tự nhiên
-                const sortedUploadImages = folder.upload_images.sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b));
+                    const sessionId = folder.session_id;
 
-                // Tạo danh sách imageIds
-                const imageIds = sortedUploadImages.map((filename) => `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/uploads/${sessionId}/${filename}`);
+                    // Kiểm tra và đảm bảo upload_images tồn tại và là mảng
+                    const uploadImages = Array.isArray(folder.upload_images) ? folder.upload_images : [];
+                    const overlayImages = Array.isArray(folder.overlay_images) ? folder.overlay_images : [];
 
-                // Sắp xếp overlay_images theo thứ tự tự nhiên
-                const sortedOverlayImages = folder.overlay_images.sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b));
+                    // Sắp xếp upload_images theo thứ tự tự nhiên
+                    const sortedUploadImages = uploadImages.sort((a, b) => 
+                        new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b));
 
-                // Tạo danh sách predictedImagesURL
-                const predictedImagesURL = sortedOverlayImages.map((filename) => ({
-                    filename,
-                    preview_link: `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${filename}`,
-                    download_link: `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${filename}`
-                }));
+                    // Tạo danh sách imageIds
+                    const imageIds = sortedUploadImages.map((filename) => 
+                        `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/uploads/${sessionId}/${filename}`);
 
-                // GIF URL
-                const gifDownloadURL = {
-                    download_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${folder.gif}`,
-                    preview_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${folder.gif}`
-                };
+                    // Sắp xếp overlay_images theo thứ tự tự nhiên
+                    const sortedOverlayImages = overlayImages.sort((a, b) => 
+                        new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b));
 
-                return {
-                    id: folder._id,
-                    name: folder.patient_info.name,
-                    files: sortedUploadImages,
-                    session_id: sessionId,
-                    patient_info: folder.patient_info,
-                    imageIds,
-                    predictedImagesURL,
-                    gifDownloadURL,
-                    predictions: folder.predictions,
-                    from_server: true
-                };
-            });
+                    // Tạo danh sách predictedImagesURL
+                    const predictedImagesURL = sortedOverlayImages.map((filename) => ({
+                        filename,
+                        preview_link: `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${filename}`,
+                        download_link: `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${filename}`
+                    }));
 
-            // Cập nhật state (thêm dữ liệu vào danh sách cũ)
+                    // GIF URL
+                    const gifDownloadURL = folder.gif ? {
+                        download_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${folder.gif}`,
+                        preview_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${folder.gif}`
+                    } : undefined;
+
+                    return {
+                        id: folder._id,
+                        name: folder.patient_info?.name || 'Unknown',
+                        files: sortedUploadImages,
+                        session_id: sessionId,
+                        patient_info: folder.patient_info || {},
+                        imageIds,
+                        predictedImagesURL,
+                        gifDownloadURL,
+                        predictions: folder.predictions || [],
+                        from_server: true
+                    };
+                })
+                .filter((folder): folder is FolderType => folder !== null);
+
+            // Cập nhật state
             setFolders((prevFolders) => [...prevFolders, ...processedFolders]);
-            setTotalRecords(serverData.total);
+            setTotalRecords(serverData.total || 0);
             setCurrentPage(page);
-        } catch (error) {
-            console.error('Error loading folders: ', error);
+        } catch (error: any) {
+            console.log('Error loading folders:', error);
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to load folders';
+            showToast('error', 'Error', errorMessage);
         } finally {
             setFolderLoading(false);
         }
@@ -240,7 +261,7 @@ const LCRD = () => {
                     studyDescription
                 };
             } catch (error) {
-                console.error('Error reading DICOM info:', error);
+                console.log('Error reading DICOM info:', error);
                 showToast('warn', 'Warning', 'Could not read DICOM information');
                 return null;
             }
@@ -364,7 +385,7 @@ const LCRD = () => {
             zipInputRef.current!.value = '';
         } catch (error) {
             showToast('error', 'Error', 'Failed to extract ZIP');
-            console.error('ZIP extraction error:', error);
+            console.log('ZIP extraction error:', error);
         }
     };
 
@@ -461,7 +482,7 @@ const LCRD = () => {
             showToast('success', 'Success', 'Prediction completed successfully');
         } catch (error) {
             showToast('error', 'Error', 'Failed to predict');
-            console.error(error);
+            console.log(error);
         } finally {
             setLoading(false);
         }
@@ -476,7 +497,7 @@ const LCRD = () => {
                 setFolders((prev) => prev.filter((f) => f.id !== folder.id));
                 showToast('success', 'Success', 'Folder deleted successfully from database');
             } catch (error) {
-                console.error('Error deleting folder:', error);
+                console.log('Error deleting folder:', error);
                 showToast('error', 'Error', 'Failed to delete folder from database');
             }
         } else {
