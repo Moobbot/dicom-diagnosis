@@ -58,7 +58,7 @@ JWT_REFRESH=refreshsecretkey
 JWT_REFRESH_EXPIRATION=7d
 
 # Link connect SYBIL API
-SYBIL_MODEL_BASE_URL=http://localhost:5000
+SYBIL_MODEL_BASE_URL=http://localhost:5555
 
 LINK_SAVE_DICOM_UPLOADS = "./src/data/dicom/uploads"
 LINK_SAVE_DICOM_RESULTS = "./src/data/dicom/results"

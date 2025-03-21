@@ -23,7 +23,7 @@ services:
       - path: ./backend/.env
     environment:
       - MONGO_DB_URI=mongodb://database:27017/dicom
-      - SYBIL_MODEL_BASE_URL=http://sybil:5000
+      - SYBIL_MODEL_BASE_URL=http://sybil:5555
     depends_on:
       - sybil
       - database
