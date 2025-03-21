@@ -79,6 +79,10 @@ export class PatientService {
 
         const total = await this.patientRepository.count(filter);
 
+        if (total === 0) {
+            return { total: 0, patients: [] };
+        }
+
         const patients = await this.patientRepository.findExtendedPatients(
             filter,
             sortOptions,
@@ -86,8 +90,17 @@ export class PatientService {
             limit
         );
 
+        if (!patients || patients.length === 0) {
+            return { total: 0, patients: [] };
+        }
+
         const enrichedPatients = await Promise.all(
             patients.map(async (patient) => {
+                if (!patient || !patient.folder || !patient.folder.folderUUID) {
+                    console.warn('Bỏ qua bệnh nhân không hợp lệ:', patient?._id);
+                    return null;
+                }
+
                 const folderUUID = patient.folder.folderUUID;
                 const uploadPath = path.join(this.uploadPath, folderUUID);
                 const savePath = path.join(this.savePath, folderUUID);
@@ -96,14 +109,25 @@ export class PatientService {
                 let saveFiles: string[] = [];
 
                 try {
-                    if (fs.existsSync(uploadPath)) {
+                    // Kiểm tra thư mục tồn tại
+                    if (!fs.existsSync(uploadPath)) {
+                        console.warn(`Thư mục upload không tồn tại: ${uploadPath}`);
+                    } else {
                         uploadFiles = fs.readdirSync(uploadPath);
                     }
-                    if (fs.existsSync(savePath)) {
+
+                    if (!fs.existsSync(savePath)) {
+                        console.warn(`Thư mục kết quả không tồn tại: ${savePath}`);
+                    } else {
                         saveFiles = fs.readdirSync(savePath);
                     }
+
+                    // Kiểm tra file trong thư mục
+                    if (uploadFiles.length === 0) {
+                        console.warn(`Không có file trong thư mục upload: ${uploadPath}`);
+                    }
                 } catch (error) {
-                    console.error(`Error reading directories for patient ${patient._id}:`, error);
+                    console.error(`Lỗi đọc thư mục cho bệnh nhân ${patient._id}:`, error);
                 }
 
                 const overlayImages = saveFiles.filter((file) =>
@@ -120,7 +144,7 @@ export class PatientService {
                     _id: patient._id,
                     patient_info: patientInfo,
                     session_id: folderUUID,
-                    predictions: patient.prediction.predictions,
+                    predictions: patient.prediction?.predictions || [],
                     upload_images: uploadFiles,
                     overlay_images: overlayImages,
                     gif,
@@ -128,7 +152,13 @@ export class PatientService {
             })
         );
 
-        return { total, patients: enrichedPatients };
+        // Lọc bỏ các bản ghi null
+        const validPatients = enrichedPatients.filter(Boolean);
+
+        return { 
+            total: validPatients.length, 
+            patients: validPatients 
+        };
     };
 
     deletePatientById = async (patientId: string) => {

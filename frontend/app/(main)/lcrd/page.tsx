@@ -82,26 +82,21 @@ const LCRD = () => {
     };
 
     const loadFolders = async (page: number, search: string) => {
-        if (loading) return; // Tránh gọi API nhiều lần khi đang tải
+        if (loading) return;
         setFolderLoading(true);
 
         try {
             const response = await PatientService.getPatients(page + 1, rowsPerPage, search);
-            const serverData = response as ServerResponse;
-
-            if (!serverData || !Array.isArray(serverData.data)) {
-                showToast('error', 'Error', 'Invalid data format received from server');
-                return;
+            
+            // Kiểm tra response
+            if (!response || !Array.isArray(response.data)) {
+                throw new Error('Invalid data format received from server');
             }
 
-            // Xử lý dữ liệu
-            const processedFolders: FolderType[] = serverData.data
-                .map((folder): FolderType | null => {
-                    if (!folder || !folder.session_id) {
-                        console.warn('Invalid folder data:', folder);
-                        return null;
-                    }
-
+            // Xử lý dữ liệu như bình thường
+            const processedFolders: FolderType[] = response.data
+                .filter(folder => folder && folder.session_id) // Lọc bỏ dữ liệu không hợp lệ
+                .map((folder): FolderType => {
                     const sessionId = folder.session_id;
 
                     // Kiểm tra và đảm bảo upload_images tồn tại và là mảng
@@ -109,19 +104,19 @@ const LCRD = () => {
                     const overlayImages = Array.isArray(folder.overlay_images) ? folder.overlay_images : [];
 
                     // Sắp xếp upload_images theo thứ tự tự nhiên
-                    const sortedUploadImages = uploadImages.sort((a, b) => 
+                    const sortedUploadImages = uploadImages.sort((a: string, b: string) => 
                         new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b));
 
                     // Tạo danh sách imageIds
-                    const imageIds = sortedUploadImages.map((filename) => 
+                    const imageIds = sortedUploadImages.map((filename: string) => 
                         `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/uploads/${sessionId}/${filename}`);
 
                     // Sắp xếp overlay_images theo thứ tự tự nhiên
-                    const sortedOverlayImages = overlayImages.sort((a, b) => 
+                    const sortedOverlayImages = overlayImages.sort((a: string, b: string) => 
                         new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b));
 
                     // Tạo danh sách predictedImagesURL
-                    const predictedImagesURL = sortedOverlayImages.map((filename) => ({
+                    const predictedImagesURL = sortedOverlayImages.map((filename: string) => ({
                         filename,
                         preview_link: `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${filename}`,
                         download_link: `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${filename}`
@@ -145,17 +140,24 @@ const LCRD = () => {
                         predictions: folder.predictions || [],
                         from_server: true
                     };
-                })
-                .filter((folder): folder is FolderType => folder !== null);
+                });
 
-            // Cập nhật state
-            setFolders((prevFolders) => [...prevFolders, ...processedFolders]);
-            setTotalRecords(serverData.total || 0);
+            setFolders(prevFolders => [...prevFolders, ...processedFolders]);
+            setTotalRecords(response.total || 0);
             setCurrentPage(page);
+            
         } catch (error: any) {
-            console.log('Error loading folders:', error);
-            const errorMessage = error.response?.data?.message || error.message || 'Failed to load folders';
-            showToast('error', 'Error', errorMessage);
+            console.error('Error loading folders:', error);
+            const errorMessage = error.response?.data?.message 
+                || error.message 
+                || 'Không thể tải dữ liệu bệnh nhân. Vui lòng thử lại sau.';
+            
+            showToast('error', 'Lỗi', errorMessage);
+            
+            // Reset state khi có lỗi
+            setFolders(prevFolders => prevFolders.filter(f => !f.from_server));
+            setTotalRecords(0);
+            
         } finally {
             setFolderLoading(false);
         }
@@ -307,7 +309,22 @@ const LCRD = () => {
     // Xử lý upload file DICOM riêng lẻ
     const handleFileUpload = (event: { files: File[] }) => {
         if (!event.files.length) {
-            showToast('warn', 'Warning', 'No files selected');
+            showToast('warn', 'Cảnh báo', 'Chưa chọn file nào');
+            return;
+        }
+
+        // Kiểm tra kích thước file
+        const maxFileSize = 100 * 1024 * 1024; // 100MB
+        const oversizedFiles = event.files.filter(file => file.size > maxFileSize);
+        if (oversizedFiles.length > 0) {
+            showToast('error', 'Lỗi', `Các file sau vượt quá 100MB: ${oversizedFiles.map(f => f.name).join(', ')}`);
+            return;
+        }
+
+        // Kiểm tra định dạng file
+        const invalidFiles = event.files.filter(file => !file.name.toLowerCase().endsWith('.dcm'));
+        if (invalidFiles.length > 0) {
+            showToast('error', 'Lỗi', `Các file sau không phải định dạng DICOM: ${invalidFiles.map(f => f.name).join(', ')}`);
             return;
         }
 
@@ -316,38 +333,76 @@ const LCRD = () => {
 
         setFolders((prev) => [newFolder, ...prev]);
         fileUploadRef.current?.clear();
-        showToast('success', 'Success', `Uploaded ${newFolder.files.length} files successfully`);
+        showToast('success', 'Thành công', `Đã tải lên ${newFolder.files.length} file thành công`);
     };
 
     // Xử lý upload thư mục DICOM
     const handleFolderUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const fileList = event.target.files;
         if (!fileList?.length) {
-            showToast('warn', 'Warning', 'No folder selected');
+            showToast('warn', 'Cảnh báo', 'Chưa chọn thư mục nào');
             return;
         }
 
         const folderName = fileList[0].webkitRelativePath.split('/')[0];
-        const newFolder = processFiles(Array.from(fileList), folderName);
+        
+        // Kiểm tra tổng kích thước
+        const totalSize = Array.from(fileList).reduce((acc, file) => acc + file.size, 0);
+        const maxFolderSize = 500 * 1024 * 1024; // 500MB
+        if (totalSize > maxFolderSize) {
+            showToast('error', 'Lỗi', `Thư mục "${folderName}" vượt quá 500MB`);
+            return;
+        }
+
+        // Kiểm tra số lượng file
+        const maxFiles = 1000;
+        if (fileList.length > maxFiles) {
+            showToast('error', 'Lỗi', `Thư mục "${folderName}" chứa quá nhiều file (tối đa ${maxFiles} file)`);
+            return;
+        }
+
+        // Kiểm tra file DICOM
+        const files = Array.from(fileList);
+        const dicomFiles = files.filter(file => file.name.toLowerCase().endsWith('.dcm'));
+        if (dicomFiles.length === 0) {
+            showToast('error', 'Lỗi', `Không tìm thấy file DICOM trong thư mục "${folderName}"`);
+            return;
+        }
+
+        const newFolder = processFiles(files, folderName);
         if (!newFolder) return;
 
         setFolders((prev) => [newFolder, ...prev]);
         folderInputRef.current!.value = ''; // Reset input
-        showToast('success', 'Success', `Uploaded ${newFolder.files.length} DICOM files from folder "${folderName}"`);
+        showToast('success', 'Thành công', `Đã tải lên ${newFolder.files.length} file DICOM từ thư mục "${folderName}"`);
     };
 
     const handleZipUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const fileList = event.target.files;
         if (!fileList?.length) {
-            showToast('warn', 'Warning', 'No ZIP file selected');
+            showToast('warn', 'Cảnh báo', 'Chưa chọn file ZIP nào');
             return;
         }
 
         const zipFile = fileList[0];
 
+        // Kiểm tra kích thước file ZIP
+        const maxZipSize = 500 * 1024 * 1024; // 500MB
+        if (zipFile.size > maxZipSize) {
+            showToast('error', 'Lỗi', `File ZIP vượt quá 500MB`);
+            return;
+        }
+
         try {
             const zip = new JSZip();
             const zipData = await zip.loadAsync(zipFile);
+
+            // Kiểm tra số lượng file trong ZIP
+            const maxFiles = 1000;
+            if (Object.keys(zipData.files).length > maxFiles) {
+                showToast('error', 'Lỗi', `File ZIP chứa quá nhiều file (tối đa ${maxFiles} file)`);
+                return;
+            }
 
             // Lưu danh sách các file DICOM từ ZIP
             const dicomFiles: File[] = [];
@@ -363,7 +418,7 @@ const LCRD = () => {
             );
 
             if (dicomFiles.length === 0) {
-                showToast('warn', 'Warning', 'No DICOM files found in ZIP');
+                showToast('error', 'Lỗi', 'Không tìm thấy file DICOM trong file ZIP');
                 return;
             }
 
@@ -379,13 +434,13 @@ const LCRD = () => {
 
             setFolders((prev) => [newFolder, ...prev]);
 
-            showToast('success', 'Success', `Uploaded and extracted ${dicomFiles.length} files successfully`);
+            showToast('success', 'Thành công', `Đã giải nén và tải lên ${dicomFiles.length} file thành công`);
 
             // Reset input
             zipInputRef.current!.value = '';
         } catch (error) {
-            showToast('error', 'Error', 'Failed to extract ZIP');
-            console.log('ZIP extraction error:', error);
+            showToast('error', 'Lỗi', 'Không thể giải nén file ZIP. Vui lòng kiểm tra file và thử lại.');
+            console.error('Lỗi giải nén ZIP:', error);
         }
     };
 

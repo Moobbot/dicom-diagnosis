@@ -38,14 +38,51 @@ class PatientService {
                     page: validPage,
                     limit: validLimit,
                     ...(search && search.trim() !== '' ? { search: search.trim() } : {})
-                }
+                },
+                // Thêm timeout để tránh chờ quá lâu
+                timeout: 10000
             });
             
+            if (!response.data) {
+                throw new Error('Không nhận được dữ liệu từ server');
+            }
+
+            if (!Array.isArray(response.data.data)) {
+                throw new Error('Dữ liệu không đúng định dạng');
+            }
+
+            if (response.data.data.length === 0) {
+                throw new Error('Không tìm thấy dữ liệu bệnh nhân');
+            }
+            
             const { data, total, limit: responseLimit, pages } = response.data;
-            return { data, total, limit: responseLimit, pages };
+
+            // Kiểm tra từng bản ghi
+            const validData = data.filter((record: any) => {
+                if (!record || !record.session_id) {
+                    console.warn('Bỏ qua bản ghi không hợp lệ:', record);
+                    return false;
+                }
+                return true;
+            });
+
+            if (validData.length === 0) {
+                throw new Error('Không có dữ liệu hợp lệ');
+            }
+            
+            return { 
+                data: validData, 
+                total: total || 0, 
+                limit: responseLimit || validLimit, 
+                pages: pages || 1 
+            };
         } catch (error: any) {
-            console.log('Error fetching patients:', error.response?.data || error.message);
-            throw error;
+            console.error('Lỗi khi tải dữ liệu bệnh nhân:', error.response?.data || error.message);
+            throw new Error(
+                error.response?.data?.message || 
+                error.message || 
+                'Không thể tải dữ liệu bệnh nhân. Vui lòng thử lại sau.'
+            );
         }
     }
 
