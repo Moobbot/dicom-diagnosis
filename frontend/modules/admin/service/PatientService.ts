@@ -1,11 +1,67 @@
 import { api } from './api';
 import { PatientData } from '@/types/lcrd';
 
+interface FileError {
+    type: string;
+    message: string;
+    path?: string;
+}
+
 class PatientService {
     private baseUrl: string;
 
     constructor() {
         this.baseUrl = '/patients';
+    }
+
+    private logError(method: string, error: any, additionalInfo?: any) {
+        const errorDetails = {
+            timestamp: new Date().toISOString(),
+            method,
+            message: error.message || error,
+            response: error.response?.data,
+            status: error.response?.status,
+            additionalInfo,
+            stack: error.stack
+        };
+
+        console.error('=== API Error ===');
+        console.error(JSON.stringify(errorDetails, null, 2));
+        console.error('================');
+    }
+
+    private handleFileErrors(errors: FileError[]): string[] {
+        const errorMessages: string[] = [];
+
+        errors.forEach(error => {
+            switch (error.type) {
+                case 'UPLOAD_FOLDER_MISSING':
+                    errorMessages.push('Folder with original images is missing');
+                    break;
+                case 'RESULTS_FOLDER_MISSING':
+                    errorMessages.push('Folder with result images is missing');
+                    break;
+                case 'UPLOAD_FILE_NOT_READABLE':
+                    errorMessages.push(`Cannot read original file: ${error.path?.split('/').pop()}`);
+                    break;
+                case 'RESULT_FILE_NOT_READABLE':
+                    errorMessages.push(`Cannot read result file: ${error.path?.split('/').pop()}`);
+                    break;
+                case 'NO_UPLOAD_FILES':
+                    errorMessages.push('No images found in the upload folder');
+                    break;
+                case 'INVALID_FILE_FORMAT':
+                    errorMessages.push(`Invalid file format: ${error.message}`);
+                    break;
+                case 'FILE_SYSTEM_ERROR':
+                    errorMessages.push(`System error: ${error.message}`);
+                    break;
+                default:
+                    errorMessages.push(error.message);
+            }
+        });
+
+        return errorMessages;
     }
 
     async createPatient(data: {
@@ -18,76 +74,121 @@ class PatientService {
         general_conclusion?: string | null;
         session_id: string
     }): Promise<any> {
-        const response = await api.post(this.baseUrl, data);
-        return response.data;
+        try {
+            const response = await api.post(this.baseUrl, data);
+            return response.data;
+        } catch (error: any) {
+            this.logError('createPatient', error, { data });
+            throw new Error(
+                error.response?.data?.message ||
+                error.message ||
+                'Cannot create patient profile. Please try again later.'
+            );
+        }
     }
 
     updatePatient = async (id: string, data: PatientData) => {
-        const response = await api.put(`${this.baseUrl}/${id}`, data);
-        return response.data;
+        try {
+            const response = await api.put(`${this.baseUrl}/${id}`, data);
+            return response.data;
+        } catch (error: any) {
+            console.error('updatePatient', error, { id, data });
+            throw new Error(
+                error.response?.data?.message ||
+                error.message ||
+                'Cannot update patient. Please try again later.'
+            );
+        }
     };
 
     async getPatients(page: number, limit: number, search?: string): Promise<{ data: any[]; total: number; limit: number; pages: number }> {
         try {
-            // Đảm bảo page và limit là số dương
             const validPage = Math.max(1, page);
             const validLimit = Math.max(1, limit);
-            
+
             const response = await api.get(this.baseUrl, {
-                params: { 
+                params: {
                     page: validPage,
                     limit: validLimit,
                     ...(search && search.trim() !== '' ? { search: search.trim() } : {})
                 },
-                // Thêm timeout để tránh chờ quá lâu
                 timeout: 10000
             });
-            
+
             if (!response.data) {
                 throw new Error('No data received from server');
             }
 
             if (!Array.isArray(response.data.data)) {
-                throw new Error('Invalid data format');
+                throw new Error('Data is not in the correct format');
             }
 
-            if (response.data.data.length === 0) {
-                throw new Error('No patient data found');
-            }
-            
             const { data, total, limit: responseLimit, pages } = response.data;
 
-            // Kiểm tra từng bản ghi
-            const validData = data.filter((record: any) => {
+            // Xử lý và kiểm tra dữ liệu
+            const processedData = data.map((record: any) => {
                 if (!record || !record.session_id) {
-                    console.warn('Skip invalid record:', record);
-                    return false;
+                    console.warn('Skipping invalid record:', record);
+                    return null;
                 }
-                return true;
-            });
 
-            if (validData.length === 0) {
-                throw new Error('No valid data');
+                // Xử lý các lỗi về file nếu có
+                if (record.errors && Array.isArray(record.errors)) {
+                    const errorMessages = this.handleFileErrors(record.errors);
+                    if (errorMessages.length > 0) {
+                        record.fileErrors = errorMessages;
+                        console.warn('File errors for patient:', {
+                            patientId: record._id,
+                            errors: errorMessages
+                        });
+                    }
+                }
+
+                return record;
+            }).filter(Boolean);
+
+            if (processedData.length === 0) {
+                console.warn('No valid data after filtering', {
+                    originalCount: data.length,
+                    page,
+                    limit,
+                    search
+                });
+                return {
+                    data: [],
+                    total: 0,
+                    limit: validLimit,
+                    pages: 0
+                };
             }
-            
-            return { 
-                data: validData, 
-                total: total || 0, 
-                limit: responseLimit || validLimit, 
-                pages: pages || 1 
+
+            return {
+                data: processedData,
+                total: total || 0,
+                limit: responseLimit || validLimit,
+                pages: pages || 1
             };
         } catch (error: any) {
-            console.error('Error loading patient data:', error.response?.data || error.message);
+            this.logError('getPatients', error, { page, limit, search });
             throw new Error(
-                error.response?.data?.message || 
-                error.message || 
+                error.response?.data?.message ||
+                error.message ||
                 'Cannot load patient data. Please try again later.'
             );
         }
     }
 
     async deletePatient(id: string): Promise<void> {
-        await api.delete(`${this.baseUrl}/${id}`);
+        try {
+            await api.delete(`${this.baseUrl}/${id}`);
+        } catch (error: any) {
+            console.error('deletePatient', error, { id });
+            throw new Error(
+                error.response?.data?.message ||
+                error.message ||
+                'Cannot delete patient. Please try again later.'
+            );
+        }
     }
 }
 

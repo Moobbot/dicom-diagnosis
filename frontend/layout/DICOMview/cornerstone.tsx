@@ -211,34 +211,52 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
     }, []); // Empty dependency array to run only once on mount
 
     useEffect(() => {
-        if (selectedFolder && renderingEngineRef.current) {
+        if (!selectedFolder) {
+            console.warn('[Cornerstone] No folder selected');
+            return;
+        }
+
+        if (!renderingEngineRef.current) {
+            console.warn('[Cornerstone] Rendering engine not initialized');
+            return;
+        }
+
+        if (!selectedFolder.imageIds || selectedFolder.imageIds.length === 0) {
+            console.warn('[Cornerstone] No images available in selected folder');
+            showToast('warn', 'Warning', 'No images available in selected folder');
+            return;
+        }
+
+        try {
             setActiveTab(0); // Reset về tab "Original" khi chọn folder mới
             const viewport = renderingEngineRef.current.getViewport(viewportId) as Types.IStackViewport;
             if (viewport) {
                 viewport.setStack(selectedFolder.imageIds);
                 viewport.render();
                 setSelectedImageIdIndex(0);
+            } else {
+                console.warn('[Cornerstone] Viewport not available');
+                showToast('warn', 'Warning', 'Viewer not ready. Please try again.');
             }
 
             const updateSelectedImage = () => {
                 if (!viewport || !selectedFolder) return;
 
-                // Lấy index của ảnh hiện tại
                 const newIndex = viewport.getCurrentImageIdIndex();
                 setSelectedImageIdIndex(newIndex);
 
-                // Cuộn danh sách file đến ảnh đang hiển thị
                 fileRefs.current[newIndex]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             };
 
-            // Đăng ký sự kiện IMAGE_RENDERED
             const eventDispatcher = cornerstone.eventTarget;
             eventDispatcher.addEventListener(Enums.Events.IMAGE_LOADED, updateSelectedImage);
 
-            // Cleanup khi component unmount
             return () => {
                 eventDispatcher.removeEventListener(Enums.Events.IMAGE_LOADED, updateSelectedImage);
             };
+        } catch (error) {
+            console.error('[Cornerstone] Error loading images:', error);
+            showToast('error', 'Error', 'Failed to load images. Please try again.');
         }
     }, [selectedFolder]);
 
