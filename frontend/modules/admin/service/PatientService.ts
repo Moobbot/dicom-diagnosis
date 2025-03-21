@@ -44,15 +44,15 @@ class PatientService {
             });
             
             if (!response.data) {
-                throw new Error('Không nhận được dữ liệu từ server');
+                throw new Error('No data received from server');
             }
 
             if (!Array.isArray(response.data.data)) {
-                throw new Error('Dữ liệu không đúng định dạng');
+                throw new Error('Invalid data format');
             }
 
             if (response.data.data.length === 0) {
-                throw new Error('Không tìm thấy dữ liệu bệnh nhân');
+                throw new Error('No patient data found');
             }
             
             const { data, total, limit: responseLimit, pages } = response.data;
@@ -60,14 +60,14 @@ class PatientService {
             // Kiểm tra từng bản ghi
             const validData = data.filter((record: any) => {
                 if (!record || !record.session_id) {
-                    console.warn('Bỏ qua bản ghi không hợp lệ:', record);
+                    console.warn('Skip invalid record:', record);
                     return false;
                 }
                 return true;
             });
 
             if (validData.length === 0) {
-                throw new Error('Không có dữ liệu hợp lệ');
+                throw new Error('No valid data');
             }
             
             return { 
@@ -77,11 +77,11 @@ class PatientService {
                 pages: pages || 1 
             };
         } catch (error: any) {
-            console.error('Lỗi khi tải dữ liệu bệnh nhân:', error.response?.data || error.message);
+            console.error('Error loading patient data:', error.response?.data || error.message);
             throw new Error(
                 error.response?.data?.message || 
                 error.message || 
-                'Không thể tải dữ liệu bệnh nhân. Vui lòng thử lại sau.'
+                'Cannot load patient data. Please try again later.'
             );
         }
     }

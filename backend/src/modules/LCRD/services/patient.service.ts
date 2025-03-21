@@ -97,7 +97,7 @@ export class PatientService {
         const enrichedPatients = await Promise.all(
             patients.map(async (patient) => {
                 if (!patient || !patient.folder || !patient.folder.folderUUID) {
-                    console.warn('Bỏ qua bệnh nhân không hợp lệ:', patient?._id);
+                    console.warn('Patient not found:', patient?._id);
                     return null;
                 }
 
@@ -111,23 +111,23 @@ export class PatientService {
                 try {
                     // Kiểm tra thư mục tồn tại
                     if (!fs.existsSync(uploadPath)) {
-                        console.warn(`Thư mục upload không tồn tại: ${uploadPath}`);
+                        console.warn(`Upload folder not found: ${uploadPath}`);
                     } else {
                         uploadFiles = fs.readdirSync(uploadPath);
                     }
 
                     if (!fs.existsSync(savePath)) {
-                        console.warn(`Thư mục kết quả không tồn tại: ${savePath}`);
+                        console.warn(`Result folder not found: ${savePath}`);
                     } else {
                         saveFiles = fs.readdirSync(savePath);
                     }
 
                     // Kiểm tra file trong thư mục
                     if (uploadFiles.length === 0) {
-                        console.warn(`Không có file trong thư mục upload: ${uploadPath}`);
+                        console.warn(`No files in upload folder: ${uploadPath}`);
                     }
                 } catch (error) {
-                    console.error(`Lỗi đọc thư mục cho bệnh nhân ${patient._id}:`, error);
+                    console.error(`Error reading folder for patient ${patient._id}:`, error);
                 }
 
                 const overlayImages = saveFiles.filter((file) =>
