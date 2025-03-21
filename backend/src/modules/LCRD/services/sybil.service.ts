@@ -64,12 +64,16 @@ export class SybilService {
         formData.append("file", fs.createReadStream(zipFilePath));
 
         try {
+            console.log(`Attempting to connect to Sybil model at: ${this.baseUrl}/api_predict`);
             const response = await fetch(`${this.baseUrl}/api_predict`, {
                 method: "POST",
                 body: formData,
             });
 
             if (!response.ok) {
+                console.error(`Sybil model responded with status: ${response.status}`);
+                const errorText = await response.text();
+                console.error(`Error response: ${errorText}`);
                 throw new BadRequestError("Sybil model failed to predict");
             }
 
@@ -114,6 +118,8 @@ export class SybilService {
                 gif: gifFile,
             };
         } catch (error) {
+            console.log(error);
+
             if (error instanceof HttpException) {
                 throw error;
             }

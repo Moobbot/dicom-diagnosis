@@ -195,26 +195,26 @@ const LCRD = () => {
                 const dicomData = dicomParser.parseDicom(new Uint8Array(arrayBuffer));
 
                 // Trích xuất thông tin bệnh nhân
-                const rawPatientName = dicomData.string('x00100010') || 'Unknown';
+                const rawPatientName = dicomData.string('x00100010') || 'N/A';
                 // Xử lý patientName từ định dạng DICOM (ví dụ: "CU^VAN^TUONG")
-                const patientName = rawPatientName !== 'Unknown'
+                const patientName = rawPatientName !== 'N/A'
                     ? rawPatientName.split('^').filter(Boolean).join(' ')
-                    : 'Unknown';
+                    : 'N/A';
 
-                const patientId = dicomData.string('x00100020') || 'Unknown';
+                const patientId = dicomData.string('x00100020') || 'N/A';
 
                 // Xử lý patientSex từ định dạng DICOM (ví dụ: "M")
-                const rawPatientSex = dicomData.string('x00100040') || 'Unknown';
-                const patientSex = rawPatientSex !== 'Unknown'
+                const rawPatientSex = dicomData.string('x00100040') || 'N/A';
+                const patientSex = rawPatientSex !== 'N/A'
                     ? rawPatientSex === 'M' ? 'Male'
                         : rawPatientSex === 'F' ? 'Female'
                             : rawPatientSex
-                    : 'Unknown';
+                    : 'N/A';
 
                 // Xử lý patientAge từ định dạng DICOM (ví dụ: "082Y")
-                const rawPatientAge = dicomData.string('x00101010') || 'Unknown';
-                let patientAge = 'Unknown';
-                if (rawPatientAge !== 'Unknown') {
+                const rawPatientAge = dicomData.string('x00101010') || 'N/A';
+                let patientAge = 'N/A';
+                if (rawPatientAge !== 'N/A') {
                     // Lấy số từ chuỗi (bỏ qua ký tự cuối như Y, M, D)
                     const ageMatch = rawPatientAge.match(/\d+/);
                     if (ageMatch) {
@@ -222,7 +222,7 @@ const LCRD = () => {
                     }
                 }
 
-                const studyDescription = dicomData.string('x00081030') || 'Unknown';
+                const studyDescription = dicomData.string('x00081030') || 'N/A';
 
                 console.log("DICOM Info:", {
                     patientName,
@@ -422,7 +422,7 @@ const LCRD = () => {
                 const errorText = await response.text();
                 showToast('error', `${response.status}`, errorText);
                 console.log(`Server error (${response.status}): ${errorText}`);
-                // throw new Error(`Server error (${response.status}): ${errorText}`);
+                return;
             }
 
             const data = (await response.json()) as PredictionResponse;

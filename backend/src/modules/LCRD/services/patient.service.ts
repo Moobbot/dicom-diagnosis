@@ -92,8 +92,19 @@ export class PatientService {
                 const uploadPath = path.join(this.uploadPath, folderUUID);
                 const savePath = path.join(this.savePath, folderUUID);
 
-                const uploadFiles = fs.readdirSync(uploadPath);
-                const saveFiles = fs.readdirSync(savePath);
+                let uploadFiles: string[] = [];
+                let saveFiles: string[] = [];
+
+                try {
+                    if (fs.existsSync(uploadPath)) {
+                        uploadFiles = fs.readdirSync(uploadPath);
+                    }
+                    if (fs.existsSync(savePath)) {
+                        saveFiles = fs.readdirSync(savePath);
+                    }
+                } catch (error) {
+                    console.error(`Error reading directories for patient ${patient._id}:`, error);
+                }
 
                 const overlayImages = saveFiles.filter((file) =>
                     file.endsWith(".dcm")
@@ -112,9 +123,7 @@ export class PatientService {
                     predictions: patient.prediction.predictions,
                     upload_images: uploadFiles,
                     overlay_images: overlayImages,
-                    // overlay_images: [],
                     gif,
-                    // gif: "abc",
                 };
             })
         );
