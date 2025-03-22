@@ -1,15 +1,11 @@
 import bcrypt from "bcryptjs";
-import { Request, Response } from "express";
 
-import BadRequestError from "../errors/bad-request.error";
 import NotFoundError from "../errors/not-found.error";
 
 import { RoleRepository } from "../repositories/role.repository";
 import { UserRepository } from "../repositories/user.repository";
 
 import {
-    ChangeManyUserStatusSchema,
-    ChangeUserStatusSchema,
     CreateUserSchema,
     FindUserQuerySchema,
     UpdateUserSchema,
@@ -56,7 +52,7 @@ export class UserService {
             password: hashedPassword,
             detail_user: data.detail_user,
             roles: roles.map((role) => role._id),
-            createdBy: userId,
+            created_by: userId,
         });
     };
 
@@ -116,7 +112,7 @@ export class UserService {
 
         const updatedUser = await this.userRepository.updateById(id, {
             ...data,
-            updatedBy: userId,
+            updated_by: userId,
         });
 
         if (!updatedUser) {
@@ -129,7 +125,7 @@ export class UserService {
     changeUserStatus = async (userId: any, id: string, status: boolean) => {
         const updatedUser = await this.userRepository.updateById(id, {
             status,
-            updatedBy: userId,
+            updated_by: userId,
         });
 
         if (!updatedUser) {
@@ -146,7 +142,7 @@ export class UserService {
     ) => {
         return await this.userRepository.updateByIds(ids, {
             status,
-            updatedBy: userId,
+            updated_by: userId,
         });
     };
 }

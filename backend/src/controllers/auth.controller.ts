@@ -26,7 +26,6 @@ export class AuthController {
             await this.authService.login(username, password);
 
         res.status(200).json({
-            success: true,
             data: userData,
             message: "Logged in successfully",
             accessToken,
@@ -35,15 +34,19 @@ export class AuthController {
     };
 
     logout = async (req: Request, res: Response) => {
+        const accessToken = extractTokenFromHeader(req);
         const { refreshToken } = req.body;
 
         const userId = req.userData.userId;
 
         if (refreshToken) {
-            await this.authService.logout(userId, refreshToken as string);
+            await this.authService.logout(
+                userId,
+                accessToken as string,
+                refreshToken as string
+            );
         }
 
-        // ✅ Xóa cookie refreshToken chính xác với các options
         res.status(205).json();
     };
 
@@ -56,18 +59,17 @@ export class AuthController {
 
         res.status(200).json({
             message: "Password changed successfully",
-            success: true,
         });
     };
 
     me = async (req: Request, res: Response) => {
         res.status(200).json({
-            success: true,
             data: {
                 userId: req.userData.userId,
                 username: req.userData.username,
                 detail_user: req.userData.detail_user,
-                grantAll: req.userData.grantAll,
+                grant_all: req.userData.grant_all,
+                roles: req.userData.roles,
                 permissions: req.userData.permissions
                     ? Array.from(req.userData.permissions)
                     : undefined,
@@ -82,19 +84,19 @@ export class AuthController {
         await this.authService.checkPassword(userId, password);
 
         res.status(200).json({
-            success: true,
             message: "Password is correct",
         });
     };
 
     changeAvatar = async (req: Request, res: Response) => {
-        if (!req.file) {
-            throw new BadRequestError("Only png, jpg, jpeg files are allowed");
+        // Kiểm tra MIME type
+        const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!req.file || !allowedMimes.includes(req.file.mimetype)) {
+            throw new BadRequestError(`Invalid file type: ${req.file?.mimetype || ''}. Only png, jpg, jpeg files are allowed!`);
         }
 
-        const avatar = `data:${
-            req.file.mimetype
-        };base64,${req.file.buffer.toString("base64")}`;
+        const avatar = `data:${req.file.mimetype
+            };base64,${req.file.buffer.toString("base64")}`;
 
         const userId = req.userData.userId;
 
@@ -102,7 +104,6 @@ export class AuthController {
 
         res.status(200).json({
             message: "Avatar updated successfully",
-            success: true,
         });
     };
 
@@ -117,10 +118,22 @@ export class AuthController {
             await this.authService.refreshToken(refreshToken as string);
 
         res.status(200).json({
-            success: true,
             message: "Token refreshed successfully",
             accessToken,
             refreshToken: newRefreshToken,
+        });
+    };
+
+    updateProfile = async (req: Request, res: Response) => {
+        const userId = req.userData.userId;
+        const updated_ata = req.body;
+
+        const updatedUser = await this.authService.updateProfile(userId, updated_ata);
+
+        res.status(200).json({
+            status: 200,
+            message: "Update profile successfully",
+            data: updatedUser
         });
     };
 }

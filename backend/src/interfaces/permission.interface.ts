@@ -4,8 +4,8 @@ export interface IPermission {
     name: string;
     description: string;
     createdAt: Date;
-    createdBy?: string;
-    updatedAt: Date;
-    updatedBy?: string;
+    created_by?: string;
+    updated_at: Date;
+    updated_by?: string;
     status: boolean;
 }

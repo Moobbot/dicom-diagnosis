@@ -80,7 +80,7 @@ const addRoles = async () => {
             name: "Admin",
             permissions: [],
             description: "Đây là role Admin, có tất cả các quyền.",
-            grantAll: true,
+            grant_all: true,
         },
         {
             name: "User",
@@ -91,7 +91,7 @@ const addRoles = async () => {
                 permissionsMap[Permissions.GET_ROLE]._id,
             ],
             description: "Đây là role người dùng",
-            grantAll: false,
+            grant_all: false,
         },
     ];
 
@@ -124,7 +124,7 @@ const addUsers = async () => {
             detail_user: {
                 user_code: "ADMIN001",
                 name: "Admin",
-                birth_date: new Date("1980-01-01"),
+                dob: new Date("1980-01-01"),
                 address: "Admin Address",
                 gender: 1,
             },
@@ -136,7 +136,7 @@ const addUsers = async () => {
             detail_user: {
                 user_code: "user01",
                 name: "Demo User",
-                birth_date: new Date("1985-02-02"),
+                dob: new Date("1985-02-02"),
                 address: "Demo User Address",
                 gender: 2,
             },

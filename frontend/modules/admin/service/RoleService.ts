@@ -21,7 +21,7 @@ class RoleService {
         const response = await api.put(`${this.baseUrl}/${roleId}/change-status`, { status });
         return response.data;
     }
-    async updateRole(roleId: string, data: { name?: string; permissions?: string[]; grantAll?: boolean }): Promise<any> {
+    async updateRole(roleId: string, data: { name?: string; permissions?: string[]; grant_all?: boolean }): Promise<any> {
         const response = await api.put(`${this.baseUrl}/${roleId}`, data);
         return response.data;
     }

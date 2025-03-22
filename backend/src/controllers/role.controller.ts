@@ -23,7 +23,7 @@ export class RoleController {
     createRole = async (req: Request, res: Response) => {
         const validatedData = CreateRoleSchema.parse(req.body);
 
-        const { name, grantAll } = req.body;
+        const { name, grant_all } = req.body;
         const userId = req.userData?.userId;
 
         const role = await this.roleService.createRole(userId, validatedData);

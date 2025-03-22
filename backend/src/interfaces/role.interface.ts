@@ -3,12 +3,12 @@ import { IPermission } from "./permission.interface";
 
 export interface IRole {
     name: string;
-    grantAll: boolean;
+    grant_all: boolean;
     permissions: Types.ObjectId[];
     description?: string;
     createdAt: Date;
-    createdBy?: string;
-    updatedAt: Date;
-    updatedBy?: string;
+    created_by?: string;
+    updated_at: Date;
+    updated_by?: string;
     status: boolean;
 }

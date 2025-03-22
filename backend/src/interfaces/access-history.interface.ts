@@ -19,5 +19,5 @@ export interface IAccessHistory {
     browserType?: string;
     miscellaneous?: any;
     createdAt?: Date;
-    updatedAt?: Date;
+    updated_at?: Date;
 }

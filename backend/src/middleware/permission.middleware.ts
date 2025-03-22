@@ -26,8 +26,8 @@ export const permissionMiddleware = (
 ) => {
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
-            // Bypass if user has grantAll permission
-            if (req.userData?.grantAll) {
+            // Bypass if user has grant_all permission
+            if (req.userData?.grant_all) {
                 return next();
             }
 

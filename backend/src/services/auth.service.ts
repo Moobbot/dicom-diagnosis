@@ -1,16 +1,19 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { Types } from "mongoose";
 
 import { validateEnv } from "../config/env.config";
+
+import BadRequestError from "../errors/bad-request.error";
 import ForbiddenError from "../errors/forbidden.error";
 import NotFoundError from "../errors/not-found.error";
-import BadRequestError from "../errors/bad-request.error";
-import { IRole } from "../interfaces/role.interface";
+
 import { UserRepository } from "../repositories/user.repository";
+
 import { signJwt } from "../utils/jwt";
 import { addTokenToBlockList } from "../utils/token-cache";
-import { Types } from "mongoose";
 import UnauthenticatedError from "../errors/unauthenticated.error";
+import HttpException from "../errors/http-exception.error";
 
 export class AuthService {
     private readonly userRepository: UserRepository;
@@ -47,12 +50,14 @@ export class AuthService {
             const user = await this.userRepository.findUserByRefreshToken(
                 refreshToken
             );
+
             if (!user) {
                 throw new ForbiddenError("Refresh token has been revoked");
             }
 
             const { accessToken, refreshToken: newRefreshToken } =
                 this.generateTokens(user._id);
+
             await this.userRepository.updateUserRefreshToken(
                 user._id.toString(),
                 newRefreshToken
@@ -60,6 +65,9 @@ export class AuthService {
 
             return { accessToken, newRefreshToken };
         } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
             throw new UnauthenticatedError(
                 "Something went wrong when verifying token"
             );
@@ -93,7 +101,7 @@ export class AuthService {
                 _id: user._id,
                 username: user.username,
                 detail_user: user.detail_user,
-                grantAll: user.roles.some((role) => role.grantAll),
+                grant_all: user.roles.some((role) => role.grant_all),
                 permissions: Array.from(
                     new Set(
                         user.roles.flatMap((role) =>
@@ -107,7 +115,11 @@ export class AuthService {
         };
     };
 
-    logout = async (userId: string, refreshToken: string) => {
+    logout = async (
+        userId: string,
+        accessToken: string,
+        refreshToken: string
+    ) => {
         try {
             const payload = jwt.verify(
                 refreshToken,
@@ -118,7 +130,11 @@ export class AuthService {
                 throw new ForbiddenError("You are not authorized to do this");
             }
 
-            await this.userRepository.updateUserRefreshToken(userId, "");
+            await this.userRepository.updateUserRefreshToken(userId, null);
+            await addTokenToBlockList(
+                accessToken as string,
+                validateEnv()?.jwtconfig?.accessExpiration as string
+            );
         } catch (error) {
             throw new UnauthenticatedError(
                 "Something went wrong when verifying token"
@@ -149,7 +165,7 @@ export class AuthService {
 
         await this.userRepository.updateById(userId, {
             password: hashPassword,
-            updatedBy: userId,
+            updated_by: userId,
         });
 
         return true;
@@ -171,8 +187,36 @@ export class AuthService {
 
     changeAvatar = async (userId: any, avatar: string) => {
         await this.userRepository.updateById(userId, {
-            detail_user: { avatar },
-            updatedBy: userId,
+            "detail_user.avatar": avatar,
+            updated_by: userId,
         });
+    };
+
+    updateProfile = async (userId: string, updateData: any) => {
+        try {
+            const updatedUser = await this.userRepository.update(
+                { _id: userId },
+                {
+                    $set: {
+                        'detail_user.name': updateData.detail_user.name,
+                        'detail_user.gender': updateData.detail_user.gender,
+                        'detail_user.dob': updateData.detail_user.dob,
+                        'detail_user.address': updateData.detail_user.address,
+                        updated_by: userId
+                    }
+                }
+            );
+
+            if (!updatedUser) {
+                throw new NotFoundError("User not found!");
+            }
+
+            return updatedUser;
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new BadRequestError("An error occurred while updating information!");
+        }
     };
 }

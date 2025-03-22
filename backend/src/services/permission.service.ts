@@ -1,11 +1,7 @@
-import { Request, Response } from "express";
 import NotFoundError from "../errors/not-found.error";
 import { PermissionRepository } from "../repositories/permission.repository";
-import BadRequestError from "../errors/bad-request.error";
 import {
-    ChangePermissionStatusSchema,
     CreatePermissionSchema,
-    UpdatePermissionSchema,
 } from "../validation/permission.validation";
 import ConflictError from "../errors/conflict.error";
 import { z } from "zod";
@@ -34,7 +30,7 @@ export class PermissionService {
 
         const permission = await this.permissionRepository.create({
             ...data,
-            createdBy: userId,
+            created_by: userId,
         });
 
         return permission;
@@ -45,7 +41,7 @@ export class PermissionService {
             id,
             {
                 description,
-                updatedBy: userId,
+                updated_by: userId,
             }
         );
 
@@ -93,7 +89,7 @@ export class PermissionService {
             id,
             {
                 status,
-                updatedBy: userId,
+                updated_by: userId,
             }
         );
         if (!updatedPermission) {

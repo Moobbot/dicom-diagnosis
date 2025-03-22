@@ -12,8 +12,8 @@ const permissionSchema = new Schema<IPermission>(
       type: String,
       required: [true, "Description is required"],
     },
-    createdBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
-    updatedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    created_by: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    updated_by: { type: Schema.Types.ObjectId, ref: "User", default: null },
     status: { type: Boolean, default: true },
   },
   { timestamps: true }
