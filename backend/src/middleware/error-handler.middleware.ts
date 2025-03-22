@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 import HttpException from "../errors/http-exception.error";
-import { logger } from "../config/logger";
 
 const errorHandlerMiddleware = (
     err: any,
@@ -9,6 +8,10 @@ const errorHandlerMiddleware = (
     res: Response,
     next: NextFunction
 ) => {
+    if (process.env.NODE_ENV === "development") {
+        console.log("Error:", err);
+    }
+
     const defaultError = {
         statusCode: 500,
         msg: "Something went wrong, try again later",
@@ -46,16 +49,6 @@ const errorHandlerMiddleware = (
         )} field has to be unique`;
     }
 
-    // Ghi log lỗi chi tiết
-    // logger.error({
-    //     message: defaultError.msg,
-    //     statusCode: defaultError.statusCode,
-    //     method: req.method,
-    //     url: req.url,
-    //     headers: req.headers,
-    //     body: req.body,
-    //     stack: process.env.NODE_ENV === "production" ? undefined : err.stack,
-    // });
     console.log(defaultError);
 
     // Đính kèm thông tin lỗi vào req để Morgan sử dụng

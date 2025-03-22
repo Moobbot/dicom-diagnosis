@@ -9,9 +9,9 @@ export interface IPatient {
     diagnosis?: string | null;
     general_conclusion?: string | null;
     createdAt: Date;
-    updatedAt: Date;
-    createdBy?: Types.ObjectId;
-    updatedBy?: Types.ObjectId;
+    updated_at: Date;
+    created_by?: Types.ObjectId;
+    updated_by?: Types.ObjectId;
     folder: Types.ObjectId;
     prediction: Types.ObjectId;
 }

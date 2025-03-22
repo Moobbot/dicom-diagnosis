@@ -38,12 +38,12 @@ export class BaseRepository<T> {
 
         query
             .populate({
-                path: "createdBy",
+                path: "created_by",
                 select: "id username",
                 strictPopulate: false,
             })
             .populate({
-                path: "updatedBy",
+                path: "updated_by",
                 select: "id username",
                 strictPopulate: false,
             });
@@ -99,5 +99,12 @@ export class BaseRepository<T> {
 
     count(filter: FilterQuery<T> = {}) {
         return this.model.countDocuments(filter);
+    }
+
+    update(filter: FilterQuery<T>, update: UpdateQuery<T>, session?: ClientSession) {
+        return this.model.findOneAndUpdate(filter, update, {
+            new: true,
+            session,
+        });
     }
 }

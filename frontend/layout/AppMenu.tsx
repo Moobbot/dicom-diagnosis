@@ -16,7 +16,7 @@ const AppMenu = () => {
 
     // Hàm kiểm tra quyền
     const hasPermission = (permissions: Permissions[]) => {
-        return user && (user.grantAll || permissions.every(permission => user.permissions.includes(permission)));
+        return user && (user.grant_all || permissions.every(permission => user.permissions.includes(permission)));
     };
 
     // Xây dựng danh sách menu

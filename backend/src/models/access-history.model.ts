@@ -1,25 +1,46 @@
 import { Schema, model } from "mongoose";
-import { IAccessHistory } from "../interfaces/access-history.interface";
+import {
+    IAccessHistory,
+    IMiscellany,
+} from "../interfaces/access-history.interface";
+
+const MiscellanySchema: Schema = new Schema<IMiscellany>(
+    {
+        status: { type: Number, required: true },
+        request_body: { type: Schema.Types.Mixed },
+        message: { type: String },
+    },
+    { _id: false }
+);
 
 const AccessHistorySchema: Schema = new Schema<IAccessHistory>(
     {
-        username: { type: String },
-        actionName: { type: String },
-        functionName: { type: String, default: null },
-        api: { type: String },
-        ip: { type: String },
-        deviceName: { type: String },
-        deviceModel: { type: String },
-        deviceType: { type: String },
-        osName: { type: String },
-        osVer: { type: String },
-        osType: { type: String },
-        browserName: { type: String },
-        browserVer: { type: String },
-        browserType: { type: String },
-        miscellaneous: { type: Schema.Types.Mixed, default: null },
+        username: { type: String, required: true },
+        api: { type: String, required: true },
+        http_method: {
+            type: String,
+            enum: ["GET", "POST", "PUT", "DELETE"],
+            required: true,
+        },
+        function_name: { type: String },
+        ip_address: { type: String, required: true },
+        device_name: { type: String },
+        device_model: { type: String },
+        device_type: { type: String },
+        os_name: { type: String },
+        os_ver: { type: String },
+        os_type: { type: String },
+        browser_name: { type: String },
+        browser_ver: { type: String },
+        browser_type: { type: String },
+        miscellany: MiscellanySchema,
     },
-    { timestamps: true }
+    {
+        timestamps: {
+            createdAt: "created_at",
+            updatedAt: "updated_at",
+        },
+    }
 );
 
 export const AccessHistoryModel = model<IAccessHistory>(

@@ -1,4 +1,3 @@
-import { FilterQuery, QueryOptions, UpdateQuery } from "mongoose";
 import { IPermission } from "../interfaces/permission.interface";
 import { PermissionModel } from "../models/permission.model";
 import { BaseRepository } from "./base.repository";

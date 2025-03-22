@@ -102,9 +102,8 @@ export class UserController {
         );
 
         res.status(200).json({
-            message: `User ${
-                status ? "activated" : "deactivated"
-            } successfully`,
+            message: `User ${status ? "activated" : "deactivated"
+                } successfully`,
             success: true,
             data: updatedUser,
         });
@@ -124,9 +123,8 @@ export class UserController {
         );
 
         res.status(200).json({
-            message: `Users ${
-                status ? "activated" : "deactivated"
-            } successfully`,
+            message: `Users ${status ? "activated" : "deactivated"
+                } successfully`,
             success: true,
             data: updatedUsers,
         });

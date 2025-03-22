@@ -6,7 +6,7 @@ const clearClientStorage = () => {
     console.log('🗑 Clearing all authentication data...');
 
     // Xóa cookies từ phía client (chỉ áp dụng với non-HttpOnly cookies)
-    ['accessToken', 'refreshToken', 'permissions', 'grantAll'].forEach((cookie) => deleteCookie(cookie));
+    ['accessToken', 'refreshToken', 'permissions', 'grant_all'].forEach((cookie) => deleteCookie(cookie));
 
     // Xóa LocalStorage & SessionStorage
     localStorage.clear();

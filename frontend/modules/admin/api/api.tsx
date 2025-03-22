@@ -24,6 +24,9 @@ export const api = axios.create({
 
 api.interceptors.request.use(
     (request) => {
+        if (request.data instanceof FormData) {
+            delete request.headers['Content-Type'];
+        }
         if (typeof window !== 'undefined') {
             const accessToken = localStorage.getItem('accessToken');
             if (accessToken && !request.url?.includes('/auth/login')) {

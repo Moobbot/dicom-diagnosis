@@ -1,8 +1,12 @@
 import { z } from "zod";
+
 import { IAccessHistory } from "../interfaces/access-history.interface";
+
 import { AccessHistoryRepository } from "../repositories/access-history.repository";
-import { FindQuerySchema } from "../validation/find-query.validation";
+
 import { buildSearchFilter, buildSortQuery } from "../utils/util";
+
+import { FindQuerySchema } from "../validation/find-query.validation";
 
 export class AccessHistoryService {
     private readonly accessHistoryRepository: AccessHistoryRepository;

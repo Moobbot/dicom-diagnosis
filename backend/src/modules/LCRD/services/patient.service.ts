@@ -67,7 +67,7 @@ export class PatientService {
             ...data,
             folder: folder._id,
             prediction: prediction._id,
-            createdBy: new Types.ObjectId(userId),
+            created_by: new Types.ObjectId(userId),
         });
     };
 
@@ -318,8 +318,8 @@ export class PatientService {
             address: data.address,
             diagnosis: data.diagnosis,
             general_conclusion: data.general_conclusion,
-            updatedAt: new Date(),
-            updatedBy: new Types.ObjectId(userId)
+            updated_at: new Date(),
+            updated_by: new Types.ObjectId(userId)
         });
 
         return updatedPatient;

@@ -13,6 +13,7 @@ export interface FolderType {
 
 export interface DCMViewerProps {
     selectedFolder: FolderType | null;
+    reloadFolders?: () => Promise<void>;
 }
 
 export interface PredictionResponse {

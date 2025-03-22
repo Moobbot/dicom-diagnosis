@@ -41,7 +41,7 @@ const RolePermissionTable = () => {
                 const rolesData = response.data
                     .filter((role: any) => role.status !== false)
                     .map((role: any) => {
-                        const rolePermissions = role.grantAll ? permissions.map(p => p.name) : role.permissions;
+                        const rolePermissions = role.grant_all ? permissions.map(p => p.name) : role.permissions;
                         return { ...role, permissions: rolePermissions };
                     });
                 setRoles(rolesData);
@@ -76,7 +76,7 @@ const RolePermissionTable = () => {
                     const rolePermissions = role.permissions || [];
                     permissions.forEach(permission => {
                         const key = `${role._id}-${permission._id}`;
-                        initialSelectedPermissions[key] = role.grantAll || 
+                        initialSelectedPermissions[key] = role.grant_all || 
                             (Array.isArray(rolePermissions) && rolePermissions.includes(permission._id));
                     });
                 }
@@ -99,7 +99,7 @@ const RolePermissionTable = () => {
                         permissions: currentPermissions.includes(permissionId)
                             ? currentPermissions.filter(p => p !== permissionId)
                             : [...currentPermissions, permissionId],
-                        grantAll: false
+                        grant_all: false
                     };
                 }
                 return role;
@@ -140,9 +140,9 @@ const RolePermissionTable = () => {
             const updatedRolesResponse = await roleService.getRoles(1, 30);
             const updatedRoles = updatedRolesResponse.data
                 .filter((role: { status: boolean; }) => role.status !== false)
-                .map((role: { grantAll: any; permissions: any; }) => ({
+                .map((role: { grant_all: any; permissions: any; }) => ({
                     ...role,
-                    permissions: role.grantAll ? permissions.map(p => p.name) : role.permissions,
+                    permissions: role.grant_all ? permissions.map(p => p.name) : role.permissions,
                 }));
 
             // Cập nhật danh sách vai trò
@@ -217,10 +217,10 @@ const RolePermissionTable = () => {
     const saveChanges = async () => {
         try {
             for (const role of roles) {
-                const updatedData: { name?: string; permissions?: string[]; grantAll?: boolean } = {};
+                const updatedData: { name?: string; permissions?: string[]; grant_all?: boolean } = {};
                 if (role.name) updatedData.name = role.name;
                 if (role.permissions) updatedData.permissions = role.permissions;
-                if (role.grantAll !== undefined) updatedData.grantAll = role.grantAll;
+                if (role.grant_all !== undefined) updatedData.grant_all = role.grant_all;
 
                 await roleService.updateRole(role._id, updatedData);
             }
