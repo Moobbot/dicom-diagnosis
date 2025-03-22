@@ -1,4 +1,4 @@
-import { Document, FilterQuery, Query, Types } from "mongoose";
+import { FilterQuery, Types } from "mongoose";
 
 import { BaseRepository } from "./base.repository";
 

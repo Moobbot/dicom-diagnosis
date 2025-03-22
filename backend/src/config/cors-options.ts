@@ -5,11 +5,9 @@ const FE_BASE_URL = process.env.FE_BASE_URL;
 // List of allowed origins
 const allowedOrigins: string[] = [
     "http://localhost:3000",
-    "http://localhost:3001",
-    "http://localhost:3002",
-    "http://localhost:3003",
     ...(FE_BASE_URL ? [FE_BASE_URL] : []),
 ];
+// console.log("Allowed Frontend URL 2:", allowedOrigins); // Debugging
 
 // Check if origin is allowed
 const isOriginAllowed = (origin: string | undefined): boolean => {
@@ -23,7 +21,7 @@ export const corsOptions: cors.CorsOptions = {
         if (isOriginAllowed(origin)) {
             callback(null, true);
         } else {
-            callback(new Error(`Origin ${origin} not allowed by CORS`));
+            callback(new Error(`CORS policy does not allow access from origin: ${origin}`));
         }
     },
     methods: ["GET", "POST", "PATCH", "DELETE", "PUT"],

@@ -1,4 +1,4 @@
-import { object, string, boolean, array, Schema } from "zod";
+import { object, string, boolean } from "zod";
 
 export const CreatePermissionSchema = object({
     name: string({ required_error: "Name is required" }),

@@ -5,7 +5,7 @@ export interface IDetailUser {
     name: string;
     avatar?: string;
     dob: Date;
-    address: string;
+    address?: string;
     gender: number;
 }
 
@@ -14,11 +14,11 @@ export interface IUser {
     password: string;
     name: string;
     roles: Types.ObjectId[];
-    createdAt: Date;
-    created_by?: string;
+    created_at: Date;
+    created_by?: Types.ObjectId;
     updated_at: Date;
-    updated_by?: string;
+    updated_by?: Types.ObjectId;
     status: boolean;
-    refreshToken?: string;
+    refresh_token: string | null;
     detail_user: IDetailUser;
 }

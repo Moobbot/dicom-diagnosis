@@ -26,6 +26,8 @@ export const permissionMiddleware = (
 ) => {
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
+            req.functionName = permissions[0]; // Lưu tên hàm vào req.functionName
+
             // Bypass if user has grant_all permission
             if (req.userData?.grant_all) {
                 return next();
@@ -39,7 +41,9 @@ export const permissionMiddleware = (
             );
 
             if (!hasPermission) {
-                return next(new ForbiddenError("You don't have required permission"));
+                return next(
+                    new ForbiddenError("You don't have required permission")
+                );
             }
 
             next();

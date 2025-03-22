@@ -126,9 +126,9 @@ export class AuthController {
 
     updateProfile = async (req: Request, res: Response) => {
         const userId = req.userData.userId;
-        const updated_ata = req.body;
+        const updateData = req.body;
 
-        const updatedUser = await this.authService.updateProfile(userId, updated_ata);
+        const updatedUser = await this.authService.updateProfile(userId, updateData);
 
         res.status(200).json({
             status: 200,

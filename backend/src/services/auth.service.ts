@@ -216,7 +216,7 @@ export class AuthService {
             if (error instanceof HttpException) {
                 throw error;
             }
-            throw new BadRequestError("An error occurred while updating information!");
+            throw new BadRequestError("Something went wrong when updating profile!");
         }
     };
 }

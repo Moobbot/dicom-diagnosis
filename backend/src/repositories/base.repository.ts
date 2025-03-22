@@ -93,18 +93,18 @@ export class BaseRepository<T> {
         });
     }
 
-    update(filter: FilterQuery<T>, update: UpdateQuery<T>, session?: ClientSession) {
-        return this.model.findOneAndUpdate(filter, update, {
-            new: true,
-            session,
-        });
-    }
-
     deleteById(id: string, session?: ClientSession) {
         return this.model.deleteOne({ _id: id }, { session });
     }
 
     count(filter: FilterQuery<T> = {}) {
         return this.model.countDocuments(filter);
+    }
+
+    update(filter: FilterQuery<T>, update: UpdateQuery<T>, session?: ClientSession) {
+        return this.model.findOneAndUpdate(filter, update, {
+            new: true,
+            session,
+        });
     }
 }

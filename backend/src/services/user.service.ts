@@ -1,5 +1,4 @@
 import bcrypt from "bcryptjs";
-
 import NotFoundError from "../errors/not-found.error";
 
 import { RoleRepository } from "../repositories/role.repository";
@@ -66,8 +65,6 @@ export class UserService {
 
     listAllUsers = async (query: z.infer<typeof FindUserQuerySchema>) => {
         const { search, sort, page, limit, roles, status } = query;
-
-        console.log(query);
 
         const filter = buildSearchFilter(
             search,
