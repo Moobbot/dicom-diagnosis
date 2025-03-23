@@ -268,14 +268,12 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder, reloadFolders }) 
                 if (activeTab === 0) {
                     imageStack = selectedFolder.imageIds;
                 } else if (selectedFolder.predictedImagesURL && selectedFolder.predictedImagesURL.length > 0) {
-                    imageStack = selectedFolder.predictedImagesURL
-                        .map(img => img.preview_link)
-                        .filter(link => typeof link === 'string' && link.startsWith('wadouri:'));
+                    imageStack = selectedFolder.predictedImagesURL.map((img) => img.preview_link).filter((link) => typeof link === 'string' && link.startsWith('wadouri:'));
                 }
 
                 if (imageStack.length === 0) {
-                    console.warn('Image stack is empty or invalid.');
-                    showToast('warn', 'Warning', activeTab === 0 ? 'No original images available.' : 'No predicted images available.');
+                    console.warn('Predicted image stack is empty or invalid.');
+                    showToast('warn', 'Warning', 'No predicted images available.');
                     return;
                 }
 
@@ -304,7 +302,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder, reloadFolders }) 
                 eventDispatcher.removeEventListener(Enums.Events.IMAGE_LOADED, updateSelectedImage);
             };
         }
-    }, [activeTab, selectedFolder]);
+    }, [activeTab]);
 
     useEffect(() => {
         if (selectedFolder?.predictions && selectedFolder.predictions.length > 0) {
@@ -532,15 +530,16 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder, reloadFolders }) 
 
     // Update useEffect cho việc chọn ảnh
     useEffect(() => {
-        if (selectedFolder?.predictedImagesURL) {
-            // Lấy 6 ảnh đầu tiên theo thứ tự gốc, không sắp xếp
-            const firstSixImages = selectedFolder.predictedImagesURL
+        if (selectedFolder?.predictedImagesURL && selectedFolder.attention_info?.attention_scores) {
+            // Lấy 6 ảnh có attention_score cao nhất từ attention_scores
+            const topSixImages = selectedFolder.attention_info.attention_scores
+                .sort((a, b) => b.attention_score - a.attention_score)
                 .slice(0, 6)
-                .map(image => image.filename);
+                .map(score => score.file_name_pred);
                 
-            setSelectedImages(firstSixImages);
+            setSelectedImages(topSixImages);
         }
-    }, [selectedFolder?.predictedImagesURL]);
+    }, [selectedFolder?.predictedImagesURL, selectedFolder?.attention_info]);
 
     return (
         <div className="w-full h-full">

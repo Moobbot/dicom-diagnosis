@@ -75,3 +75,13 @@ export interface ServerFolder {
     overlay_images: string[];
     gif: string;
 }
+export interface AttentionScore {
+    file_name_original: string;
+    file_name_pred: string;
+    rank: number;
+    attention_score: number;
+}
+
+export interface AttentionInfo {
+    attention_scores: AttentionScore[];
+}
