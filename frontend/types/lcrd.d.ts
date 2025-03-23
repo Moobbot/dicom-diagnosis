@@ -9,6 +9,7 @@ export interface FolderType {
     predictions?: number[][];
     patient_info?: PatientInfo;
     from_server?: boolean;
+    attention_info?: AttentionInfo;
 }
 
 export interface DCMViewerProps {
@@ -24,9 +25,7 @@ export interface PredictionResponse {
     session_id: string;
     overlay_images: string[];
     gif: string;
-    attention_info: {
-        attention_scores: AttentionScore[];
-    };
+    attention_info: AttentionInfo;
 }
 
 export interface OverlayImage {
@@ -75,10 +74,4 @@ export interface ServerFolder {
     upload_images: string[];
     overlay_images: string[];
     gif: string;
-}
-
-export interface AttentionScore {
-    file_name: string;
-    rank: number;
-    attention_score: number;
 }

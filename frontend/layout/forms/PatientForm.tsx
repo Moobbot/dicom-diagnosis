@@ -57,7 +57,7 @@ const PatientForm: React.FC<{
     const validate = () => {
         let errs: Record<string, string> = {};
         if (!patientData.patient_id) errs.patient_id = 'Patient ID is required';
-        if (!patientData.name) errs.name = 'Patient Patient Name is required';
+        if (!patientData.name) errs.name = 'Patient Name is required';
         if (!patientData.sex) errs.sex = 'Sex is required';
         if (!patientData.age) errs.age = 'Valid Age is required';
         setErrors(errs);

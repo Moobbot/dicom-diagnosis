@@ -107,13 +107,20 @@ const LCRD = () => {
                     // Sắp xếp upload_images theo thứ tự tự nhiên
                     const sortedUploadImages = uploadImages.sort((a: string, b: string) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b));
 
+                    // Sắp xếp overlay_images theo thứ tự số tự nhiên
+                    const sortedOverlayImages = overlayImages.sort((a: string, b: string) => {
+                        // Trích xuất số từ tên file (ví dụ: từ pred_Chung_20241218_10.dcm lấy ra 10)
+                        const getNumber = (filename: string) => {
+                            const match = filename.match(/(\d+)\.dcm$/);
+                            return match ? parseInt(match[1]) : 0;
+                        };
+                        return getNumber(a) - getNumber(b);
+                    });
+
                     // Tạo danh sách imageIds
                     const imageIds = sortedUploadImages.map((filename: string) => `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/uploads/${sessionId}/${filename}`);
 
-                    // Sắp xếp overlay_images theo thứ tự tự nhiên
-                    const sortedOverlayImages = overlayImages.sort((a: string, b: string) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b));
-
-                    // Tạo danh sách predictedImagesURL
+                    // Tạo danh sách predictedImagesURL từ sortedOverlayImages
                     const predictedImagesURL = sortedOverlayImages.map((filename: string) => ({
                         filename,
                         preview_link: `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${filename}`,
@@ -138,6 +145,7 @@ const LCRD = () => {
                         predictedImagesURL,
                         gifDownloadURL,
                         predictions: folder.predictions || [],
+                        attention_info: folder.attention_info,
                         from_server: true
                     };
                 });
@@ -600,13 +608,20 @@ const LCRD = () => {
                     // Sắp xếp upload_images theo thứ tự tự nhiên
                     const sortedUploadImages = uploadImages.sort((a: string, b: string) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b));
 
+                    // Sắp xếp overlay_images theo thứ tự số tự nhiên
+                    const sortedOverlayImages = overlayImages.sort((a: string, b: string) => {
+                        // Trích xuất số từ tên file (ví dụ: từ pred_Chung_20241218_10.dcm lấy ra 10)
+                        const getNumber = (filename: string) => {
+                            const match = filename.match(/(\d+)\.dcm$/);
+                            return match ? parseInt(match[1]) : 0;
+                        };
+                        return getNumber(a) - getNumber(b);
+                    });
+
                     // Tạo danh sách imageIds
                     const imageIds = sortedUploadImages.map((filename: string) => `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/uploads/${sessionId}/${filename}`);
 
-                    // Sắp xếp overlay_images theo thứ tự tự nhiên
-                    const sortedOverlayImages = overlayImages.sort((a: string, b: string) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b));
-
-                    // Tạo danh sách predictedImagesURL
+                    // Tạo danh sách predictedImagesURL từ sortedOverlayImages
                     const predictedImagesURL = sortedOverlayImages.map((filename: string) => ({
                         filename,
                         preview_link: `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${filename}`,
@@ -631,6 +646,7 @@ const LCRD = () => {
                         predictedImagesURL,
                         gifDownloadURL,
                         predictions: folder.predictions || [],
+                        attention_info: folder.attention_info,
                         from_server: true
                     };
                 });

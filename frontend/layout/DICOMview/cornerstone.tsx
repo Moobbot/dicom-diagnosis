@@ -268,12 +268,14 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder, reloadFolders }) 
                 if (activeTab === 0) {
                     imageStack = selectedFolder.imageIds;
                 } else if (selectedFolder.predictedImagesURL && selectedFolder.predictedImagesURL.length > 0) {
-                    imageStack = selectedFolder.predictedImagesURL.map((img) => img.preview_link).filter((link) => typeof link === 'string' && link.startsWith('wadouri:'));
+                    imageStack = selectedFolder.predictedImagesURL
+                        .map(img => img.preview_link)
+                        .filter(link => typeof link === 'string' && link.startsWith('wadouri:'));
                 }
 
                 if (imageStack.length === 0) {
-                    console.warn('Predicted image stack is empty or invalid.');
-                    showToast('warn', 'Warning', 'No predicted images available.');
+                    console.warn('Image stack is empty or invalid.');
+                    showToast('warn', 'Warning', activeTab === 0 ? 'No original images available.' : 'No predicted images available.');
                     return;
                 }
 
@@ -302,7 +304,7 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder, reloadFolders }) 
                 eventDispatcher.removeEventListener(Enums.Events.IMAGE_LOADED, updateSelectedImage);
             };
         }
-    }, [activeTab]);
+    }, [activeTab, selectedFolder]);
 
     useEffect(() => {
         if (selectedFolder?.predictions && selectedFolder.predictions.length > 0) {
@@ -528,35 +530,17 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder, reloadFolders }) 
         }
     }, [selectedFolder]);
 
-    // Thêm function để lấy 6 ảnh có chỉ số cao nhất
-    const getTopSixRiskyImages = (predictions: number[][], overlayImages: { filename: string }[]) => {
-        if (!predictions || !predictions.length || !overlayImages) return [];
-        
-        // Lấy chỉ số dự đoán đầu tiên của mỗi ảnh
-        const firstPredictions = predictions.map((pred, index) => ({
-            index,
-            value: pred[0], // Lấy giá trị dự đoán đầu tiên
-            filename: overlayImages[index]?.filename
-        }));
-
-        // Sắp xếp theo giá trị dự đoán giảm dần
-        const sortedPredictions = firstPredictions
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 6); // Lấy 6 ảnh đầu tiên
-
-        return sortedPredictions.map(pred => pred.filename);
-    };
-
-    // Sửa lại useEffect khi folder được chọn để tự động chọn ảnh
+    // Update useEffect cho việc chọn ảnh
     useEffect(() => {
-        if (selectedFolder?.predictions && selectedFolder.predictedImagesURL) {
-            const topSixImages = getTopSixRiskyImages(
-                selectedFolder.predictions,
-                selectedFolder.predictedImagesURL
-            );
-            setSelectedImages(topSixImages);
+        if (selectedFolder?.predictedImagesURL) {
+            // Lấy 6 ảnh đầu tiên theo thứ tự gốc, không sắp xếp
+            const firstSixImages = selectedFolder.predictedImagesURL
+                .slice(0, 6)
+                .map(image => image.filename);
+                
+            setSelectedImages(firstSixImages);
         }
-    }, [selectedFolder?.predictions, selectedFolder?.predictedImagesURL]);
+    }, [selectedFolder?.predictedImagesURL]);
 
     return (
         <div className="w-full h-full">
