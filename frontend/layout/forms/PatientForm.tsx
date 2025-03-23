@@ -153,9 +153,10 @@ const PatientForm: React.FC<{
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             // Thêm timestamp vào tên file để tránh cache
-            const timestamp = new Date().getTime();
+            const timestamp = new Date().toLocaleString('vi-VN').replace(/[/:]/g, '-');
+            const patientName = patientData?.name || 'Unknown';
             a.href = url;
-            a.download = `Patient_Report_${timestamp}.docx`;
+            a.download = `Patient_Report_${patientName}_${timestamp}.docx`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
