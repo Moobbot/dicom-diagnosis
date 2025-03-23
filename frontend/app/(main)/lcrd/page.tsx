@@ -122,9 +122,9 @@ const LCRD = () => {
                     // GIF URL
                     const gifDownloadURL = folder.gif
                         ? {
-                              download_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${folder.gif}`,
-                              preview_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${folder.gif}`
-                          }
+                            download_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${folder.gif}`,
+                            preview_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${folder.gif}`
+                        }
                         : undefined;
 
                     return {
@@ -495,13 +495,13 @@ const LCRD = () => {
                 prevFolders.map((folder) =>
                     folder.id === currentFolderId
                         ? {
-                              ...folder,
-                              predictedImagesURL: updatedData.overlay_images,
-                              gifDownloadURL: updatedData.gif,
-                              session_id: updatedData.session_id,
-                              predictions: updatedData.predictions,
-                              forecast: updatedData.predictions[0] || []
-                          }
+                            ...folder,
+                            predictedImagesURL: updatedData.overlay_images,
+                            gifDownloadURL: updatedData.gif,
+                            session_id: updatedData.session_id,
+                            predictions: updatedData.predictions,
+                            forecast: updatedData.predictions[0] || []
+                        }
                         : folder
                 )
             );
@@ -558,7 +558,7 @@ const LCRD = () => {
             icon: 'pi pi-exclamation-triangle',
             acceptClassName: folder.from_server ? 'p-button-danger' : 'p-button-warning',
             accept: () => handleDeleteFolder(folder),
-            reject: () => {}
+            reject: () => { }
         });
     };
 
@@ -607,9 +607,9 @@ const LCRD = () => {
                     // GIF URL
                     const gifDownloadURL = folder.gif
                         ? {
-                              download_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${folder.gif}`,
-                              preview_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${folder.gif}`
-                          }
+                            download_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${folder.gif}`,
+                            preview_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${folder.gif}`
+                        }
                         : undefined;
 
                     return {
@@ -626,7 +626,6 @@ const LCRD = () => {
                     };
                 });
 
-            
 
             // Kết hợp folders từ server với folders local
             setFolders([...localFolders, ...processedFolders]);

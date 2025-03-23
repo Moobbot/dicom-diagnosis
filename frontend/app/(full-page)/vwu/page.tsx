@@ -70,7 +70,7 @@ const VWUViewer = () => {
 
     const loadImage = async () => {
         if (!imageUrl) {
-            console.warn('❌ Không có URL ảnh DICOM');
+            console.warn('❌ No DICOM image URL');
             return;
         }
 
@@ -78,13 +78,13 @@ const VWUViewer = () => {
 
         const renderingEngine = renderingEngineRef.current;
         if (!renderingEngine) {
-            console.error('❌ Rendering Engine chưa được khởi tạo!');
+            console.error('❌ Rendering Engine not initialized!');
             return;
         }
 
         const viewport = renderingEngine?.getViewport(viewportId);
         if (!viewport) {
-            console.error('❌ Viewport không tìm thấy!');
+            console.error('❌ Viewport not found!');
             return;
         }
 
@@ -106,22 +106,22 @@ const VWUViewer = () => {
 
             const csImage = viewport.getCornerstoneImage();
             if (!csImage) {
-                console.error('❌ Không thể lấy ảnh từ viewport!');
+                console.error('❌ Cannot get image from viewport!');
                 return;
             }
 
-            console.log('📸 Ảnh DICOM đã load:', csImage);
+            console.log('📸 DICOM image loaded:', csImage);
 
             // ✅ Đợi ảnh load xong
             await new Promise((resolve) => setTimeout(resolve, 500));
             viewport.render();
-            console.log('✅ Viewport sau khi cập nhật:', viewport);
+            console.log('✅ Viewport after update:', viewport);
 
-            console.log('✅ Ảnh DICOM đã load thành công!');
+            console.log('✅ DICOM image loaded successfully!');
             setLoadedImage(dicomImageId);
             console.log('🟡 dicomImageId:', dicomImageId);
         } catch (error) {
-            console.error('❌ Lỗi tải ảnh DICOM:', error);
+            console.error('❌ Error loading DICOM image:', error);
         }
     };
 
@@ -132,7 +132,7 @@ const VWUViewer = () => {
                 <InputText
                     value={imageUrl}
                     onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="Nhập URL ảnh DICOM..."
+                    placeholder="Enter DICOM image URL..."
                     className="p-inputtext-lg w-full"
                 />
                 <Button label="Load Image" icon="pi pi-image" onClick={loadImage} />
@@ -142,9 +142,9 @@ const VWUViewer = () => {
             <div className="flex-1 border p-2">
                 <div className="h-full w-full flex justify-center items-center" ref={elementRef}>
                     {!loadedImage ? (
-                        <p>❌ Không thể load ảnh. Kiểm tra URL hoặc console log để xem chi tiết.</p>
+                        <p>❌ Cannot load image. Check URL or console log for details.</p>
                     ) : (
-                        <p>✅ Ảnh đã load thành công!</p>
+                        <p>✅ Image loaded successfully!</p>
                     )}
                 </div>
             </div>

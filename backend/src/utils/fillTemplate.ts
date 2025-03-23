@@ -34,11 +34,11 @@ interface DataForm {
 async function imageToBase64(imagePath: string): Promise<string> {
     try {
         if (!fs.existsSync(imagePath))
-            throw new Error(`❌ File không tồn tại: ${imagePath}`);
+            throw new Error(`❌ File not found: ${imagePath}`);
 
         const buffer = await fs.promises.readFile(imagePath);
         if (buffer.length === 0)
-            throw new Error(`❌ File PNG rỗng: ${imagePath}`);
+            throw new Error(`❌ Empty PNG file: ${imagePath}`);
 
         return buffer.toString("base64");
     } catch (error) {
@@ -64,17 +64,16 @@ function ensureDirectoryExistence(dir: string) {
 export async function fillTemplate({
     dicomPaths,
     dataForm,
+    template_name = TEMPLATE_PATH,
 }: {
     dicomPaths: string[];
     dataForm: DataForm;
+    template_name?: string;
 }): Promise<string | null> {
     try {
         // 1️⃣ Tạo session_id và thư mục lưu báo cáo
         const session_id = dataForm.session_id ?? Date.now().toString();
-        const reportFolder = path.join(
-            validateEnv().linkSaveReport,
-            session_id
-        );
+        const reportFolder = path.join(validateEnv().linkSaveReport, session_id);
         ensureDirectoryExistence(reportFolder);
         const OUTPUT_DOCX_PATH = path.join(reportFolder, "report.docx");
 
@@ -82,9 +81,7 @@ export async function fillTemplate({
 
         // 2️⃣ Chuyển đổi tất cả ảnh DICOM sang PNG bằng API Flask
         const formData = new FormData();
-        dicomPaths.forEach((dicomPath) => {
-            formData.append("files", fs.createReadStream(dicomPath));
-        });
+        dicomPaths.forEach((dicomPath) => { formData.append("files", fs.createReadStream(dicomPath)); });
 
         const response = await axios.post(
             `${validateEnv().sybilModelBaseUrl}/convert-list`,
@@ -99,13 +96,11 @@ export async function fillTemplate({
             throw new Error("❌ Did not receive images from API");
         }
 
-        console.log(
-            `✅ Images created from API:`,
-            images.map((img: { filename: string }) => img.filename)
+        console.log(`✅ Images created from API:`, images.map((img: { filename: string }) => img.filename)
         );
 
         // 3️⃣ Read DOCX template
-        const templateBuffer = fs.readFileSync(TEMPLATE_PATH);
+        const templateBuffer = fs.readFileSync(template_name);
 
         // 4️⃣ Prepare data
         const forecastData = dataForm.forecast.map((value, index) =>
@@ -176,10 +171,7 @@ export async function fillTemplate_v0({
     try {
         // 1️⃣ Create session_id and report directory
         const session_id = dataForm.session_id ?? Date.now().toString();
-        const reportFolder = path.join(
-            validateEnv().linkSaveReport,
-            session_id
-        );
+        const reportFolder = path.join(validateEnv().linkSaveReport, session_id);
         ensureDirectoryExistence(reportFolder);
         const OUTPUT_DOCX_PATH = path.join(reportFolder, "report.docx");
 
@@ -188,10 +180,7 @@ export async function fillTemplate_v0({
         // 2️⃣ Convert all DICOM images to PNG
         const pngPaths: string[] = [];
         for (const [index, dicomPath] of dicomPaths.entries()) {
-            const pngPath = path.join(
-                reportFolder,
-                `dicom-image-${index + 1}.png`
-            );
+            const pngPath = path.join(reportFolder, `dicom-image-${index + 1}.png`);
             await convertDicomToPng(dicomPath, pngPath);
 
             // Check PNG file again (wait if not created)
