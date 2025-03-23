@@ -58,7 +58,6 @@ class SybilController {
         }
 
         const folderUUID = (req as any).uploadFolder as string;
-
         const zipFilePath = path.join(req.file.destination, req.file.filename);
 
         const result = await this.sybilService.predictSybil(
@@ -89,9 +88,6 @@ class SybilController {
 
         if (!session_id) {
             throw new BadRequestError("Missing session_id");
-        }
-        if (!file_name.length) {
-            throw new BadRequestError("No chosen diagnostic photography!");
         }
 
         console.log("Start creating report...");

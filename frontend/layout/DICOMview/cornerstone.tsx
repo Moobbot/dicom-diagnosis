@@ -528,6 +528,36 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder, reloadFolders }) 
         }
     }, [selectedFolder]);
 
+    // Thêm function để lấy 6 ảnh có chỉ số cao nhất
+    const getTopSixRiskyImages = (predictions: number[][], overlayImages: { filename: string }[]) => {
+        if (!predictions || !predictions.length || !overlayImages) return [];
+        
+        // Lấy chỉ số dự đoán đầu tiên của mỗi ảnh
+        const firstPredictions = predictions.map((pred, index) => ({
+            index,
+            value: pred[0], // Lấy giá trị dự đoán đầu tiên
+            filename: overlayImages[index]?.filename
+        }));
+
+        // Sắp xếp theo giá trị dự đoán giảm dần
+        const sortedPredictions = firstPredictions
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 6); // Lấy 6 ảnh đầu tiên
+
+        return sortedPredictions.map(pred => pred.filename);
+    };
+
+    // Sửa lại useEffect khi folder được chọn để tự động chọn ảnh
+    useEffect(() => {
+        if (selectedFolder?.predictions && selectedFolder.predictedImagesURL) {
+            const topSixImages = getTopSixRiskyImages(
+                selectedFolder.predictions,
+                selectedFolder.predictedImagesURL
+            );
+            setSelectedImages(topSixImages);
+        }
+    }, [selectedFolder?.predictions, selectedFolder?.predictedImagesURL]);
+
     return (
         <div className="w-full h-full">
             <Toast ref={toast} />

@@ -17,12 +17,16 @@ export interface DCMViewerProps {
 }
 
 export interface PredictionResponse {
+    prediction_scores: string[];
     session_id: string;
     message: string;
     predictions: number[][];
     session_id: string;
     overlay_images: string[];
     gif: string;
+    attention_info: {
+        attention_scores: AttentionScore[];
+    };
 }
 
 export interface OverlayImage {
@@ -71,4 +75,10 @@ export interface ServerFolder {
     upload_images: string[];
     overlay_images: string[];
     gif: string;
+}
+
+export interface AttentionScore {
+    file_name: string;
+    rank: number;
+    attention_score: number;
 }

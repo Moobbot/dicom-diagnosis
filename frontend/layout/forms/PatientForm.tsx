@@ -220,13 +220,13 @@ const PatientForm: React.FC<{
                                 onClick={handleGenerateReport}
                                 icon="pi pi-file"
                                 className="p-button-success"
-                                disabled={loading || !patientData.file_name?.length}
+                                disabled={loading}
                                 label="Generate Report"
                                 aria-label="Generate Report"
                                 data-pr-tooltip="Generate Report"
                             />
                         </div>
-                        <Tooltip target=".wrap-report-button" content="You need to select images to make reports!" mouseTrack mouseTrackLeft={10} />
+                        <Tooltip target=".wrap-report-button" content="Generate patient report" mouseTrack mouseTrackLeft={10} />
                     </div>
                     <div className="col-6">
                         <div className="wrap-save-button">

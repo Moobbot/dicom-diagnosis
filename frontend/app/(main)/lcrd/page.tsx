@@ -44,7 +44,8 @@ const addPrefixToLinks = (data: PredictionResponse, apiPath: string): Omit<Predi
             preview_link: `${apiPath}/preview/results/${data.session_id}/${data.gif}`
         },
         predictions: data.predictions,
-        session_id: data.session_id
+        session_id: data.session_id,
+        attention_info: data.attention_info
     };
 };
 
@@ -488,8 +489,12 @@ const LCRD = () => {
             }
 
             const data = (await response.json()) as PredictionResponse;
-
-            const updatedData = addPrefixToLinks(data, `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil`);
+            console.log('Prediction Response:', data);
+            // Thêm prediction_scores vào updatedData
+            const updatedData = {
+                ...addPrefixToLinks(data, `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil`),
+                prediction_scores: data.prediction_scores
+            };
 
             setFolders((prevFolders) =>
                 prevFolders.map((folder) =>
@@ -500,6 +505,8 @@ const LCRD = () => {
                             gifDownloadURL: updatedData.gif,
                             session_id: updatedData.session_id,
                             predictions: updatedData.predictions,
+                            prediction_scores: updatedData.prediction_scores,
+                            attention_info: updatedData.attention_info,
                             forecast: updatedData.predictions[0] || []
                         }
                         : folder
@@ -514,6 +521,8 @@ const LCRD = () => {
                         gifDownloadURL: updatedData.gif,
                         session_id: updatedData.session_id,
                         predictions: updatedData.predictions,
+                        prediction_scores: updatedData.prediction_scores,
+                        attention_info: updatedData.attention_info,
                         forecast: updatedData.predictions[0] || []
                     };
                 }
