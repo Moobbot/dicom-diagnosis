@@ -18,7 +18,8 @@ const PatientForm: React.FC<{
     setPatientData: React.Dispatch<React.SetStateAction<PatientData>>;
     toastRef: React.RefObject<Toast>;
     reloadFolders?: () => Promise<void>;
-}> = ({ patientData, setPatientData, toastRef, reloadFolders }) => {
+    onClose?: () => void;
+}> = ({ patientData, setPatientData, toastRef, reloadFolders, onClose }) => {
     const [loading, setLoading] = useState(false);
     const [isExistingPatient, setIsExistingPatient] = useState(false);
 
@@ -93,10 +94,19 @@ const PatientForm: React.FC<{
                     setIsExistingPatient(true);
                 }
 
-                if (reloadFolders) {
-                    await reloadFolders();
-                }
                 showToast('success', 'Success', patientData._id ? 'Update Patient success' : 'Save Patient success');
+                
+                // Đóng dialog trước
+                if (onClose) {
+                    onClose();
+                }
+
+                // Đợi một chút để đảm bảo session được cập nhật
+                setTimeout(async () => {
+                    if (reloadFolders) {
+                        await reloadFolders();
+                    }
+                }, 500);
             } else {
                 showToast('warn', 'Warning', `Patient ${patientData._id ? 'updated' : 'saved'}, but unexpected response: ${response.status}`);
             }
@@ -127,9 +137,27 @@ const PatientForm: React.FC<{
             setLoading(false);
             return;
         }
+        console.log('Patient Data Report:', patientData);
 
         try {
-            console.log('Patient Data Report:', patientData);
+            // Đảm bảo patient được lưu trước khi generate report
+            let savedPatient = patientData;
+            if (!patientData._id) {
+                const response = await PatientService.createPatient(patientData);
+                if (response.data) {
+                    savedPatient = response.data;
+                    setPatientData(response.data);
+                    setIsExistingPatient(true);
+                }
+            }
+
+            // Đóng dialog và đợi session được cập nhật
+            if (onClose) {
+                onClose();
+            }
+
+            // Đợi một chút để session được cập nhật
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/generate-report`, {
                 method: 'POST',
@@ -139,7 +167,7 @@ const PatientForm: React.FC<{
                     Pragma: 'no-cache',
                     Expires: '0'
                 },
-                body: JSON.stringify(patientData)
+                body: JSON.stringify(savedPatient)
             });
 
             if (!response.ok) {
@@ -152,9 +180,8 @@ const PatientForm: React.FC<{
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            // Thêm timestamp vào tên file để tránh cache
             const timestamp = new Date().toLocaleString('vi-VN').replace(/[/:]/g, '-');
-            const patientName = patientData?.name || 'Unknown';
+            const patientName = savedPatient?.name || 'Unknown';
             a.href = url;
             a.download = `Patient_Report_${patientName}_${timestamp}.docx`;
             document.body.appendChild(a);
@@ -163,9 +190,14 @@ const PatientForm: React.FC<{
             window.URL.revokeObjectURL(url);
 
             showToast('success', 'Success', 'Report generated successfully');
+
+            // Reload folders sau khi hoàn tất
+            if (reloadFolders) {
+                await reloadFolders();
+            }
         } catch (error: any) {
-            console.log('Error generating report:', error?.response?.data.message);
-            showToast('error', 'Error', error?.response?.data.message || 'Failed to generate report');
+            console.log('Error generating report:', error?.response?.data?.message);
+            showToast('error', 'Error', error?.response?.data?.message || 'Failed to generate report');
         } finally {
             setLoading(false);
         }

@@ -663,7 +663,13 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder, reloadFolders }) 
                 </div>
             </Dialog>
             <Dialog header="Export Preview" visible={ExportDialog} style={{ width: '50vw' }} onHide={() => setExportDialog(false)}>
-                <PatientForm patientData={patientData} setPatientData={setPatientData} toastRef={toast} reloadFolders={reloadFolders} />
+                <PatientForm 
+                    patientData={patientData} 
+                    setPatientData={setPatientData} 
+                    toastRef={toast} 
+                    reloadFolders={reloadFolders}
+                    onClose={() => setExportDialog(false)}
+                />
             </Dialog>
         </div>
     );
