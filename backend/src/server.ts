@@ -38,31 +38,49 @@ const unExpectedErrorHandler = (server: Server) => {
 const startServer = async () => {
     const app: Express = express();
 
-    // Initialize app configurations
-    await bootstrap(app);
+    try {
+        // Initialize app configurations
+        await bootstrap(app);
 
-    // Create HTTP server
-    const httpServer = createServer(app);
-    const port = validateEnv()!.port;
+        // Create HTTP server
+        const httpServer = createServer(app);
+        const port = validateEnv()!.port;
 
-    // Start listening
-    const server: Server = httpServer.listen(port, () => {
-        logger.info(`Server listening on port ${port}`);
-    });
+        // Start listening
+        const server: Server = httpServer.listen(port, () => {
+            logger.info(`Server listening on port ${port}`);
+        });
 
-    // Handle process events for graceful shutdown
-    process.on("uncaughtException", unExpectedErrorHandler(server));
-    process.on("unhandledRejection", unExpectedErrorHandler(server));
-    process.on("SIGTERM", () => {
-        logger.info("SIGTERM received. Closing server...");
-        exitHandler(server);
-    });
+        // Handle process events for graceful shutdown
+        process.on("uncaughtException", unExpectedErrorHandler(server));
+        process.on("unhandledRejection", unExpectedErrorHandler(server));
+        process.on("SIGTERM", () => {
+            logger.info("SIGTERM received. Closing server...");
+            exitHandler(server);
+        });
 
-    // Handle database connection errors
-    mongoose.connection.on("error", (err) => {
-        logger.error(`Database error: ${err.message}`);
-        console.log(`${err.no}: ${err.code}\t${err.syscall}\t${err.hostname}`);
-    });
+        // Cải thiện xử lý lỗi database
+        mongoose.connection.on("error", (err) => {
+            logger.error(`Database error: ${err.message}`);
+            console.log(`${err.no}: ${err.code}\t${err.syscall}\t${err.hostname}`);
+
+            // Thử kết nối lại nếu mất kết nối
+            if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT') {
+                logger.info('Attempting to reconnect to database...');
+                mongoose.connect(validateEnv()!.MONGO_DB_URI).catch((reconnectError) => {
+                    logger.error('Reconnection failed:', reconnectError);
+                });
+            }
+        });
+
+    } catch (error) {
+        if (error instanceof Error && error.message === 'DATABASE_CONNECTION_ERROR') {
+            logger.error('Can not start server because of database connection error');
+            process.exit(1);
+        }
+        logger.error("Failed to start server: ", error);
+        process.exit(1);
+    }
 
     deleteExpiredFolders.start();
 };

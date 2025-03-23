@@ -39,16 +39,28 @@ const combinedFileTransport = new DailyRotateFile({
     maxSize: '20m',
     maxFiles: '14d',
 });
+const combinedFileExceptions = new DailyRotateFile({
+    filename: 'logs/%DATE%-exceptions.log',
+    datePattern: 'YYYY-MM-DD',
+    zippedArchive: true,
+    maxSize: '20m',
+    maxFiles: '14d',
+});
 
+const combinedFileRejections = new DailyRotateFile({
+    filename: 'logs/%DATE%-rejections.log',
+    datePattern: 'YYYY-MM-DD',
+    zippedArchive: true,
+    maxSize: '20m',
+    maxFiles: '14d',
+});
 // Create logger
 export const logger = createLogger({
     level: nodeEnv === "development" ? "debug" : "info",
     format: combine(
         timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
         errors({ stack: true }),
-        nodeEnv === "development" ? 
-            combine(colorize(), consoleFormat) : 
-            combine(uncolorize(), fileFormat)
+        nodeEnv === "development" ? combine(colorize(), consoleFormat) : combine(uncolorize(), fileFormat)
     ),
     transports: [
         // Console transport
@@ -58,17 +70,17 @@ export const logger = createLogger({
                 consoleFormat
             )
         }),
-        
+
         // File transports
         ...(nodeEnv === "production" ? [fileTransport, combinedFileTransport] : [])
     ],
     // Xử lý lỗi của logger
     exceptionHandlers: [
-        new transports.File({ filename: 'logs/exceptions.log' })
+        combinedFileExceptions
     ],
     // Xử lý rejection của Promise
     rejectionHandlers: [
-        new transports.File({ filename: 'logs/rejections.log' })
+        combinedFileRejections
     ],
     // Không dừng process khi có uncaught exception
     exitOnError: false
