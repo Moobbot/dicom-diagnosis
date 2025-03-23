@@ -22,12 +22,13 @@ class PatientService {
             response: error.response?.data,
             status: error.response?.status,
             additionalInfo,
-            stack: error.stack
+            stack: error.stack,
+            isNetworkError: error.message === 'Network Error',
+            code: error.code,
+            isAxiosError: error.isAxiosError
         };
 
-        console.error('=== API Error ===');
         console.error(JSON.stringify(errorDetails, null, 2));
-        console.error('================');
     }
 
     private handleFileErrors(errors: FileError[]): string[] {
@@ -170,6 +171,19 @@ class PatientService {
             };
         } catch (error: any) {
             this.logError('getPatients', error, { page, limit, search });
+            
+            if (error.message === 'Network Error') {
+                throw new Error(
+                    'Unable to connect to the server. Please check your internet connection and try again.'
+                );
+            }
+            
+            if (error.code === 'ECONNABORTED') {
+                throw new Error(
+                    'The request timed out. Please try again.'
+                );
+            }
+
             throw new Error(
                 error.response?.data?.message ||
                 error.message ||

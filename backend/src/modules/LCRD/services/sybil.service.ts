@@ -116,6 +116,7 @@ export class SybilService {
                 predictions: data.predictions,
                 overlay_images: dicomFiles,
                 gif: gifFile,
+                attention_info: data.attention_info
             };
         } catch (error) {
             console.log(error);

@@ -44,7 +44,8 @@ const addPrefixToLinks = (data: PredictionResponse, apiPath: string): Omit<Predi
             preview_link: `${apiPath}/preview/results/${data.session_id}/${data.gif}`
         },
         predictions: data.predictions,
-        session_id: data.session_id
+        session_id: data.session_id,
+        attention_info: data.attention_info
     };
 };
 
@@ -95,7 +96,7 @@ const LCRD = () => {
 
             // Xử lý dữ liệu như bình thường
             const processedFolders: FolderType[] = response.data
-                .filter(folder => folder && folder.session_id) // Lọc bỏ dữ liệu không hợp lệ
+                .filter((folder) => folder && folder.session_id) // Lọc bỏ dữ liệu không hợp lệ
                 .map((folder): FolderType => {
                     const sessionId = folder.session_id;
 
@@ -104,18 +105,22 @@ const LCRD = () => {
                     const overlayImages = Array.isArray(folder.overlay_images) ? folder.overlay_images : [];
 
                     // Sắp xếp upload_images theo thứ tự tự nhiên
-                    const sortedUploadImages = uploadImages.sort((a: string, b: string) =>
-                        new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b));
+                    const sortedUploadImages = uploadImages.sort((a: string, b: string) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b));
+
+                    // Sắp xếp overlay_images theo thứ tự số tự nhiên
+                    const sortedOverlayImages = overlayImages.sort((a: string, b: string) => {
+                        // Trích xuất số từ tên file (ví dụ: từ pred_Chung_20241218_10.dcm lấy ra 10)
+                        const getNumber = (filename: string) => {
+                            const match = filename.match(/(\d+)\.dcm$/);
+                            return match ? parseInt(match[1]) : 0;
+                        };
+                        return getNumber(a) - getNumber(b);
+                    });
 
                     // Tạo danh sách imageIds
-                    const imageIds = sortedUploadImages.map((filename: string) =>
-                        `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/uploads/${sessionId}/${filename}`);
+                    const imageIds = sortedUploadImages.map((filename: string) => `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/uploads/${sessionId}/${filename}`);
 
-                    // Sắp xếp overlay_images theo thứ tự tự nhiên
-                    const sortedOverlayImages = overlayImages.sort((a: string, b: string) =>
-                        new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b));
-
-                    // Tạo danh sách predictedImagesURL
+                    // Tạo danh sách predictedImagesURL từ sortedOverlayImages
                     const predictedImagesURL = sortedOverlayImages.map((filename: string) => ({
                         filename,
                         preview_link: `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${filename}`,
@@ -123,10 +128,12 @@ const LCRD = () => {
                     }));
 
                     // GIF URL
-                    const gifDownloadURL = folder.gif ? {
-                        download_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${folder.gif}`,
-                        preview_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${folder.gif}`
-                    } : undefined;
+                    const gifDownloadURL = folder.gif
+                        ? {
+                            download_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${folder.gif}`,
+                            preview_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${folder.gif}`
+                        }
+                        : undefined;
 
                     return {
                         id: folder._id,
@@ -138,21 +145,20 @@ const LCRD = () => {
                         predictedImagesURL,
                         gifDownloadURL,
                         predictions: folder.predictions || [],
+                        attention_info: folder.attention_info,
                         from_server: true
                     };
                 });
 
-            setFolders(prevFolders => [...prevFolders, ...processedFolders]);
+            setFolders((prevFolders) => [...prevFolders, ...processedFolders]);
             setTotalRecords(response.total || 0);
             setCurrentPage(page);
-
         } catch (error: any) {
             console.log('Error loading folders:', error);
             const errorMessage = error.response?.data?.message || error.message || 'Failed to load folders. Please try again later.';
             showToast('error', 'Error', errorMessage);
-            setFolders(prevFolders => prevFolders.filter(f => !f.from_server));
+            setFolders((prevFolders) => prevFolders.filter((f) => !f.from_server));
             setTotalRecords(0);
-
         } finally {
             setFolderLoading(false);
         }
@@ -215,19 +221,13 @@ const LCRD = () => {
                 // Trích xuất thông tin bệnh nhân
                 const rawPatientName = dicomData.string('x00100010') || 'N/A';
                 // Xử lý patientName từ định dạng DICOM (ví dụ: "CU^VAN^TUONG")
-                const patientName = rawPatientName !== 'N/A'
-                    ? rawPatientName.split('^').filter(Boolean).join(' ')
-                    : 'N/A';
+                const patientName = rawPatientName !== 'N/A' ? rawPatientName.split('^').filter(Boolean).join(' ') : 'N/A';
 
                 const patientId = dicomData.string('x00100020') || 'N/A';
 
                 // Xử lý patientSex từ định dạng DICOM (ví dụ: "M")
                 const rawPatientSex = dicomData.string('x00100040') || 'N/A';
-                const patientSex = rawPatientSex !== 'N/A'
-                    ? rawPatientSex === 'M' ? 'Male'
-                        : rawPatientSex === 'F' ? 'Female'
-                            : rawPatientSex
-                    : 'N/A';
+                const patientSex = rawPatientSex !== 'N/A' ? (rawPatientSex === 'M' ? 'Male' : rawPatientSex === 'F' ? 'Female' : rawPatientSex) : 'N/A';
 
                 // Xử lý patientAge từ định dạng DICOM (ví dụ: "082Y")
                 const rawPatientAge = dicomData.string('x00101010') || 'N/A';
@@ -242,7 +242,7 @@ const LCRD = () => {
 
                 const studyDescription = dicomData.string('x00081030') || 'N/A';
 
-                console.log("DICOM Info:", {
+                console.log('DICOM Info:', {
                     patientName,
                     patientId,
                     patientSex,
@@ -283,7 +283,7 @@ const LCRD = () => {
         };
 
         // Đọc thông tin DICOM từ file đầu tiên
-        readDicomInfo(dicomFiles[0]).then(dicomInfo => {
+        readDicomInfo(dicomFiles[0]).then((dicomInfo) => {
             if (dicomInfo) {
                 newFolder.patient_info = {
                     _id: '',
@@ -310,16 +310,16 @@ const LCRD = () => {
 
         // Kiểm tra kích thước file
         const maxFileSize = 100 * 1024 * 1024; // 100MB
-        const oversizedFiles = event.files.filter(file => file.size > maxFileSize);
+        const oversizedFiles = event.files.filter((file) => file.size > maxFileSize);
         if (oversizedFiles.length > 0) {
-            showToast('error', 'Error', `The following files exceed 100MB: ${oversizedFiles.map(f => f.name).join(', ')}`);
+            showToast('error', 'Error', `The following files exceed 100MB: ${oversizedFiles.map((f) => f.name).join(', ')}`);
             return;
         }
 
         // Kiểm tra định dạng file
-        const invalidFiles = event.files.filter(file => !file.name.toLowerCase().endsWith('.dcm'));
+        const invalidFiles = event.files.filter((file) => !file.name.toLowerCase().endsWith('.dcm'));
         if (invalidFiles.length > 0) {
-            showToast('error', 'Error', `The following files are not DICOM format: ${invalidFiles.map(f => f.name).join(', ')}`);
+            showToast('error', 'Error', `The following files are not DICOM format: ${invalidFiles.map((f) => f.name).join(', ')}`);
             return;
         }
 
@@ -358,7 +358,7 @@ const LCRD = () => {
 
         // Kiểm tra file DICOM
         const files = Array.from(fileList);
-        const dicomFiles = files.filter(file => file.name.toLowerCase().endsWith('.dcm'));
+        const dicomFiles = files.filter((file) => file.name.toLowerCase().endsWith('.dcm'));
         if (dicomFiles.length === 0) {
             showToast('error', 'Error', `No DICOM files found in the folder "${folderName}"`);
             return;
@@ -497,8 +497,12 @@ const LCRD = () => {
             }
 
             const data = (await response.json()) as PredictionResponse;
-
-            const updatedData = addPrefixToLinks(data, `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil`);
+            console.log('Prediction Response:', data);
+            // Thêm prediction_scores vào updatedData
+            const updatedData = {
+                ...addPrefixToLinks(data, `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil`),
+                prediction_scores: data.prediction_scores
+            };
 
             setFolders((prevFolders) =>
                 prevFolders.map((folder) =>
@@ -509,6 +513,8 @@ const LCRD = () => {
                             gifDownloadURL: updatedData.gif,
                             session_id: updatedData.session_id,
                             predictions: updatedData.predictions,
+                            prediction_scores: updatedData.prediction_scores,
+                            attention_info: updatedData.attention_info,
                             forecast: updatedData.predictions[0] || []
                         }
                         : folder
@@ -523,6 +529,8 @@ const LCRD = () => {
                         gifDownloadURL: updatedData.gif,
                         session_id: updatedData.session_id,
                         predictions: updatedData.predictions,
+                        prediction_scores: updatedData.prediction_scores,
+                        attention_info: updatedData.attention_info,
                         forecast: updatedData.predictions[0] || []
                     };
                 }
@@ -571,6 +579,101 @@ const LCRD = () => {
         });
     };
 
+    const reloadFolders = async () => {
+        if (loading) return;
+
+        // Lưu lại những folders local (chưa lưu lên server)
+        const localFolders = folders.filter((folder) => !folder.from_server && folder.id !== selectedFolder?.id);
+
+        setFolderLoading(true);
+
+        try {
+            const response = await PatientService.getPatients(1, rowsPerPage, appliedSearchTerm);
+
+            // Kiểm tra response
+            if (!response || !Array.isArray(response.data)) {
+                throw new Error('Invalid data format received from server');
+            }
+
+            // Xử lý dữ liệu
+            const processedFolders: FolderType[] = response.data
+                .filter((folder) => folder && folder.session_id)
+                .map((folder): FolderType => {
+                    const sessionId = folder.session_id;
+
+                    // Kiểm tra và đảm bảo upload_images tồn tại và là mảng
+                    const uploadImages = Array.isArray(folder.upload_images) ? folder.upload_images : [];
+                    const overlayImages = Array.isArray(folder.overlay_images) ? folder.overlay_images : [];
+
+                    // Sắp xếp upload_images theo thứ tự tự nhiên
+                    const sortedUploadImages = uploadImages.sort((a: string, b: string) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a, b));
+
+                    // Sắp xếp overlay_images theo thứ tự số tự nhiên
+                    const sortedOverlayImages = overlayImages.sort((a: string, b: string) => {
+                        // Trích xuất số từ tên file (ví dụ: từ pred_Chung_20241218_10.dcm lấy ra 10)
+                        const getNumber = (filename: string) => {
+                            const match = filename.match(/(\d+)\.dcm$/);
+                            return match ? parseInt(match[1]) : 0;
+                        };
+                        return getNumber(a) - getNumber(b);
+                    });
+
+                    // Tạo danh sách imageIds
+                    const imageIds = sortedUploadImages.map((filename: string) => `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/uploads/${sessionId}/${filename}`);
+
+                    // Tạo danh sách predictedImagesURL từ sortedOverlayImages
+                    const predictedImagesURL = sortedOverlayImages.map((filename: string) => ({
+                        filename,
+                        preview_link: `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${filename}`,
+                        download_link: `wadouri:${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${filename}`
+                    }));
+
+                    // GIF URL
+                    const gifDownloadURL = folder.gif
+                        ? {
+                            download_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${folder.gif}`,
+                            preview_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${folder.gif}`
+                        }
+                        : undefined;
+
+                    return {
+                        id: folder._id,
+                        name: folder.patient_info?.name || 'Unknown',
+                        files: sortedUploadImages,
+                        session_id: sessionId,
+                        patient_info: folder.patient_info || {},
+                        imageIds,
+                        predictedImagesURL,
+                        gifDownloadURL,
+                        predictions: folder.predictions || [],
+                        attention_info: folder.attention_info,
+                        from_server: true
+                    };
+                });
+
+
+            // Kết hợp folders từ server với folders local
+            setFolders([...localFolders, ...processedFolders]);
+            setTotalRecords(response.total || 0);
+            setCurrentPage(0);
+
+            // Cập nhật selectedFolder nếu folder hiện tại đã được lưu
+            if (processedFolders.length > 0 && selectedFolder) {
+                const updatedSelectedFolder = processedFolders.find((folder) => (folder.session_id && folder.session_id === selectedFolder.session_id) || folder.id === selectedFolder.id);
+
+                if (updatedSelectedFolder) {
+                    setSelectedFolder(updatedSelectedFolder);
+                }
+            }
+        } catch (error: any) {
+            console.log('Error reloading folders:', error);
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to reload folders. Please try again later.';
+            showToast('error', 'Error', errorMessage);
+        } finally {
+            setFolderLoading(false);
+        }
+    };
+
     return (
         <div className="content-full">
             <Toast ref={toast} />
@@ -595,10 +698,7 @@ const LCRD = () => {
 
                 <div className="card-body p-card-content">
                     <Splitter className="dicom-panel">
-                        <SplitterPanel
-                            size={15}
-                            minSize={15}
-                            className="folder-list-panel">
+                        <SplitterPanel size={15} minSize={15} className="folder-list-panel">
                             <VirtualScroller
                                 items={folders}
                                 itemSize={80} // Chiều cao mỗi item
@@ -610,20 +710,16 @@ const LCRD = () => {
                                 }}
                                 className="list-folder w-full h-full"
                                 itemTemplate={(folder) => (
-                                    <div
-                                        key={folder.id}
-                                        className={`relative cursor-pointer p-3 mb-1 border-round hover:surface-200 ${selectedFolder?.id === folder.id ? 'surface-200' : ''}`}
-                                        style={{ height: '80px', backgroundColor: '#1E2124' }}>
-                                        <div className="flex align-items-center gap-3" style={{ transform: "translate(0, 50%)", maxWidth: "calc(100% - 80px)" }}
-                                            onClick={() => selectFolder(folder)}>
+                                    <div key={folder.id} className={`relative cursor-pointer p-3 mb-1 border-round hover:surface-200 ${selectedFolder?.id === folder.id ? 'surface-200' : ''}`} style={{ height: '80px', backgroundColor: '#1E2124' }}>
+                                        <div className="flex align-items-center gap-3" style={{ transform: 'translate(0, 50%)', maxWidth: 'calc(100% - 80px)' }} onClick={() => selectFolder(folder)}>
                                             {/* 📌 Kiểm tra nếu là folder local thì thêm icon upload */}
                                             <i className={`pi ${folder.from_server ? 'pi-folder' : 'pi-cloud-upload'} text-4xl`} style={{ color: folder.from_server ? '#4169E1' : 'green' }} />
-                                            <div className="text-lg font-medium overflow-hidden text-overflow-ellipsis white-space-nowrap"
-                                            >{folder.name}</div>
+                                            <div className="text-lg font-medium overflow-hidden text-overflow-ellipsis white-space-nowrap">{folder.name}</div>
                                         </div>
                                         <Button
                                             icon="pi pi-trash"
-                                            className="absolute p-button-danger p-button-rounded p-button-sm" style={{ right: '10px', bottom: '50%', transform: 'translate(0, 50%)' }}
+                                            className="absolute p-button-danger p-button-rounded p-button-sm"
+                                            style={{ right: '10px', bottom: '50%', transform: 'translate(0, 50%)' }}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 confirmDelete(folder);
@@ -635,7 +731,7 @@ const LCRD = () => {
                             <ConfirmDialog />
                         </SplitterPanel>
                         <SplitterPanel size={85} minSize={70}>
-                            <DCMViewer selectedFolder={selectedFolder} />
+                            <DCMViewer selectedFolder={selectedFolder} reloadFolders={reloadFolders} />
                         </SplitterPanel>
                     </Splitter>
                 </div>

@@ -16,11 +16,13 @@ const processQueue = (error: any, token: string | null = null) => {
 
 export const api = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
+    timeout: 10000,
     headers: {
         'Content-Type': 'application/json'
     }
 });
 
+// Request interceptor for adding auth token
 api.interceptors.request.use(
     (request) => {
         if (typeof window !== 'undefined' && !request.url?.includes('/auth/login')) {
@@ -36,6 +38,7 @@ api.interceptors.request.use(
     }
 );
 
+// Response interceptor for auth and retry logic
 api.interceptors.response.use(
     (response) => {
         return response;
@@ -43,8 +46,18 @@ api.interceptors.response.use(
     async (error) => {
         const { config, response } = error;
 
-        const status = response?.status;
+        // Handle retry logic first
+        if (config && config.retry && (!config._retryCount || config._retryCount < config.retry)) {
+            config._retryCount = config._retryCount || 0;
+            config._retryCount += 1;
 
+            // Wait before retrying
+            await new Promise(resolve => setTimeout(resolve, config.retryDelay || 1000));
+            return api(config);
+        }
+
+        // Handle authentication errors
+        const status = response?.status;
         if (status === 401 && !config._retry && !config.url?.includes('/auth/login')) {
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
@@ -56,7 +69,7 @@ api.interceptors.response.use(
                     })
                     .catch((err) => Promise.reject(err));
             }
-            config._retry = true; // Thêm biến _retry vào config để tránh loop
+            config._retry = true;
             isRefreshing = true;
 
             try {
@@ -75,7 +88,6 @@ api.interceptors.response.use(
                 });
 
                 const { accessToken, refreshToken } = response.data;
-                // console.log('New access token:', accessToken);
 
                 localStorage.setItem('accessToken', accessToken);
 
@@ -91,7 +103,7 @@ api.interceptors.response.use(
 
                 processQueue(null, accessToken);
 
-                return api(config); // Thử lại request với accessToken mới
+                return api(config);
             } catch (refreshError) {
                 processQueue(refreshError, null);
                 localStorage.removeItem('accessToken');

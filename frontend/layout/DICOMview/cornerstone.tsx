@@ -29,7 +29,7 @@ import { Messages } from 'primereact/messages';
 import { DCMViewerProps } from '@/types/lcrd';
 import { PatientData } from '@/types/lcrd';
 
-const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
+const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder, reloadFolders }) => {
     const [selectedImageIdIndex, setSelectedImageIdIndex] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState(0); // 0: Original, 1: Predicted
     const [activeTool, setActiveTool] = useState<string | null>(null);
@@ -528,6 +528,19 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
         }
     }, [selectedFolder]);
 
+    // Update useEffect cho việc chọn ảnh
+    useEffect(() => {
+        if (selectedFolder?.predictedImagesURL && selectedFolder.attention_info?.attention_scores) {
+            // Lấy 6 ảnh có attention_score cao nhất từ attention_scores
+            const topSixImages = selectedFolder.attention_info.attention_scores
+                .sort((a, b) => b.attention_score - a.attention_score)
+                .slice(0, 6)
+                .map(score => score.file_name_pred);
+                
+            setSelectedImages(topSixImages);
+        }
+    }, [selectedFolder?.predictedImagesURL, selectedFolder?.attention_info]);
+
     return (
         <div className="w-full h-full">
             <Toast ref={toast} />
@@ -650,7 +663,13 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                 </div>
             </Dialog>
             <Dialog header="Export Preview" visible={ExportDialog} style={{ width: '50vw' }} onHide={() => setExportDialog(false)}>
-                <PatientForm patientData={patientData} setPatientData={setPatientData} toastRef={toast} />
+                <PatientForm 
+                    patientData={patientData} 
+                    setPatientData={setPatientData} 
+                    toastRef={toast} 
+                    reloadFolders={reloadFolders}
+                    onClose={() => setExportDialog(false)}
+                />
             </Dialog>
         </div>
     );
