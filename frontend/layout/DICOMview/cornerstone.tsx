@@ -528,18 +528,20 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder, reloadFolders }) 
         }
     }, [selectedFolder]);
 
-    // Update useEffect cho việc chọn ảnh
+    // Thêm useEffect để reset selectedImages khi thay đổi folder
     useEffect(() => {
+        // Reset selectedImages khi thay đổi folder
+        setSelectedImages([]);
+        
+        // Sau đó mới chọn top 6 ảnh của folder mới nếu có
         if (selectedFolder?.predictedImagesURL && selectedFolder.attention_info?.attention_scores) {
-            // Lấy 6 ảnh có attention_score cao nhất từ attention_scores
             const topSixImages = selectedFolder.attention_info.attention_scores
                 .sort((a, b) => b.attention_score - a.attention_score)
                 .slice(0, 6)
                 .map(score => score.file_name_pred);
-                
             setSelectedImages(topSixImages);
         }
-    }, [selectedFolder?.predictedImagesURL, selectedFolder?.attention_info]);
+    }, [selectedFolder?.id]); // Thêm selectedFolder?.id vào dependencies
 
     return (
         <div className="w-full h-full">
