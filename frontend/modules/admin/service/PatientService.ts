@@ -73,6 +73,7 @@ class PatientService {
         address?: string | null;
         diagnosis?: string | null;
         general_conclusion?: string | null;
+        attentent?: string | null;
         session_id: string
     }): Promise<any> {
         try {

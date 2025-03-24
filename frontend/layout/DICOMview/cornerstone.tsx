@@ -509,11 +509,13 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder, reloadFolders }) 
             age: selectedFolder?.patient_info?.age || '',
             sex: selectedFolder?.patient_info?.sex || '',
             address: selectedFolder?.patient_info?.address || null,
-            diagnosis: selectedFolder?.patient_info?.diagnosis || null,
+            diagnosis: selectedFolder?.patient_info?.diagnosis || 'N/A',
             general_conclusion: selectedFolder?.patient_info?.general_conclusion || null,
+            attentent: selectedFolder?.patient_info?.attentent || 'N/A',
             file_name: selectedImages,
             session_id: selectedFolder?.session_id || '',
-            forecast: selectedFolder?.predictions ? selectedFolder.predictions[0] : []
+            forecast: selectedFolder?.predictions ? selectedFolder.predictions[0] : [],
+            attention_info: selectedFolder?.attention_info || { attention_scores: [] }
         }));
 
         setExportDialog(true);

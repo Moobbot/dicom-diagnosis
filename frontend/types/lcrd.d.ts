@@ -48,12 +48,14 @@ export interface PatientInfo {
     address?: string | null;
     diagnosis?: string | null;
     general_conclusion?: string | null;
+    attentent?: string | null;
 }
 
 export interface PatientData extends PatientInfo {
     session_id: string;
     file_name: string[];
     forecast: number[];
+    attention_info?: AttentionInfo;
 }
 
 // type PatientInfo = Omits<PatientData, 'session_id' | 'file_name' | 'forecast'>;

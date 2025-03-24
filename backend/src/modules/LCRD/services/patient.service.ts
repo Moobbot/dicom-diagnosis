@@ -318,6 +318,7 @@ export class PatientService {
             address: data.address,
             diagnosis: data.diagnosis,
             general_conclusion: data.general_conclusion,
+            attentent: data.attentent,
             updatedAt: new Date(),
             updatedBy: new Types.ObjectId(userId)
         });

@@ -9,6 +9,7 @@ export const CreatePatientSchema = z.object({
     address: z.string().nullable(),
     diagnosis: z.string().nullable(),
     general_conclusion: z.string().nullable(),
+    attentent: z.string().nullable(),
     session_id: z.string().min(1, "Session ID is required"),
 });
 
@@ -21,4 +22,5 @@ export const UpdatePatientSchema = z.object({
     address: z.string().nullable(),
     diagnosis: z.string().nullable(),
     general_conclusion: z.string().nullable(),
+    attentent: z.string().nullable(),
 });

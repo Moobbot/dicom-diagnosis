@@ -61,6 +61,7 @@ const PatientForm: React.FC<{
         if (!patientData.name) errs.name = 'Patient Name is required';
         if (!patientData.sex) errs.sex = 'Sex is required';
         if (!patientData.age) errs.age = 'Valid Age is required';
+        if (!patientData.attentent) errs.attentent = 'Attentent is required';
         setErrors(errs);
         return Object.keys(errs).length === 0;
     };
@@ -70,6 +71,15 @@ const PatientForm: React.FC<{
         console.log('Call Submit');
         console.log('Patient Data Save:', patientData);
 
+        // Ensure attentent has a default value if not set and include attention_info
+        const dataToSave = {
+            ...patientData,
+            attentent: patientData.attentent || 'N/A',
+            attention_info: {
+                attention_scores: patientData.attention_info?.attention_scores || []
+            }
+        };
+
         if (!validate()) {
             showToast('warn', 'Validation Failed', 'Please check patient data');
             setLoading(false);
@@ -77,13 +87,13 @@ const PatientForm: React.FC<{
         }
 
         try {
-            console.log('Patient Data Save send:', patientData);
+            console.log('Patient Data Save send:', dataToSave);
             let response;
-            console.log('Patient Data id:', patientData._id);
-            if (patientData._id) {
-                response = await PatientService.updatePatient(patientData._id, patientData);
+            console.log('Patient Data id:', dataToSave._id);
+            if (dataToSave._id) {
+                response = await PatientService.updatePatient(dataToSave._id, dataToSave);
             } else {
-                response = await PatientService.createPatient(patientData);
+                response = await PatientService.createPatient(dataToSave);
             }
             console.log(response);
 
@@ -94,7 +104,7 @@ const PatientForm: React.FC<{
                     setIsExistingPatient(true);
                 }
 
-                showToast('success', 'Success', patientData._id ? 'Update Patient success' : 'Save Patient success');
+                showToast('success', 'Success', dataToSave._id ? 'Update Patient success' : 'Save Patient success');
                 
                 // Đóng dialog trước
                 if (onClose) {
@@ -108,7 +118,7 @@ const PatientForm: React.FC<{
                     }
                 }, 500);
             } else {
-                showToast('warn', 'Warning', `Patient ${patientData._id ? 'updated' : 'saved'}, but unexpected response: ${response.status}`);
+                showToast('warn', 'Warning', `Patient ${dataToSave._id ? 'updated' : 'saved'}, but unexpected response: ${response.status}`);
             }
         } catch (error: any) {
             if (error.response) {
@@ -246,6 +256,11 @@ const PatientForm: React.FC<{
                     <InputTextarea value={patientData.general_conclusion || ''} onChange={(e) => handleChange(e, 'general_conclusion')} className={errors.general_conclusion ? 'p-invalid' : ''} />
                     {errors.general_conclusion && <small className="p-error">{errors.general_conclusion}</small>}
                 </div>
+                <div className="input-wrap field col-12">
+                    <label>Attentent</label>
+                    <InputTextarea value={patientData.attentent || ''} onChange={(e) => handleChange(e, 'attentent')} className={errors.attentent ? 'p-invalid' : ''} />
+                    {errors.attentent && <small className="p-error">{errors.attentent}</small>}
+                </div>
                 <div className="col-12 flex">
                     <div className="col-6">
                         <div className="wrap-report-button">
@@ -253,13 +268,13 @@ const PatientForm: React.FC<{
                                 onClick={handleGenerateReport}
                                 icon="pi pi-file"
                                 className="p-button-success"
-                                disabled={loading}
+                                disabled={loading || !patientData.file_name?.length}
                                 label="Generate Report"
                                 aria-label="Generate Report"
                                 data-pr-tooltip="Generate Report"
                             />
                         </div>
-                        <Tooltip target=".wrap-report-button" content="Generate patient report" mouseTrack mouseTrackLeft={10} />
+                        <Tooltip target=".wrap-report-button" content="Generate patient report. You must select a DICOM file first." mouseTrack mouseTrackLeft={10} />
                     </div>
                     <div className="col-6">
                         <div className="wrap-save-button">
