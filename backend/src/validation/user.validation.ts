@@ -1,3 +1,5 @@
+import { Types } from "mongoose";
+
 import {
     object,
     string,
@@ -10,9 +12,10 @@ import {
     boolean,
     nativeEnum,
 } from "zod";
+
+import { Gender } from "../enums/gender.enum";
+
 import { FindQuerySchema } from "./find-query.validation";
-import { Types } from "mongoose";
-import { Gender } from '../enums/gender.enum';
 
 export const CreateUserSchema = object({
     username: string({ required_error: "Name is required" }),

@@ -8,78 +8,90 @@ import { AccessHistoryService } from "../services/access-history.service";
 
 import redactLogData from "../utils/redact-logs";
 
-const accessHistoryService = new AccessHistoryService();
+class AccessHistoryMiddleware {
+    private readonly accessHistoryService: AccessHistoryService;
 
-const accessHistoryMiddleware = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-) => {
-    let username = "Unknown";
-    if (req.userData && req.userData.username) {
-        username = req.userData.username;
-    } else if (req.body && req.body.username) {
-        username = req.body.username;
+    constructor() {
+        this.accessHistoryService = new AccessHistoryService();
     }
 
-    const userAgent = req.headers["user-agent"] || "";
-    const parser = new UAParser(userAgent);
-    const result = parser.getResult();
-
-    // console.log(result);
-
-    const osType = (() => {
-        const osName = result.os.name?.toLowerCase();
-        if (!osName) return "unknown";
-        if (
-            osName.includes("windows") ||
-            osName.includes("mac os") ||
-            osName.includes("linux")
-        ) {
-            return "Desktop";
+    public handle = async (req: Request, res: Response, next: NextFunction) => {
+        let username = "Unknown";
+        if (req.userData && req.userData.username) {
+            username = req.userData.username;
+        } else if (req.body && req.body.username) {
+            username = req.body.username;
         }
-        if (osName.includes("android") || osName.includes("ios")) {
-            return "Mobile";
-        }
-        return "Other";
-    })();
 
-    const accessData: Partial<IAccessHistory> = {
-        username: username,
-        actionName: req.method,
-        api: req.originalUrl,
-        ip: req.ip,
-        deviceName: result.device.vendor || "Unknown",
-        deviceModel: result.device.model || "Unknown",
-        deviceType: result.device.type || "Unknown",
-        osName: result.os.name || "Unknown",
-        osVer: result.os.version || "Unknown",
-        osType,
-        browserName: result.browser.name || "Unknown",
-        browserVer: result.browser.version || "Unknown",
-        browserType: result.engine.name || "Unknown",
-        miscellaneous: {
-            status: null, // sẽ cập nhật sau khi hoàn thành request
-            message: "",
-            requestBody:
-                req.method === "POST" || req.method === "PUT"
-                    ? redactLogData(req.body)
-                    : null,
-        },
+        const userAgent = req.headers["user-agent"] || "";
+        const parser = new UAParser(userAgent);
+        const result = parser.getResult();
+
+        // console.log(result);
+
+        const osType = (() => {
+            const osName = result.os.name?.toLowerCase();
+            if (!osName) return "Unknown";
+            if (
+                osName.includes("windows") ||
+                osName.includes("mac os") ||
+                osName.includes("linux")
+            ) {
+                return "Desktop";
+            }
+            if (osName.includes("android") || osName.includes("ios")) {
+                return "Mobile";
+            }
+            return "Other";
+        })();
+
+        const accessData: Partial<IAccessHistory> = {
+            username: username,
+            api: req.originalUrl,
+            http_method: req.method,
+            function_name: req.functionName || "",
+            ip_address: req.ip,
+            device_name: result.device.vendor,
+            device_model: result.device.model,
+            device_type: result.device.type,
+            os_name: result.os.name,
+            os_ver: result.os.version,
+            os_type: osType,
+            browser_name: result.browser.name,
+            browser_ver: result.browser.version,
+            browser_type: result.engine.name,
+            miscellany: {
+                status: 200,
+                message: "",
+                request_body:
+                    req.method === "POST" || req.method === "PUT"
+                        ? redactLogData(req.body)
+                        : null,
+            },
+        };
+
+        // Lưu lại phương thức json gốc
+        const resJson = res.json;
+        let responseBody: any;
+
+        res.json = function (body: any) {
+            responseBody = body;
+            return resJson.call(this, body);
+        };
+
+        // Tạo AccessHistory sau khi response gửi đi
+        res.on("finish", async () => {
+            accessData.miscellany!.status = res.statusCode;
+            accessData.miscellany!.message = responseBody?.message || "";
+            try {
+                this.accessHistoryService.createAccessHistory(accessData);
+            } catch (error) {
+                console.error("Something went wrong:", error);
+            }
+        });
+
+        next();
     };
+}
 
-    // Tạo AccessHistory sau khi response gửi đi
-    res.on("finish", async () => {
-        accessData.miscellaneous!.status =
-            res.statusCode >= 200 && res.statusCode < 300 ? true : false;
-        try {
-            accessHistoryService.createAccessHistory(accessData);
-        } catch (error) {
-            console.error("Something went wrong:", error);
-        }
-    });
-
-    next();
-};
-
-export default accessHistoryMiddleware;
+export default new AccessHistoryMiddleware().handle;

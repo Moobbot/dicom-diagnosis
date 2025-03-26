@@ -7,6 +7,7 @@ import { extractTokenFromHeader } from "../utils/util";
 import {
     ChangeOldPasswordSchema,
     LoginUserSchema,
+    UpdateProfileSchema,
 } from "../validation/auth.validation";
 import { AuthService } from "../services/auth.service";
 
@@ -26,7 +27,6 @@ export class AuthController {
             await this.authService.login(username, password);
 
         res.status(200).json({
-            success: true,
             data: userData,
             message: "Logged in successfully",
             accessToken,
@@ -35,15 +35,19 @@ export class AuthController {
     };
 
     logout = async (req: Request, res: Response) => {
+        const accessToken = extractTokenFromHeader(req);
         const { refreshToken } = req.body;
 
         const userId = req.userData.userId;
 
         if (refreshToken) {
-            await this.authService.logout(userId, refreshToken as string);
+            await this.authService.logout(
+                userId,
+                accessToken as string,
+                refreshToken as string
+            );
         }
 
-        // ✅ Xóa cookie refreshToken chính xác với các options
         res.status(205).json();
     };
 
@@ -56,18 +60,16 @@ export class AuthController {
 
         res.status(200).json({
             message: "Password changed successfully",
-            success: true,
         });
     };
 
     me = async (req: Request, res: Response) => {
         res.status(200).json({
-            success: true,
             data: {
                 userId: req.userData.userId,
                 username: req.userData.username,
                 detail_user: req.userData.detail_user,
-                grantAll: req.userData.grantAll,
+                grant_all: req.userData.grant_all,
                 permissions: req.userData.permissions
                     ? Array.from(req.userData.permissions)
                     : undefined,
@@ -82,7 +84,6 @@ export class AuthController {
         await this.authService.checkPassword(userId, password);
 
         res.status(200).json({
-            success: true,
             message: "Password is correct",
         });
     };
@@ -102,7 +103,6 @@ export class AuthController {
 
         res.status(200).json({
             message: "Avatar updated successfully",
-            success: true,
         });
     };
 
@@ -117,10 +117,21 @@ export class AuthController {
             await this.authService.refreshToken(refreshToken as string);
 
         res.status(200).json({
-            success: true,
             message: "Token refreshed successfully",
             accessToken,
             refreshToken: newRefreshToken,
+        });
+    };
+
+    updateProfile = async (req: Request, res: Response) => {
+        const validatedData = UpdateProfileSchema.parse(req.body);
+
+        const userId = req.userData.userId;
+
+        await this.authService.updateProfile(userId, validatedData);
+
+        res.status(200).json({
+            message: "Profile updated successfully",
         });
     };
 }
