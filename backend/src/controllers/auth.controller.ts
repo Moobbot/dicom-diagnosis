@@ -90,6 +90,7 @@ export class AuthController {
     };
 
     changeAvatar = async (req: Request, res: Response) => {
+        console.log(req.file);
         if (!req.file) {
             throw new BadRequestError("Only png, jpg, jpeg files are allowed");
         }

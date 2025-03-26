@@ -1,110 +1,374 @@
 'use client';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+
 import { BreadCrumb } from 'primereact/breadcrumb';
-import { Button } from 'primereact/button';
+import { Calendar } from 'primereact/calendar';
+import { Card } from 'primereact/card';
+import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
-import React, { useState } from 'react';
+import { Toast } from 'primereact/toast';
 
-const AccountInfo = () => {
+import GenericButton from '@/layout/components/GenericButton';
+import { Base } from '@/types/base';
+import { Gender } from '@/enums/gender.enum';
+import AuthService from '@/modules/admin/service/AuthService';
+
+interface UserData {
+    userId: string;
+    username: string;
+    permissions: string[];
+    roles: string[];
+    detail_user: Base.DetailUser;
+}
+
+interface FormData {
+    fullName: string;
+    username: string;
+    roles: string;
+    roleIds: string[];
+    gender: number;
+    dob: string;
+    address: string;
+    user_code: string;
+}
+
+interface GenderOption {
+    label: string;
+    value: number;
+}
+
+// Sử dụng định nghĩa UpdateUserData từ API
+interface UpdateUserData {
+    password?: string;
+    roles?: string[];
+    detail_user?: Base.DetailUser;
+}
+
+const AccountInfo: React.FC = () => {
+    const toast = useRef<Toast>(null);
     const breadcrumbHome = { icon: 'pi pi-home', to: '/' };
     const breadcrumbItems = [{ label: 'Thông tin người dùng' }];
-    const avatar = localStorage.getItem('avatar');
-    const [formData, setFormData] = React.useState({
+    const genders: GenderOption[] = [
+        { label: 'Nam', value: Gender.MALE },
+        { label: 'Nữ', value: Gender.FEMALE },
+        { label: 'Khác', value: Gender.OTHER }
+    ];
+
+    const [userId, setUserId] = useState<string>('');
+    const [showUpdateDialog, setShowUpdateDialog] = useState<boolean>(false);
+    const [userData, setUserData] = useState<UserData | null>(null);
+    const [formData, setFormData] = useState<FormData>({
         fullName: '',
         username: '',
-        role: '',
-        gender: '',
+        roles: '',
+        roleIds: [],
+        gender: Gender.OTHER,
         dob: '',
-        phone: '',
-        address: ''
+        address: '',
+        user_code: ''
     });
-    const genders = ['Nam', 'Nữ', 'Khác'];
+    const [editFormData, setEditFormData] = useState<FormData>({
+        fullName: '',
+        username: '',
+        roles: '',
+        roleIds: [],
+        gender: Gender.OTHER,
+        dob: '',
+        address: '',
+        user_code: ''
+    });
+    const [avatar, setAvatar] = useState<string>('layout/images/default-avatar.png');
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const [genderValue, setGenderValue] = useState(null);
-    const handleChange = (e: { target: { name: any; value: any } }) => {
-        const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
+    useEffect(() => {
+        const storedUserId = localStorage.getItem('userId');
+        if (storedUserId) {
+            setUserId(storedUserId);
+            fetchUserData(storedUserId);
+        }
+    }, []);
+
+    const showToast = useCallback((severity: 'success' | 'info' | 'warn' | 'error', summary: string, detail: string) => {
+        if (toast.current) {
+            toast.current.show({ severity, summary, detail });
+        }
+    }, []);
+
+    const fetchUserData = async (id: string): Promise<void> => {
+        try {
+            const response = await AuthService.getMe();
+            if (response) {
+                setUserData(response.data);
+
+                const newFormData = {
+                    fullName: response.data.detail_user?.name || '',
+                    username: response.data.username || '',
+                    roles: response.data.roles?.join(', ') || '',
+                    roleIds: response.data.permissions || [],
+                    gender: response.data.detail_user?.gender || Gender.OTHER,
+                    dob: response.data.detail_user?.dob ? new Date(response.data.detail_user.dob).toISOString().split('T')[0] : '',
+                    address: response.data.detail_user?.address || '',
+                    user_code: response.data.detail_user?.user_code || ''
+                };
+
+                setFormData(newFormData);
+                setEditFormData(newFormData);
+
+                // Set avatar or use default
+                setAvatar(response.data.detail_user?.avatar || 'layout/images/default-avatar.png');
+            }
+        } catch (error) {
+            console.error('Error fetching user data:', error);
+            if (toast.current) {
+                toast.current.show({
+                    severity: 'error',
+                    summary: 'Lỗi',
+                    detail: 'Không thể tải thông tin người dùng',
+                    life: 3000
+                });
+            }
+        }
     };
 
-    const handleSubmit = () => {
-        console.log('Form Data:', formData);
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        const { name, value } = e.target;
+        setEditFormData({ ...editFormData, [name]: value });
+    };
+
+    const handleGenderChange = (e: { value: number }): void => {
+        setEditFormData({ ...editFormData, gender: e.value });
+    };
+
+    const handleDateChange = (e: any): void => {
+        if (e.value) {
+            const formattedDate = e.value instanceof Date ? e.value.toISOString().split('T')[0] : new Date(e.value).toISOString().split('T')[0];
+            setEditFormData({ ...editFormData, dob: formattedDate });
+        }
+    };
+
+    const openUpdateDialog = (): void => {
+        setEditFormData({ ...formData });
+        setShowUpdateDialog(true);
+    };
+
+    const closeUpdateDialog = (): void => {
+        setShowUpdateDialog(false);
+    };
+
+    const handleSubmit = async (): Promise<void> => {
+        try {
+            const updateData: UpdateUserData = {
+                detail_user: {
+                    name: editFormData.fullName,
+                    gender: editFormData.gender || Gender.OTHER,
+                    dob: editFormData.dob,
+                    address: editFormData.address,
+                    user_code: editFormData.user_code
+                }
+            };
+            const response = await AuthService.updateProfile(updateData);
+
+            showToast('success', 'Thành công', response.message || 'Cập nhật thông tin thành công');
+            fetchUserData(userId);
+            closeUpdateDialog();
+        } catch (error: any) {
+            console.error('Error updating profile:', error);
+            showToast('error', 'Lỗi', `Không thể cập nhật thông tin: ${error.message}`);
+        }
+    };
+
+    const handleAvatarClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        console.log('file', file);
+
+        if (!file) return;
+
+        const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+        if (file.size > MAX_FILE_SIZE) {
+            showToast('error', 'Lỗi', 'Kích thước file không được vượt quá 2MB');
+            return;
+        }
+
+        // Kiểm tra file extension thay vì chỉ dựa vào MIME type
+        const fileName = file.name.toLowerCase();
+        const validExtensions = ['.jpg', '.jpeg', '.png'];
+        const hasValidExtension = validExtensions.some((ext) => fileName.endsWith(ext));
+
+        if (!hasValidExtension) {
+            showToast('error', 'Lỗi', 'Chỉ chấp nhận file định dạng PNG, JPG hoặc JPEG');
+            return;
+        }
+
+        try {
+            await AuthService.changeAvatar(file);
+
+            // Refresh user data để lấy avatar mới từ server
+            await fetchUserData(userId);
+
+            showToast('success', 'Thành công', 'Cập nhật ảnh đại diện thành công');
+        } catch (error: any) {
+            console.error('Error updating avatar:', error);
+            // Xử lý lỗi từ response của server
+            const errorMessage = error.response?.data?.message || error.message || 'Không thể cập nhật ảnh đại diện';
+            showToast('error', 'Lỗi', errorMessage);
+        }
+    };
+
+    // Format display date
+    const formatDate = (dateString: string): string => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    };
+
+    // Render update dialog content
+    const renderUpdateDialog = () => {
+        return (
+            <Dialog
+                header="Cập nhật thông tin cá nhân"
+                visible={showUpdateDialog}
+                style={{ width: '50vw' }}
+                onHide={closeUpdateDialog}
+                footer={
+                    <div>
+                        <GenericButton label="Hủy" onClick={closeUpdateDialog} severity="secondary" style={{ marginRight: '10px' }} />
+                        <GenericButton label="Lưu thông tin" onClick={handleSubmit} />
+                    </div>
+                }
+            >
+                <div className="grid formgrid p-fluid">
+                    <div className="field col-12 md:col-6">
+                        <label htmlFor="edit-fullName">Họ tên</label>
+                        <InputText id="edit-fullName" name="fullName" value={editFormData.fullName} onChange={handleChange} />
+                    </div>
+
+                    <div className="field col-12 md:col-6">
+                        <label htmlFor="edit-username">Tên đăng nhập</label>
+                        <InputText id="edit-username" name="username" value={editFormData.username} disabled />
+                    </div>
+
+                    <div className="field col-12 md:col-6">
+                        <label htmlFor="edit-roles">Vai trò</label>
+                        <InputText id="edit-roles" name="roles" value={editFormData.roles} disabled />
+                    </div>
+
+                    <div className="field col-12 md:col-6">
+                        <label htmlFor="edit-gender">Giới tính</label>
+                        <Dropdown id="edit-gender" placeholder="Chọn giới tính" value={editFormData.gender} onChange={handleGenderChange} options={genders} optionLabel="label" />
+                    </div>
+
+                    <div className="field col-12 md:col-6">
+                        <label htmlFor="edit-dob">Ngày sinh</label>
+                        <Calendar id="edit-dob" value={editFormData.dob ? new Date(editFormData.dob) : null} onChange={handleDateChange} dateFormat="dd/mm/yy" showIcon />
+                    </div>
+
+                    <div className="field col-12 md:col-6">
+                        <label htmlFor="edit-address">Địa chỉ</label>
+                        <InputText id="edit-address" name="address" value={editFormData.address} onChange={handleChange} />
+                    </div>
+                </div>
+            </Dialog>
+        );
+    };
+
+    // Render information field
+    const renderInfoField = (label: string, value: string | number) => {
+        let displayValue = value;
+        if (label === 'Giới tính') {
+            displayValue = value === 1 ? 'Nam' : value === 2 ? 'Nữ' : '—';
+        }
+        return (
+            <div style={{ marginBottom: '1rem' }}>
+                <div style={{ color: '#666', fontSize: '0.9rem', marginBottom: '5px' }}>{label}</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: '500' }}>{displayValue || '—'}</div>
+            </div>
+        );
     };
 
     return (
         <div className="layout-main">
-            <BreadCrumb home={breadcrumbHome} model={breadcrumbItems} />
+            <Toast ref={toast} />
+            <BreadCrumb home={breadcrumbHome} model={breadcrumbItems} style={{ marginBottom: '8px' }} />
 
             <div className="card">
-                <div style={{ maxWidth: '800px', margin: 'auto', padding: '20px' }}>
-                    <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-                        <img
-                            src={avatar || ''}
-                            alt="Avatar"
-                            style={{
-                                width: '100px',
-                                height: '100px',
-                                borderRadius: '50%',
-                                objectFit: 'cover',
-                                marginBottom: '10px'
-                            }}
-                        />
-                        <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>Hồ Sơ Cá Nhân</h2>
-                        <p style={{ margin: 0, color: '#666' }}>Cập nhật thông tin tài khoản của bạn</p>
-                    </div>
-                    <form style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-                        <span className="p-float-label">
-                            <InputText id="fullName" name="fullName" type="text" onChange={handleChange} />
-                            <label htmlFor="fullName">Họ tên</label>
-                        </span>
-                        <span className="p-float-label">
-                            <InputText id="username" name="username" type="text" onChange={handleChange} />
-                            <label htmlFor="username">Username</label>
-                        </span>
-                        <InputText name="role" value="Kĩ thuật viên" type="text" onChange={handleChange} readOnly />
+                <div style={{ maxWidth: '62.5rem', margin: 'auto', padding: '1.25rem' }}>
+                    <h2 style={{ marginBottom: '1.25rem' }}>Hồ Sơ Cá Nhân</h2>
 
-                        <Dropdown value={genderValue} onChange={(e) => setGenderValue(e.value)} options={genders} placeholder="Giới tính" />
-                        <h6>Thông tin liên hệ</h6>
-                        <span className="p-float-label">
-                            <InputText id="phone" name="phone" type="text" onChange={handleChange} />
-                            <label htmlFor="phone">Số điện thoại</label>
-                        </span>
-                        <span className="p-float-label">
-                            <InputText id="address" name="address" type="text" onChange={handleChange} />
-                            <label htmlFor="address">Địa chỉ</label>
-                        </span>
-                        {/* <input type="text" name="address" placeholder="Địa chỉ" value={formData.address} onChange={handleChange} style={inputStyle} /> */}
-                        {/* <button
-                type="button"
-                onClick={handleSubmit}
-                style={{
-                    padding: '15px',
-                    border: 'none',
-                    borderRadius: '30px',
-                    backgroundColor: 'linear-gradient(90deg, #6a11cb 0%, #2575fc 100%)',
-                    color: 'white',
-                    fontWeight: 'bold',
-                    fontSize: '16px',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                    transition: 'all 0.3s ease-in-out'
-                }}
-            >
-                Cập nhật
-            </button> */}
-                        <Button label="Cập nhật" onClick={handleSubmit}></Button>
-                    </form>
+                    <Card>
+                        <div style={{ display: 'flex', flexDirection: 'row', gap: '2rem' }}>
+                            {/* Left column - Avatar and basic info */}
+                            <div style={{ flex: '1', maxWidth: '15.625rem', textAlign: 'center' }}>
+                                <div style={{ position: 'relative', display: 'inline-block', cursor: 'pointer' }} onClick={handleAvatarClick}>
+                                    <img
+                                        src={avatar}
+                                        alt="Avatar"
+                                        style={{
+                                            width: '9.375rem',
+                                            height: '9.375rem',
+                                            borderRadius: '50%',
+                                            objectFit: 'cover',
+                                            border: '3px solid #f0f0f0',
+                                            marginBottom: '1rem'
+                                        }}
+                                    />
+                                    <div
+                                        style={{
+                                            position: 'absolute',
+                                            bottom: '1rem',
+                                            right: '0',
+                                            backgroundColor: 'rgba(0,0,0,0.6)',
+                                            color: 'white',
+                                            padding: '5px',
+                                            borderRadius: '50%',
+                                            width: '30px',
+                                            height: '30px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}
+                                    >
+                                        <i className="pi pi-camera" />
+                                    </div>
+                                </div>
+                                <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="image/*" onChange={handleAvatarChange} />
+                                <h3 style={{ margin: '5px 0' }}>{formData.fullName}</h3>
+                                <p style={{ margin: '0', color: '#666' }}>{formData.roles}</p>
+
+                                <div style={{ marginTop: '1.25rem' }}>
+                                    <GenericButton label="Cập nhật thông tin" onClick={openUpdateDialog} style={{ width: '100%' }} icon="pi pi-user-edit" />
+                                </div>
+                            </div>
+
+                            {/* Right column - User information */}
+                            <div style={{ flex: '3', maxWidth: '46.875rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                                    {renderInfoField('Họ tên', formData.fullName)}
+                                    {renderInfoField('Tên đăng nhập', formData.username)}
+                                    {renderInfoField('Vai trò', formData.roles)}
+                                    {renderInfoField('Giới tính', formData.gender)}
+                                    {renderInfoField('Ngày sinh', formatDate(formData.dob))}
+                                    {/* {renderInfoField('Số điện thoại', formData.phone)} */}
+                                    {renderInfoField('Địa chỉ', formData.address)}
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
                 </div>
             </div>
+
+            {/* Update Dialog */}
+            {renderUpdateDialog()}
         </div>
     );
-};
-
-const inputStyle = {
-    padding: '10px',
-    border: '1px solid #ddd',
-    borderRadius: '8px',
-    fontSize: '16px',
-    width: '100%'
 };
 
 export default AccountInfo;

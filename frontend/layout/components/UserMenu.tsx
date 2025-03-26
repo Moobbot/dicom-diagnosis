@@ -70,10 +70,10 @@ const UserMenu = () => {
                     onMouseEnter={(e) => (e.currentTarget.style.background = '#f9f9f9')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                    <img src={user?.detail_user?.avatar || '/layout/images/logo.png'} alt="User Information" style={{ width: '20px', height: '20px', borderRadius: '50%' }} />
-                    {/* <a href="/user-info" style={{ textDecoration: 'none', color: '#333' }}>
+                    <img src={user?.detail_user?.avatar || 'layout/images/default-avatar.png'} alt="User Information" style={{ width: '20px', height: '20px', borderRadius: '50%' }} />
+                    <a href="/user-info" style={{ textDecoration: 'none', color: '#333' }}>
                         Thông tin người dùng
-                    </a> */}
+                    </a>
                 </li>
                 <li
                     style={{
