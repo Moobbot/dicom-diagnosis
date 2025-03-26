@@ -4,6 +4,7 @@ export interface UserDataType {
     userId: string;
     username: string;
     detail_user: IDetailUser;
+    roles: string[];
     grant_all?: boolean;
     permissions?: Set<string>;
 }

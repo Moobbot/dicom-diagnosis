@@ -58,6 +58,7 @@ class AuthMiddleware {
                 userId: payload?.userId,
                 username: user.username,
                 detail_user: user.detail_user,
+                roles: user.roles.map((role) => role.name),
             };
 
             const hasgrant_all = user?.roles.some((role) => role.grant_all);

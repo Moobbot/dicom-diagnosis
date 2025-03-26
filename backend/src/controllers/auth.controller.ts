@@ -69,6 +69,7 @@ export class AuthController {
                 userId: req.userData.userId,
                 username: req.userData.username,
                 detail_user: req.userData.detail_user,
+                roles: req.userData.roles,
                 grant_all: req.userData.grant_all,
                 permissions: req.userData.permissions
                     ? Array.from(req.userData.permissions)
