@@ -130,9 +130,9 @@ const LCRD = () => {
                     // GIF URL
                     const gifDownloadURL = folder.gif
                         ? {
-                            download_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${folder.gif}`,
-                            preview_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${folder.gif}`
-                        }
+                              download_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${folder.gif}`,
+                              preview_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${folder.gif}`
+                          }
                         : undefined;
 
                     return {
@@ -403,10 +403,11 @@ const LCRD = () => {
             const dicomFiles: File[] = [];
 
             await Promise.all(
-                Object.keys(zipData.files).map(async (filename) => {
-                    if (filename.toLowerCase().endsWith('.dcm')) {
-                        const fileData = await zipData.files[filename].async('blob');
-                        const file = new File([fileData], filename, { type: 'application/dicom' });
+                Object.keys(zipData.files).map(async (filepath) => {
+                    if (filepath.toLowerCase().endsWith('.dcm')) {
+                        const fileData = await zipData.files[filepath].async('blob');
+                        const extractedFileName = filepath.split('/').pop() || filepath;
+                        const file = new File([fileData], extractedFileName, { type: 'application/dicom' });
                         dicomFiles.push(file);
                     }
                 })
@@ -508,15 +509,15 @@ const LCRD = () => {
                 prevFolders.map((folder) =>
                     folder.id === currentFolderId
                         ? {
-                            ...folder,
-                            predictedImagesURL: updatedData.overlay_images,
-                            gifDownloadURL: updatedData.gif,
-                            session_id: updatedData.session_id,
-                            predictions: updatedData.predictions,
-                            prediction_scores: updatedData.prediction_scores,
-                            attention_info: updatedData.attention_info,
-                            forecast: updatedData.predictions[0] || []
-                        }
+                              ...folder,
+                              predictedImagesURL: updatedData.overlay_images,
+                              gifDownloadURL: updatedData.gif,
+                              session_id: updatedData.session_id,
+                              predictions: updatedData.predictions,
+                              prediction_scores: updatedData.prediction_scores,
+                              attention_info: updatedData.attention_info,
+                              forecast: updatedData.predictions[0] || []
+                          }
                         : folder
                 )
             );
@@ -575,7 +576,7 @@ const LCRD = () => {
             icon: 'pi pi-exclamation-triangle',
             acceptClassName: folder.from_server ? 'p-button-danger' : 'p-button-warning',
             accept: () => handleDeleteFolder(folder),
-            reject: () => { }
+            reject: () => {}
         });
     };
 
@@ -631,9 +632,9 @@ const LCRD = () => {
                     // GIF URL
                     const gifDownloadURL = folder.gif
                         ? {
-                            download_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${folder.gif}`,
-                            preview_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${folder.gif}`
-                        }
+                              download_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/download/results/${sessionId}/${folder.gif}`,
+                              preview_link: `${process.env.NEXT_PUBLIC_API_BASE_URL}/sybil/preview/results/${sessionId}/${folder.gif}`
+                          }
                         : undefined;
 
                     return {
@@ -650,7 +651,6 @@ const LCRD = () => {
                         from_server: true
                     };
                 });
-
 
             // Kết hợp folders từ server với folders local
             setFolders([...localFolders, ...processedFolders]);
