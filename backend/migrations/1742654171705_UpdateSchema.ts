@@ -16,6 +16,7 @@ export class UpdateSchema1742654171705 implements MigrationInterface {
                             refreshToken: "refresh_token",
                             createdAt: "created_at",
                             updatedAt: "updated_at",
+                            "detail_user.birth_date": "detail_user.dob",
                         },
                     };
 
@@ -129,6 +130,7 @@ export class UpdateSchema1742654171705 implements MigrationInterface {
                             refresh_token: "refreshToken",
                             created_at: "createdAt",
                             updated_at: "updatedAt",
+                            "detail_user.dob": "detail_user.birth_date",
                         },
                     };
 
