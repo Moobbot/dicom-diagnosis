@@ -88,6 +88,7 @@ export class SybilService {
             await this.predictionRepository.create({
                 session_id: folderUUID,
                 predictions: data.predictions,
+                attention_info: data.attention_info,
             });
 
             // Tải file zip

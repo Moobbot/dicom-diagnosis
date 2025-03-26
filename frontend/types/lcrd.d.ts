@@ -48,7 +48,7 @@ export interface PatientInfo {
     address?: string | null;
     diagnosis?: string | null;
     general_conclusion?: string | null;
-    attentent?: string | null;
+    // attentent?: string | null;
 }
 
 export interface PatientData extends PatientInfo {

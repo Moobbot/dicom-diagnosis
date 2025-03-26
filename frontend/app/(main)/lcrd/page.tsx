@@ -145,7 +145,7 @@ const LCRD = () => {
                         predictedImagesURL,
                         gifDownloadURL,
                         predictions: folder.predictions || [],
-                        attention_info: folder.attention_info,
+                        attention_info: folder.attention_info || { attention_scores: [] },
                         from_server: true
                     };
                 });

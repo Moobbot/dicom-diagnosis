@@ -61,7 +61,7 @@ const PatientForm: React.FC<{
         if (!patientData.name) errs.name = 'Patient Name is required';
         if (!patientData.sex) errs.sex = 'Sex is required';
         if (!patientData.age) errs.age = 'Valid Age is required';
-        if (!patientData.attentent) errs.attentent = 'Attentent is required';
+        // if (!patientData.attentent) errs.attentent = 'Attentent is required';
         setErrors(errs);
         return Object.keys(errs).length === 0;
     };
@@ -71,13 +71,9 @@ const PatientForm: React.FC<{
         console.log('Call Submit');
         console.log('Patient Data Save:', patientData);
 
-        // Ensure attentent has a default value if not set and include attention_info
         const dataToSave = {
             ...patientData,
-            attentent: patientData.attentent || 'N/A',
-            attention_info: {
-                attention_scores: patientData.attention_info?.attention_scores || []
-            }
+            // attentent: patientData.attentent || 'N/A',
         };
 
         if (!validate()) {
@@ -256,11 +252,11 @@ const PatientForm: React.FC<{
                     <InputTextarea value={patientData.general_conclusion || ''} onChange={(e) => handleChange(e, 'general_conclusion')} className={errors.general_conclusion ? 'p-invalid' : ''} />
                     {errors.general_conclusion && <small className="p-error">{errors.general_conclusion}</small>}
                 </div>
-                <div className="input-wrap field col-12">
+                {/* <div className="input-wrap field col-12">
                     <label>Attentent</label>
                     <InputTextarea value={patientData.attentent || ''} onChange={(e) => handleChange(e, 'attentent')} className={errors.attentent ? 'p-invalid' : ''} />
                     {errors.attentent && <small className="p-error">{errors.attentent}</small>}
-                </div>
+                </div> */}
                 <div className="col-12 flex">
                     <div className="col-6">
                         <div className="wrap-report-button">

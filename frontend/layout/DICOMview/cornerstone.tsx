@@ -511,7 +511,6 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder, reloadFolders }) 
             address: selectedFolder?.patient_info?.address || null,
             diagnosis: selectedFolder?.patient_info?.diagnosis || 'N/A',
             general_conclusion: selectedFolder?.patient_info?.general_conclusion || null,
-            attentent: selectedFolder?.patient_info?.attentent || 'N/A',
             file_name: selectedImages,
             session_id: selectedFolder?.session_id || '',
             forecast: selectedFolder?.predictions ? selectedFolder.predictions[0] : [],
