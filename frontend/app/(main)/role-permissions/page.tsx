@@ -110,7 +110,7 @@ const RolePermissionTable = () => {
     const [state, dispatch] = useReducer(reducer, initialState);
     const toast = React.useRef<Toast>(null);
     const breadcrumbHome = { icon: 'pi pi-home', to: '/' };
-    const breadcrumbItems = [{ label: 'Quản lý vai trò' }];
+    const breadcrumbItems = [{ label: 'Manage roles' }];
     const roleService = new RoleService();
     const permissionService = new PermissionService();
     const isInitialMount = React.useRef(true);
@@ -135,7 +135,7 @@ const RolePermissionTable = () => {
         const role = state.roles.find((r) => r._id === roleId);
 
         if (role && (isAdminRole(role) || isLockedRole(role))) {
-            showToast('warn', 'Không được phép', `Không thể thay đổi quyền của ${isAdminRole(role) ? 'Admin' : 'vai trò đã bị khóa'}`);
+            showToast('warn', 'Not allowed', `Cannot change permission of ${isAdminRole(role) ? 'Admin' : 'locked role'}`);
             return;
         }
 
@@ -160,9 +160,9 @@ const RolePermissionTable = () => {
             dispatch({ type: 'SET_PERMISSIONS', payload: [...state.permissions, response.data] });
             dispatch({ type: 'SET_FILTERED_PERMISSIONS', payload: [...state.permissions, response.data] });
             dispatch({ type: 'SET_PERMISSION_DIALOG', payload: false });
-            showToast('success', 'Thành công', 'Quyền đã được tạo');
+            showToast('success', 'Success', 'Permission has been created');
         } catch (error) {
-            showToast('error', 'Lỗi', 'Không thể tạo quyền');
+            showToast('error', 'Error', 'Cannot create permission');
         }
     }, [state.newPermissionName, state.permissions, showToast]);
 
@@ -177,7 +177,7 @@ const RolePermissionTable = () => {
                 });
             dispatch({ type: 'SET_ROLES', payload: rolesData });
         } catch (error: any) {
-            showToast('error', 'Lỗi', error.response?.data?.message || 'Không thể lấy danh sách vai trò');
+            showToast('error', 'Error', error.response?.data?.message || 'Cannot get roles list');
         }
     }, [state.showInactiveRoles, state.permissions, showToast]);
 
@@ -189,7 +189,7 @@ const RolePermissionTable = () => {
             // Sau khi có permissions, fetch lại roles để cập nhật permissions
             await fetchRoles();
         } catch (error: any) {
-            showToast('error', 'Lỗi', error.response?.data?.message || 'Không thể lấy danh sách quyền');
+            showToast('error', 'Error', error.response?.data?.message || 'Cannot get permission list');
         }
     }, [showToast, fetchRoles]);
 
@@ -245,7 +245,7 @@ const RolePermissionTable = () => {
 
     const onEditRole = useCallback((role: Base.Role) => {
         if (isAdminRole(role)) {
-            showToast('warn', 'Không được phép', 'Không thể chỉnh sửa vai trò Admin');
+            showToast('warn', 'Not allowed', 'Cannot edit Admin role');
             return;
         }
         showToast('info', 'Edit Role', `Editing role ${role.name}`);
@@ -253,21 +253,21 @@ const RolePermissionTable = () => {
 
     const onLockRole = useCallback((role: Base.Role) => {
         if (isAdminRole(role)) {
-            showToast('warn', 'Không được phép', 'Không thể khóa vai trò Admin');
+            showToast('warn', 'Not allowed', 'Cannot lock Admin role');
             return;
         }
 
         confirmDialog({
-            message: `Bạn có chắc chắn muốn khóa vai trò "${role.name}"?`,
-            header: 'Xác nhận khóa vai trò',
+            message: `Are you sure you want to lock role "${role.name}"?`,
+            header: 'Confirm lock role',
             icon: 'pi pi-lock',
             accept: async () => {
                 try {
                     await roleService.changeRoleStatus(role._id, false);
                     await fetchRoles();
-                    showToast('success', 'Vai trò đã bị khóa', `Vai trò "${role.name}" đã bị khóa thành công`);
+                    showToast('success', 'Role has been locked', `Role "${role.name}" has been locked successfully`);
                 } catch (error) {
-                    showToast('error', 'Lỗi', 'Không thể khóa vai trò');
+                    showToast('error', 'Error', 'Cannot lock role');
                 }
             }
         });
@@ -275,16 +275,16 @@ const RolePermissionTable = () => {
 
     const onUnlockRole = useCallback((role: Base.Role) => {
         confirmDialog({
-            message: `Bạn có chắc chắn muốn mở khóa vai trò "${role.name}"?`,
-            header: 'Xác nhận mở khóa vai trò',
+            message: `Are you sure you want to unlock role "${role.name}"?`,
+            header: 'Confirm unlock role',
             icon: 'pi pi-unlock',
             accept: async () => {
                 try {
                     await roleService.changeRoleStatus(role._id, true);
                     await fetchRoles();
-                    showToast('success', 'Vai trò đã được mở khóa', `Vai trò "${role.name}" đã được mở khóa thành công`);
+                    showToast('success', 'Role has been unlocked', `Role "${role.name}" has been unlocked successfully`);
                 } catch (error) {
-                    showToast('error', 'Lỗi', 'Không thể mở khóa vai trò');
+                    showToast('error', 'Error', 'Cannot unlock role');
                 }
             }
         });
@@ -375,9 +375,9 @@ const RolePermissionTable = () => {
             const createdRole = response.data;
             await fetchRoles();
             dispatch({ type: 'SET_ROLE_DIALOG', payload: false });
-            showToast('success', 'Thành công', `Vai trò "${createdRole.name}" đã được tạo thành công.`);
+            showToast('success', 'Success', `Role "${createdRole.name}" has been created successfully.`);
         } catch (error) {
-            showToast('error', 'Lỗi', 'Không thể tạo vai trò.');
+            showToast('error', 'Error', 'Cannot create role.');
         }
     }, [state.newRoleName, fetchRoles, showToast]);
 
@@ -388,14 +388,14 @@ const RolePermissionTable = () => {
                 <div className="card role-permission-table">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
                         <div className="pi pi-users" style={{ fontSize: '2rem' }}></div>
-                        <span style={{ fontSize: '2rem', fontWeight: '600', color: 'black' }}>Quản lý vai trò và quyền</span>
+                        <span style={{ fontSize: '2rem', fontWeight: '600' }}>Manage roles and permissions</span>
                     </div>
                     <Toast ref={toast} />
                     <div className="button-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                         <div className="p-input-icon-left search-container" style={{ width: '30%' }}>
                             <i className="pi pi-search" />
                             <InputText 
-                                placeholder="Tìm kiếm theo mô tả quyền" 
+                                placeholder="Search by permission description" 
                                 value={state.searchQuery} 
                                 onChange={(e) => dispatch({ type: 'SET_SEARCH_QUERY', payload: e.target.value })} 
                                 className="search-input" 
@@ -411,10 +411,10 @@ const RolePermissionTable = () => {
                                 className="mr-2" 
                             />
                             <label htmlFor="showInactive" className="mr-4">
-                                Hiển thị vai trò đã khóa
+                                Show locked roles
                             </label>
                             <GenericButton 
-                                label="Thêm vai trò" 
+                                label="Add role" 
                                 icon="pi pi-plus" 
                                 className="p-button-primary" 
                                 onClick={openNewRoleDialog} 
@@ -423,14 +423,14 @@ const RolePermissionTable = () => {
                     </div>
 
                     <DataTable value={state.filteredPermissions} className="p-datatable-sm">
-                        <Column field="name" header="Tên quyền" />
-                        <Column field="description" header="Mô tả quyền" />
+                        <Column field="name" header="Permission name" />
+                        <Column field="description" header="Permission description" />
                         {roleColumns}
                     </DataTable>
 
                     <div className="save-button-container" style={{ marginTop: '1rem' }}>
                         <GenericButton 
-                            label="Lưu" 
+                            label="Save" 
                             className={`${state.isSaved ? 'p-button-success' : 'p-button-primary'} p-mt-3`} 
                             onClick={saveChanges} 
                         />
@@ -440,20 +440,20 @@ const RolePermissionTable = () => {
                     <Dialog
                         visible={state.roleDialog}
                         style={{ width: '450px' }}
-                        header="Thêm vai trò"
+                        header="Add role"
                         modal
                         className="p-fluid"
                         footer={
                             <>
                                 <GenericButton 
-                                    label="Hủy" 
+                                    label="Cancel" 
                                     icon="pi pi-times" 
                                     className="p-button" 
                                     onClick={hideDialog} 
                                     severity="danger"
                                 />
                                 <GenericButton 
-                                    label="Lưu" 
+                                    label="Save" 
                                     icon="pi pi-check" 
                                     className="p-button" 
                                     onClick={saveRole} 
@@ -464,7 +464,7 @@ const RolePermissionTable = () => {
                         onHide={hideDialog}
                     >
                         <div className="field">
-                            <label htmlFor="roleName">Tên vai trò</label>
+                            <label htmlFor="roleName">Role name</label>
                             <InputText 
                                 id="roleName"
                                 value={state.newRoleName} 

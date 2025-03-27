@@ -48,11 +48,11 @@ interface UpdateUserData {
 const AccountInfo: React.FC = () => {
     const toast = useRef<Toast>(null);
     const breadcrumbHome = { icon: 'pi pi-home', to: '/' };
-    const breadcrumbItems = [{ label: 'Thông tin người dùng' }];
+    const breadcrumbItems = [{ label: 'User information' }];
     const genders: GenderOption[] = [
-        { label: 'Nam', value: Gender.MALE },
-        { label: 'Nữ', value: Gender.FEMALE },
-        { label: 'Khác', value: Gender.OTHER }
+        { label: 'Male', value: Gender.MALE },
+        { label: 'Female', value: Gender.FEMALE },
+        { label: 'Other', value: Gender.OTHER }
     ];
 
     const [userId, setUserId] = useState<string>('');
@@ -169,12 +169,12 @@ const AccountInfo: React.FC = () => {
             };
             const response = await AuthService.updateProfile(updateData);
 
-            showToast('success', 'Thành công', response.message || 'Cập nhật thông tin thành công');
+            showToast('success', 'Success', response.message || 'Update profile successfully');
             fetchUserData(userId);
             closeUpdateDialog();
         } catch (error: any) {
             console.error('Error updating profile:', error);
-            showToast('error', 'Lỗi', `Không thể cập nhật thông tin: ${error.message}`);
+            showToast('error', 'Error', `Cannot update profile: ${error.message}`);
         }
     };
 
@@ -190,7 +190,7 @@ const AccountInfo: React.FC = () => {
 
         const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
         if (file.size > MAX_FILE_SIZE) {
-            showToast('error', 'Lỗi', 'Kích thước file không được vượt quá 2MB');
+            showToast('error', 'Error', 'File size must not exceed 2MB');
             return;
         }
 
@@ -200,7 +200,7 @@ const AccountInfo: React.FC = () => {
         const hasValidExtension = validExtensions.some((ext) => fileName.endsWith(ext));
 
         if (!hasValidExtension) {
-            showToast('error', 'Lỗi', 'Chỉ chấp nhận file định dạng PNG, JPG hoặc JPEG');
+            showToast('error', 'Error', 'Only PNG, JPG or JPEG files are allowed');
             return;
         }
 
@@ -210,12 +210,12 @@ const AccountInfo: React.FC = () => {
             // Refresh user data để lấy avatar mới từ server
             await fetchUserData(userId);
 
-            showToast('success', 'Thành công', 'Cập nhật ảnh đại diện thành công');
+            showToast('success', 'Success', 'Update avatar successfully');
         } catch (error: any) {
             console.error('Error updating avatar:', error);
             // Xử lý lỗi từ response của server
-            const errorMessage = error.response?.data?.message || error.message || 'Không thể cập nhật ảnh đại diện';
-            showToast('error', 'Lỗi', errorMessage);
+            const errorMessage = error.response?.data?.message || error.message || 'Cannot update avatar';
+            showToast('error', 'Error', errorMessage);
         }
     };
 
@@ -234,45 +234,45 @@ const AccountInfo: React.FC = () => {
     const renderUpdateDialog = () => {
         return (
             <Dialog
-                header="Cập nhật thông tin cá nhân"
+                header="Update personal information"
                 visible={showUpdateDialog}
                 style={{ width: '50vw' }}
                 onHide={closeUpdateDialog}
                 footer={
                     <div>
-                        <GenericButton label="Hủy" onClick={closeUpdateDialog} severity="secondary" style={{ marginRight: '10px' }} />
-                        <GenericButton label="Lưu thông tin" onClick={handleSubmit} />
+                        <GenericButton label="Cancel" onClick={closeUpdateDialog} severity="secondary" style={{ marginRight: '10px' }} />
+                        <GenericButton label="Save information" onClick={handleSubmit} />
                     </div>
                 }
             >
                 <div className="grid formgrid p-fluid">
                     <div className="field col-12 md:col-6">
-                        <label htmlFor="edit-fullName">Họ tên</label>
+                        <label htmlFor="edit-fullName">Full name</label>
                         <InputText id="edit-fullName" name="fullName" value={editFormData.fullName} onChange={handleChange} />
                     </div>
 
                     <div className="field col-12 md:col-6">
-                        <label htmlFor="edit-username">Tên đăng nhập</label>
+                        <label htmlFor="edit-username">Username</label>
                         <InputText id="edit-username" name="username" value={editFormData.username} disabled />
                     </div>
 
                     <div className="field col-12 md:col-6">
-                        <label htmlFor="edit-roles">Vai trò</label>
+                        <label htmlFor="edit-roles">Role</label>
                         <InputText id="edit-roles" name="roles" value={editFormData.roles} disabled />
                     </div>
 
                     <div className="field col-12 md:col-6">
-                        <label htmlFor="edit-gender">Giới tính</label>
-                        <Dropdown id="edit-gender" placeholder="Chọn giới tính" value={editFormData.gender} onChange={handleGenderChange} options={genders} optionLabel="label" />
+                        <label htmlFor="edit-gender">Gender</label>
+                        <Dropdown id="edit-gender" placeholder="Select gender" value={editFormData.gender} onChange={handleGenderChange} options={genders} optionLabel="label" />
                     </div>
 
                     <div className="field col-12 md:col-6">
-                        <label htmlFor="edit-dob">Ngày sinh</label>
+                        <label htmlFor="edit-dob">Date of birth</label>
                         <Calendar id="edit-dob" value={editFormData.dob ? new Date(editFormData.dob) : null} onChange={handleDateChange} dateFormat="dd/mm/yy" showIcon />
                     </div>
 
                     <div className="field col-12 md:col-6">
-                        <label htmlFor="edit-address">Địa chỉ</label>
+                        <label htmlFor="edit-address">Address</label>
                         <InputText id="edit-address" name="address" value={editFormData.address} onChange={handleChange} />
                     </div>
                 </div>
@@ -301,7 +301,7 @@ const AccountInfo: React.FC = () => {
 
             <div className="card">
                 <div style={{ maxWidth: '62.5rem', margin: 'auto', padding: '1.25rem' }}>
-                    <h2 style={{ marginBottom: '1.25rem' }}>Hồ Sơ Cá Nhân</h2>
+                    <h2 style={{ marginBottom: '1.25rem' }}>Personal information</h2>
 
                     <Card>
                         <div style={{ display: 'flex', flexDirection: 'row', gap: '2rem' }}>
@@ -344,20 +344,20 @@ const AccountInfo: React.FC = () => {
                                 <p style={{ margin: '0', color: '#666' }}>{formData.roles}</p>
 
                                 <div style={{ marginTop: '1.25rem' }}>
-                                    <GenericButton label="Cập nhật thông tin" onClick={openUpdateDialog} style={{ width: '100%' }} icon="pi pi-user-edit" />
+                                    <GenericButton label="Update information" onClick={openUpdateDialog} style={{ width: '100%' }} icon="pi pi-user-edit" />
                                 </div>
                             </div>
 
                             {/* Right column - User information */}
                             <div style={{ flex: '3', maxWidth: '46.875rem' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-                                    {renderInfoField('Họ tên', formData.fullName)}
-                                    {renderInfoField('Tên đăng nhập', formData.username)}
-                                    {renderInfoField('Vai trò', formData.roles)}
-                                    {renderInfoField('Giới tính', formData.gender)}
-                                    {renderInfoField('Ngày sinh', formatDate(formData.dob))}
+                                    {renderInfoField('Full name', formData.fullName)}
+                                    {renderInfoField('Username', formData.username)}
+                                    {renderInfoField('Role', formData.roles)}
+                                    {renderInfoField('Gender', formData.gender)}
+                                    {renderInfoField('Date of birth', formatDate(formData.dob))}
                                     {/* {renderInfoField('Số điện thoại', formData.phone)} */}
-                                    {renderInfoField('Địa chỉ', formData.address)}
+                                    {renderInfoField('Address', formData.address)}
                                 </div>
                             </div>
                         </div>

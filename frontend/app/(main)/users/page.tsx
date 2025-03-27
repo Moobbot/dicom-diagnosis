@@ -68,7 +68,7 @@ const Crud = () => {
     const userService = new UserService();
     const roleService = new RoleService();
     const breadcrumbHome = { icon: 'pi pi-home', to: '/' };
-    const breadcrumbItems = [{ label: 'Quản lý người dùng' }];
+    const breadcrumbItems = [{ label: 'Manage users' }];
 
     const dt = useRef<DataTable<any>>(null);
 
@@ -79,7 +79,7 @@ const Crud = () => {
             setUsers(response.data);
             setTotalRecords(response.total);
         } catch (error) {
-            toast.current?.show({ severity: 'error', summary: 'Lỗi', detail: 'Không thể lấy người dùng!' });
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Cannot get users!' });
         } finally {
             setLoading(false);
         }
@@ -106,7 +106,7 @@ const Crud = () => {
                 }));
             setRoles(roleOptions);
         } catch (error) {
-            toast.current?.show({ severity: 'error', summary: 'Lỗi', detail: 'Không thể lấy vai trò!' });
+            toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Cannot get roles!' });
         }
     };
 
@@ -156,14 +156,14 @@ const Crud = () => {
                     }
 
                     await userService.updateUser(user._id.toString(), updateData);
-                    toast.current?.show({ severity: 'success', summary: 'Thành công', detail: 'Người dùng đã được cập nhật!', life: 3000 });
+                    toast.current?.show({ severity: 'success', summary: 'Success', detail: 'User has been updated!', life: 3000 });
                 } else {
                     // Create new user
                     if (!user.detail_user.user_code || !user.detail_user.name) {
                         toast.current?.show({
                             severity: 'error',
-                            summary: 'Lỗi',
-                            detail: 'Vui lòng điền đầy đủ thông tin bắt buộc!'
+                            summary: 'Error',
+                            detail: 'Please fill in all required information!'
                         });
                         return;
                     }
@@ -181,7 +181,7 @@ const Crud = () => {
                             avatar: user.detail_user.avatar || ''
                         }
                     });
-                    toast.current?.show({ severity: 'success', summary: 'Thành công', detail: 'Người dùng đã được tạo thành công!', life: 3000 });
+                    toast.current?.show({ severity: 'success', summary: 'Success', detail: 'User has been created successfully!', life: 3000 });
                 }
 
                 setUserDialog(false);
@@ -192,8 +192,8 @@ const Crud = () => {
             } catch (error: any) {
                 toast.current?.show({
                     severity: 'error',
-                    summary: 'Lỗi',
-                    detail: error.response?.data?.message || 'Không thể lưu người dùng!'
+                    summary: 'Error',
+                    detail: error.response?.data?.message || 'Cannot save user!'
                 });
             }
         }
@@ -238,16 +238,16 @@ const Crud = () => {
             setUser(emptyUser);
             toast.current?.show({
                 severity: 'success',
-                summary: 'Thành công',
-                detail: `Người dùng ${newStatus ? 'đã được kích hoạt' : 'đã khóa'} thành công!`,
+                summary: 'Success',
+                detail: `User ${newStatus ? 'has been activated' : 'has been locked'} successfully!`,
                 life: 3000
             });
             await fetchUsers(page, rows);
         } catch (error) {
             toast.current?.show({
                 severity: 'error',
-                summary: 'Lỗi',
-                detail: 'Không thể cập nhật trạng thái người dùng!'
+                summary: 'Error',
+                detail: 'Cannot update user status!'
             });
         }
     };
@@ -261,10 +261,10 @@ const Crud = () => {
                         await userService.changeUserStatus(user._id.toString(), newStatus);
                     })
                 );
-                toast.current?.show({ severity: 'success', summary: 'Thành công', detail: 'Trạng thái người dùng đã được cập nhật!', life: 3000 });
+                toast.current?.show({ severity: 'success', summary: 'Success', detail: 'User status has been updated!', life: 3000 });
                 await fetchUsers(page, rows);
             } catch (error: any) {
-                toast.current?.show({ severity: 'error', summary: 'Lỗi', detail: error.message || 'Không thể cập nhật trạng thái người dùng!' });
+                toast.current?.show({ severity: 'error', summary: 'Error', detail: error.message || 'Cannot update user status!' });
             }
         }
     };
@@ -334,7 +334,7 @@ const Crud = () => {
             <div className="table-header flex align-items-center">
                 <span className="p-input-icon-left">
                     <i className="pi pi-search" />
-                    <InputText type="text" placeholder="Tìm kiếm..." value={globalFilter || ''} onChange={onGlobalFilterChange} />
+                    <InputText type="text" placeholder="Search..." value={globalFilter || ''} onChange={onGlobalFilterChange} />
                 </span>
             </div>
         );
@@ -344,9 +344,9 @@ const Crud = () => {
         return (
             <React.Fragment>
                 <div className="flex flex-wrap" style={{ gap: '8px' }}>
-                    <GenericButton label="Thêm tài khoản" icon="pi pi-plus" onClick={openNew} permissions={[Permissions.ADD_USER]} style={{ height: '40px' }} severity="info" />
+                    <GenericButton label="Add account" icon="pi pi-plus" onClick={openNew} permissions={[Permissions.ADD_USER]} style={{ height: '40px' }} severity="info" />
                     <GenericButton
-                        label="Khóa tài khoản"
+                        label="Lock account"
                         icon="pi pi-lock"
                         onClick={confirmDeleteSelected}
                         permissions={[Permissions.CHANGE_STATUS_USER]}
@@ -354,7 +354,7 @@ const Crud = () => {
                         style={{ height: '40px' }}
                         severity="danger"
                     />
-                    <GenericButton label="Xuất dữ liệu" icon="pi pi-upload" onClick={exportCSV} severity="help" />
+                    <GenericButton label="Export data" icon="pi pi-upload" onClick={exportCSV} severity="help" />
                 </div>
             </React.Fragment>
         );
@@ -368,7 +368,7 @@ const Crud = () => {
                     <div className="card">
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <FiUsers size={50} />
-                            <h1>Quản lý tài khoản</h1>
+                            <h1>Manage accounts</h1>
                         </Box>
 
                         <Toast ref={toast} />
