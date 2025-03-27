@@ -146,16 +146,6 @@ const PatientForm: React.FC<{
         console.log('Patient Data Report:', patientData);
 
         try {
-            // Đảm bảo patient được lưu trước khi generate report
-            let savedPatient = patientData;
-            if (!patientData._id) {
-                const response = await PatientService.createPatient(patientData);
-                if (response.data) {
-                    savedPatient = response.data;
-                    setPatientData(response.data);
-                    setIsExistingPatient(true);
-                }
-            }
 
             // Đóng dialog và đợi session được cập nhật
             if (onClose) {
@@ -173,7 +163,7 @@ const PatientForm: React.FC<{
                     Pragma: 'no-cache',
                     Expires: '0'
                 },
-                body: JSON.stringify(savedPatient)
+                body: JSON.stringify(patientData)
             });
 
             if (!response.ok) {
@@ -187,7 +177,7 @@ const PatientForm: React.FC<{
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             const timestamp = new Date().toLocaleString('vi-VN').replace(/[/:]/g, '-');
-            const patientName = savedPatient?.name || 'Unknown';
+            const patientName = patientData.name || 'Unknown';
             a.href = url;
             a.download = `Patient_Report_${patientName}_${timestamp}.docx`;
             document.body.appendChild(a);
