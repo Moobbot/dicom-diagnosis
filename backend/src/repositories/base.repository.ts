@@ -38,12 +38,12 @@ export class BaseRepository<T> {
 
         query
             .populate({
-                path: "createdBy",
+                path: "created_by",
                 select: "id username",
                 strictPopulate: false,
             })
             .populate({
-                path: "updatedBy",
+                path: "updated_by",
                 select: "id username",
                 strictPopulate: false,
             });

@@ -4,7 +4,7 @@ import { CreatePatientSchema, UpdatePatientSchema } from "../../validation/patie
 import { FindQuerySchema } from "../../../validation/find-query.validation";
 import { idSchema } from "../../../validation/objectid.validation";
 
-class PatientController {
+export class PatientController {
     private readonly patientService: PatientService;
 
     constructor() {
@@ -36,6 +36,7 @@ class PatientController {
         res.status(200).json({
             status: 200,
             message: "Update Patient success",
+            data: patient,
         });
     };
 
@@ -70,5 +71,3 @@ class PatientController {
     };
 
 }
-
-export default new PatientController();

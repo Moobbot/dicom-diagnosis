@@ -48,12 +48,14 @@ export interface PatientInfo {
     address?: string | null;
     diagnosis?: string | null;
     general_conclusion?: string | null;
+    // attentent?: string | null;
 }
 
 export interface PatientData extends PatientInfo {
     session_id: string;
     file_name: string[];
     forecast: number[];
+    attention_info?: AttentionInfo;
 }
 
 // type PatientInfo = Omits<PatientData, 'session_id' | 'file_name' | 'forecast'>;
@@ -76,7 +78,6 @@ export interface ServerFolder {
     gif: string;
 }
 export interface AttentionScore {
-    file_name_original: string;
     file_name_pred: string;
     rank: number;
     attention_score: number;

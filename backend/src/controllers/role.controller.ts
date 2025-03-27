@@ -1,29 +1,28 @@
 import { Request, Response } from "express";
-import BadRequestError from "../errors/bad-request.error";
+
 import NotFoundError from "../errors/not-found.error";
+
 import { RoleService } from "../services/role.service";
-import { PermissionService } from "../services/permission.service";
+
 import {
     ChangeRoleStatusSchema,
     CreateRoleSchema,
     UpdateRoleSchema,
 } from "../validation/role.validation";
-import { idSchema } from "../validation/objectid.validation";
 import { FindQuerySchema } from "../validation/find-query.validation";
+import { idSchema } from "../validation/objectid.validation";
+
 
 export class RoleController {
     private readonly roleService: RoleService;
-    private readonly permissionService: PermissionService;
 
     constructor() {
         this.roleService = new RoleService();
-        this.permissionService = new PermissionService();
     }
 
     createRole = async (req: Request, res: Response) => {
         const validatedData = CreateRoleSchema.parse(req.body);
 
-        const { name, grantAll } = req.body;
         const userId = req.userData?.userId;
 
         const role = await this.roleService.createRole(userId, validatedData);
@@ -104,9 +103,8 @@ export class RoleController {
         );
 
         res.status(200).json({
-            message: `Role ${
-                status ? "activated" : "deactivated"
-            } successfully`,
+            message: `Role ${status ? "activated" : "deactivated"
+                } successfully`,
             success: true,
             data: updatedRole,
         });

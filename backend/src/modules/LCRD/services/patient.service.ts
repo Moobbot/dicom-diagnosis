@@ -81,7 +81,10 @@ export class PatientService {
             const total = await this.patientRepository.count(filter);
 
             if (total === 0) {
-                logInfo('No patients found with the given criteria', { filter, sort });
+                logInfo("No patients found with the given criteria", {
+                    filter,
+                    sort,
+                });
                 return { total: 0, patients: [] };
             }
 
@@ -93,14 +96,23 @@ export class PatientService {
             );
 
             if (!patients || patients.length === 0) {
-                logInfo('No patients found in the specified page', { page, limit });
+                logInfo("No patients found in the specified page", {
+                    page,
+                    limit,
+                });
                 return { total: 0, patients: [] };
             }
 
             const enrichedPatients = await Promise.all(
                 patients.map(async (patient) => {
-                    if (!patient || !patient.folder || !patient.folder.folderUUID) {
-                        logWarning('Invalid patient record found', { patientId: patient?._id });
+                    if (
+                        !patient ||
+                        !patient.folder ||
+                        !patient.folder.folderUUID
+                    ) {
+                        logWarning("Invalid patient record found", {
+                            patientId: patient?._id,
+                        });
                         return null;
                     }
 
@@ -110,20 +122,24 @@ export class PatientService {
 
                     let uploadFiles: string[] = [];
                     let saveFiles: string[] = [];
-                    let errors: { type: string; message: string; path?: string }[] = [];
+                    let errors: {
+                        type: string;
+                        message: string;
+                        path?: string;
+                    }[] = [];
 
                     try {
                         // Kiểm tra thư mục tồn tại
                         if (!fs.existsSync(uploadPath)) {
                             errors.push({
-                                type: 'UPLOAD_FOLDER_MISSING',
-                                message: 'Upload folder not found',
-                                path: uploadPath
+                                type: "UPLOAD_FOLDER_MISSING",
+                                message: "Upload folder not found",
+                                path: uploadPath,
                             });
-                            logWarning('Upload folder not found for patient', { 
+                            logWarning("Upload folder not found for patient", {
                                 patientId: patient._id,
                                 folderUUID,
-                                uploadPath 
+                                uploadPath,
                             });
                         } else {
                             uploadFiles = fs.readdirSync(uploadPath);
@@ -131,12 +147,15 @@ export class PatientService {
                             for (const file of uploadFiles) {
                                 const filePath = path.join(uploadPath, file);
                                 try {
-                                    await fs.promises.access(filePath, fs.constants.R_OK);
+                                    await fs.promises.access(
+                                        filePath,
+                                        fs.constants.R_OK
+                                    );
                                 } catch (error) {
                                     errors.push({
-                                        type: 'UPLOAD_FILE_NOT_READABLE',
+                                        type: "UPLOAD_FILE_NOT_READABLE",
                                         message: `Cannot read upload file: ${file}`,
-                                        path: filePath
+                                        path: filePath,
                                     });
                                 }
                             }
@@ -144,14 +163,14 @@ export class PatientService {
 
                         if (!fs.existsSync(savePath)) {
                             errors.push({
-                                type: 'RESULTS_FOLDER_MISSING',
-                                message: 'Results folder not found',
-                                path: savePath
+                                type: "RESULTS_FOLDER_MISSING",
+                                message: "Results folder not found",
+                                path: savePath,
                             });
-                            logWarning('Results folder not found for patient', { 
+                            logWarning("Results folder not found for patient", {
                                 patientId: patient._id,
                                 folderUUID,
-                                savePath 
+                                savePath,
                             });
                         } else {
                             saveFiles = fs.readdirSync(savePath);
@@ -159,12 +178,15 @@ export class PatientService {
                             for (const file of saveFiles) {
                                 const filePath = path.join(savePath, file);
                                 try {
-                                    await fs.promises.access(filePath, fs.constants.R_OK);
+                                    await fs.promises.access(
+                                        filePath,
+                                        fs.constants.R_OK
+                                    );
                                 } catch (error) {
                                     errors.push({
-                                        type: 'RESULT_FILE_NOT_READABLE',
+                                        type: "RESULT_FILE_NOT_READABLE",
                                         message: `Cannot read result file: ${file}`,
-                                        path: filePath
+                                        path: filePath,
                                     });
                                 }
                             }
@@ -173,54 +195,61 @@ export class PatientService {
                         // Kiểm tra file trong thư mục
                         if (uploadFiles.length === 0) {
                             errors.push({
-                                type: 'NO_UPLOAD_FILES',
-                                message: 'No files found in upload folder'
+                                type: "NO_UPLOAD_FILES",
+                                message: "No files found in upload folder",
                             });
-                            logWarning('No files found in upload folder', { 
+                            logWarning("No files found in upload folder", {
                                 patientId: patient._id,
                                 folderUUID,
-                                uploadPath 
+                                uploadPath,
                             });
                         }
 
                         // Kiểm tra định dạng file
-                        const invalidUploadFiles = uploadFiles.filter(file => !file.toLowerCase().endsWith('.dcm'));
+                        const invalidUploadFiles = uploadFiles.filter(
+                            (file) => !file.toLowerCase().endsWith(".dcm")
+                        );
                         if (invalidUploadFiles.length > 0) {
                             errors.push({
-                                type: 'INVALID_FILE_FORMAT',
-                                message: `Invalid file format found: ${invalidUploadFiles.join(', ')}`
+                                type: "INVALID_FILE_FORMAT",
+                                message: `Invalid file format found: ${invalidUploadFiles.join(
+                                    ", "
+                                )}`,
                             });
                         }
-
                     } catch (error) {
                         errors.push({
-                            type: 'FILE_SYSTEM_ERROR',
-                            message: (error as Error).message || 'Error accessing files'
+                            type: "FILE_SYSTEM_ERROR",
+                            message:
+                                (error as Error).message ||
+                                "Error accessing files",
                         });
-                        logError('Error reading folders for patient', error, {
+                        logError("Error reading folders for patient", error, {
                             patientId: patient._id,
-                            folderUUID
+                            folderUUID,
                         });
                     }
 
                     const overlayImages = saveFiles.filter((file) =>
                         file.endsWith(".dcm")
                     );
-                    const gif = saveFiles.find((file) => file.endsWith(".gif")) || null;
+                    const gif =
+                        saveFiles.find((file) => file.endsWith(".gif")) || null;
 
-                    const patientInfo = (({ folder, prediction, ...rest }) => rest)(
-                        patient.toObject()
-                    );
+                    const patientInfo = (({ folder, prediction, ...rest }) =>
+                        rest)(patient.toObject());
 
                     return {
                         _id: patient._id,
                         patient_info: patientInfo,
                         session_id: folderUUID,
                         predictions: patient.prediction?.predictions || [],
+                        attention_info:
+                            patient.prediction?.attention_info || {},
                         upload_images: uploadFiles,
                         overlay_images: overlayImages,
                         gif,
-                        errors: errors.length > 0 ? errors : undefined
+                        errors: errors.length > 0 ? errors : undefined,
                     };
                 })
             );
@@ -229,29 +258,30 @@ export class PatientService {
             const validPatients = enrichedPatients.filter(Boolean);
 
             if (validPatients.length === 0) {
-                logWarning('No valid patient records found after processing', { 
-                    totalPatients: patients.length 
+                logWarning("No valid patient records found after processing", {
+                    totalPatients: patients.length,
                 });
             }
 
-            return { 
-                total: validPatients.length, 
-                patients: validPatients 
+            return {
+                total: validPatients.length,
+                patients: validPatients,
             };
         } catch (error) {
-            logError('Error in listAllPatients', error);
+            logError("Error in listAllPatients", error);
             throw error;
         }
     };
 
     deletePatientById = async (patientId: string) => {
         try {
-            const patient = await this.patientRepository.findExtendedPatientById(
-                patientId
-            );
+            const patient =
+                await this.patientRepository.findExtendedPatientById(patientId);
 
             if (!patient) {
-                logWarning('Attempt to delete non-existent patient', { patientId });
+                logWarning("Attempt to delete non-existent patient", {
+                    patientId,
+                });
                 throw new NotFoundError("Patient not found");
             }
 
@@ -261,66 +291,77 @@ export class PatientService {
 
             try {
                 fs.rmSync(uploadPath, { recursive: true, force: true });
-                logInfo('Upload folder deleted successfully', { 
-                    patientId, 
-                    folderUUID,
-                    uploadPath 
-                });
-            } catch (error) {
-                logError('Error deleting upload folder', error, {
+                logInfo("Upload folder deleted successfully", {
                     patientId,
                     folderUUID,
-                    uploadPath
+                    uploadPath,
+                });
+            } catch (error) {
+                logError("Error deleting upload folder", error, {
+                    patientId,
+                    folderUUID,
+                    uploadPath,
                 });
             }
 
             try {
                 fs.rmSync(savePath, { recursive: true, force: true });
-                logInfo('Results folder deleted successfully', { 
-                    patientId, 
-                    folderUUID,
-                    savePath 
-                });
-            } catch (error) {
-                logError('Error deleting results folder', error, {
+                logInfo("Results folder deleted successfully", {
                     patientId,
                     folderUUID,
-                    savePath
+                    savePath,
+                });
+            } catch (error) {
+                logError("Error deleting results folder", error, {
+                    patientId,
+                    folderUUID,
+                    savePath,
                 });
             }
 
-            await this.folderRepository.deleteById(patient.folder._id.toString());
+            await this.folderRepository.deleteById(
+                patient.folder._id.toString()
+            );
             await this.predictionRepository.deleteById(
                 patient.prediction._id.toString()
             );
             await this.patientRepository.deleteById(patientId);
 
-            logInfo('Patient deleted successfully', { patientId, folderUUID });
+            logInfo("Patient deleted successfully", { patientId, folderUUID });
         } catch (error) {
-            logError('Error in deletePatientById', error);
+            logError("Error in deletePatientById", error);
             throw error;
         }
     };
 
-    updatePatient = async (patientId: string, data: z.infer<typeof UpdatePatientSchema>, userId: string) => {
-        const patient = await this.patientRepository.findExtendedPatientById(patientId);
+    updatePatient = async (
+        patientId: string,
+        data: z.infer<typeof UpdatePatientSchema>,
+        userId: string
+    ) => {
+        const patient = await this.patientRepository.findExtendedPatientById(
+            patientId
+        );
 
         if (!patient) {
             throw new NotFoundError("Patient not found");
         }
 
         // Cập nhật thông tin bệnh nhân
-        const updatedPatient = await this.patientRepository.updateById(patientId, {
-            patient_id: data.patient_id,
-            name: data.name,
-            age: data.age,
-            sex: data.sex,
-            address: data.address,
-            diagnosis: data.diagnosis,
-            general_conclusion: data.general_conclusion,
-            updatedAt: new Date(),
-            updatedBy: new Types.ObjectId(userId)
-        });
+        const updatedPatient = await this.patientRepository.updateById(
+            patientId,
+            {
+                patient_id: data.patient_id,
+                name: data.name,
+                age: data.age,
+                sex: data.sex,
+                address: data.address,
+                diagnosis: data.diagnosis,
+                general_conclusion: data.general_conclusion,
+                updatedAt: new Date(),
+                updatedBy: new Types.ObjectId(userId),
+            }
+        );
 
         return updatedPatient;
     };

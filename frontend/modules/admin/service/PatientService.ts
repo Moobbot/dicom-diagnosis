@@ -73,6 +73,7 @@ class PatientService {
         address?: string | null;
         diagnosis?: string | null;
         general_conclusion?: string | null;
+        attentent?: string | null;
         session_id: string
     }): Promise<any> {
         try {
@@ -80,6 +81,25 @@ class PatientService {
             return response.data;
         } catch (error: any) {
             this.logError('createPatient', error, { data });
+            
+            // Handle specific error cases
+            if (error.response?.status === 400) {
+                if (error.response.data?.message?.includes('Patient already exists')) {
+                    throw new Error('A patient with this ID already exists in the system');
+                }
+            }
+
+            // Handle network errors
+            if (error.message === 'Network Error') {
+                throw new Error('Unable to connect to the server. Please check your internet connection.');
+            }
+
+            // Handle timeout errors
+            if (error.code === 'ECONNABORTED') {
+                throw new Error('The request timed out. Please try again.');
+            }
+
+            // Handle other errors
             throw new Error(
                 error.response?.data?.message ||
                 error.message ||
@@ -93,7 +113,18 @@ class PatientService {
             const response = await api.put(`${this.baseUrl}/${id}`, data);
             return response.data;
         } catch (error: any) {
-            console.error('updatePatient', error, { id, data });
+            this.logError('updatePatient', error, { id, data });
+
+            // Handle network errors
+            if (error.message === 'Network Error') {
+                throw new Error('Unable to connect to the server. Please check your internet connection.');
+            }
+
+            // Handle timeout errors
+            if (error.code === 'ECONNABORTED') {
+                throw new Error('The request timed out. Please try again.');
+            }
+
             throw new Error(
                 error.response?.data?.message ||
                 error.message ||

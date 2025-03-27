@@ -80,24 +80,41 @@ export async function fillTemplate({
         console.log(`📂 Processing report for session: ${session_id}`);
 
         // 2️⃣ Chuyển đổi tất cả ảnh DICOM sang PNG bằng API Flask
+        const images_predict_rows = [];
         const formData = new FormData();
-        dicomPaths.forEach((dicomPath) => { formData.append("files", fs.createReadStream(dicomPath)); });
+        if (dicomPaths.length > 0) {
+            dicomPaths.forEach((dicomPath) => { formData.append("files", fs.createReadStream(dicomPath)); });
+            const response = await axios.post(
+                `${validateEnv().sybilModelBaseUrl}/convert-list`,
+                formData,
+                {
+                    headers: { "Content-Type": "multipart/form-data" },
+                }
+            );
 
-        const response = await axios.post(
-            `${validateEnv().sybilModelBaseUrl}/convert-list`,
-            formData,
-            {
-                headers: { "Content-Type": "multipart/form-data" },
+            const { images } = response.data;
+            if (!images || images.length === 0) {
+                throw new Error("❌ Did not receive images from API");
             }
-        );
 
-        const { images } = response.data;
-        if (!images || images.length === 0) {
-            throw new Error("❌ Did not receive images from API");
+            console.log(`✅ Images created from API:`, images.map((img: { filename: string }) => img.filename)
+            );
+            const columns = 2; // Number of images per row
+            // 5️⃣ Convert multiple PNG images to Base64 list
+            const images_predict = images.map(
+                (image: { image_base64: string }) => ({
+                    width: 7, // cm
+                    height: 7, // cm
+                    data: image.image_base64, // ✅ Use image_base64 instead of object image
+                    extension: ".png",
+                })
+            );
+
+            // Divide the list of images into 2D arrays, each line contains `columns` images'
+            for (let i = 0; i < images_predict.length; i += columns) {
+                images_predict_rows.push(images_predict.slice(i, i + columns));
+            }
         }
-
-        console.log(`✅ Images created from API:`, images.map((img: { filename: string }) => img.filename)
-        );
 
         // 3️⃣ Read DOCX template
         const templateBuffer = fs.readFileSync(template_name);
@@ -106,23 +123,6 @@ export async function fillTemplate({
         const forecastData = dataForm.forecast.map((value, index) =>
             value ? `${(value * 100).toFixed(2)}%` : "N/A"
         );
-
-        const columns = 2; // Number of images per row
-        // 5️⃣ Convert multiple PNG images to Base64 list
-        const images_predict = images.map(
-            (image: { image_base64: string }) => ({
-                width: 7, // cm
-                height: 7, // cm
-                data: image.image_base64, // ✅ Use image_base64 instead of object image
-                extension: ".png",
-            })
-        );
-
-        // Divide the list of images into 2D arrays, each line contains `columns` images'
-        const images_predict_rows = [];
-        for (let i = 0; i < images_predict.length; i += columns) {
-            images_predict_rows.push(images_predict.slice(i, i + columns));
-        }
 
         const reportData = {
             patient_id: dataForm.patient_id,

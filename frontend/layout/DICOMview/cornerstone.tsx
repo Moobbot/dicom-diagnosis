@@ -509,11 +509,12 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder, reloadFolders }) 
             age: selectedFolder?.patient_info?.age || '',
             sex: selectedFolder?.patient_info?.sex || '',
             address: selectedFolder?.patient_info?.address || null,
-            diagnosis: selectedFolder?.patient_info?.diagnosis || null,
+            diagnosis: selectedFolder?.patient_info?.diagnosis || 'N/A',
             general_conclusion: selectedFolder?.patient_info?.general_conclusion || null,
             file_name: selectedImages,
             session_id: selectedFolder?.session_id || '',
-            forecast: selectedFolder?.predictions ? selectedFolder.predictions[0] : []
+            forecast: selectedFolder?.predictions ? selectedFolder.predictions[0] : [],
+            attention_info: selectedFolder?.attention_info || { attention_scores: [] }
         }));
 
         setExportDialog(true);
@@ -528,18 +529,21 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder, reloadFolders }) 
         }
     }, [selectedFolder]);
 
-    // Update useEffect cho việc chọn ảnh
+    // Thêm useEffect để reset selectedImages khi thay đổi folder
     useEffect(() => {
+        // Reset selectedImages khi thay đổi folder
+        setSelectedImages([]);
+        
+        // Sau đó mới chọn top 6 ảnh của folder mới nếu có
         if (selectedFolder?.predictedImagesURL && selectedFolder.attention_info?.attention_scores) {
-            // Lấy 6 ảnh có attention_score cao nhất từ attention_scores
             const topSixImages = selectedFolder.attention_info.attention_scores
                 .sort((a, b) => b.attention_score - a.attention_score)
                 .slice(0, 6)
                 .map(score => score.file_name_pred);
-                
+            console.log(topSixImages);
             setSelectedImages(topSixImages);
         }
-    }, [selectedFolder?.predictedImagesURL, selectedFolder?.attention_info]);
+    }, [selectedFolder?.id, selectedFolder?.attention_info?.attention_scores]); // Thêm selectedFolder?.id vào dependencies
 
     return (
         <div className="w-full h-full">

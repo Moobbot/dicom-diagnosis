@@ -1,16 +1,18 @@
-import { Request, Response } from "express";
+import { z } from "zod";
+
 import NotFoundError from "../errors/not-found.error";
+import ConflictError from "../errors/conflict.error";
+
 import { PermissionRepository } from "../repositories/permission.repository";
-import BadRequestError from "../errors/bad-request.error";
+
+import { buildSearchFilter, buildSortQuery } from "../utils/util";
+
 import {
     ChangePermissionStatusSchema,
     CreatePermissionSchema,
     UpdatePermissionSchema,
 } from "../validation/permission.validation";
-import ConflictError from "../errors/conflict.error";
-import { z } from "zod";
 import { FindQuerySchema } from "../validation/find-query.validation";
-import { buildSearchFilter, buildSortQuery } from "../utils/util";
 
 export class PermissionService {
     private readonly permissionRepository: PermissionRepository;
@@ -34,7 +36,7 @@ export class PermissionService {
 
         const permission = await this.permissionRepository.create({
             ...data,
-            createdBy: userId,
+            created_by: userId,
         });
 
         return permission;
@@ -45,7 +47,7 @@ export class PermissionService {
             id,
             {
                 description,
-                updatedBy: userId,
+                updated_by: userId,
             }
         );
 
@@ -93,7 +95,7 @@ export class PermissionService {
             id,
             {
                 status,
-                updatedBy: userId,
+                updated_by: userId,
             }
         );
         if (!updatedPermission) {

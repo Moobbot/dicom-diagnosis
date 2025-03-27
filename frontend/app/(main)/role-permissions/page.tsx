@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useReducer, useCallback, useMemo } from 'react';
 
 import { Checkbox } from 'primereact/checkbox';
 import { Toast } from 'primereact/toast';
@@ -19,278 +19,461 @@ import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import GenericButton from '@/layout/components/GenericButton';
 
-const RolePermissionTable = () => {
-    const [roles, setRoles] = useState<Base.Role[]>([]);
-    const [permissions, setPermissions] = useState<Base.Permission[]>([]);
-    const [selectedPermissions, setSelectedPermissions] = useState<Base.Permissions>({});
-    const toast = React.useRef<Toast>(null);
-    const [isSaved, setIsSaved] = useState(false);
-    const breadcrumbHome = { icon: 'pi pi-home', to: '/' };
-    const breadcrumbItems = [{ label: 'Quản lý vai trò' },];
-    const roleService = new RoleService();
-    const permissionService = new PermissionService();
-    const [newPermissionName, setNewPermissionName] = useState('');
-    const [newRoleName, setNewRoleName] = useState('');
-    const [permissionDialog, setPermissionDialog] = useState(false);
-    const [roleDialog, setRoleDialog] = useState(false);
+interface State {
+    roles: Base.Role[];
+    permissions: Base.Permission[];
+    filteredPermissions: Base.Permission[];
+    selectedPermissions: Base.Permissions;
+    searchQuery: string;
+    isSaved: boolean;
+    newPermissionName: string;
+    newRoleName: string;
+    permissionDialog: boolean;
+    roleDialog: boolean;
+    showInactiveRoles: boolean;
+}
 
-    useEffect(() => {
-        const fetchRoles = async () => {
-            try {
-                const response = await roleService.getRoles();
-                const rolesData = response.data
-                    .filter((role: any) => role.status !== false)
-                    .map((role: any) => {
-                        const rolePermissions = role.grantAll ? permissions.map(p => p.name) : role.permissions;
-                        return { ...role, permissions: rolePermissions };
-                    });
-                setRoles(rolesData);
-            } catch (error) {
-                if (toast.current) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: 'Failed to fetch roles' });
-                }
-            }
-        };
+type Action = 
+    | { type: 'SET_ROLES'; payload: Base.Role[] }
+    | { type: 'SET_PERMISSIONS'; payload: Base.Permission[] }
+    | { type: 'SET_FILTERED_PERMISSIONS'; payload: Base.Permission[] }
+    | { type: 'SET_SELECTED_PERMISSIONS'; payload: Base.Permissions }
+    | { type: 'SET_SEARCH_QUERY'; payload: string }
+    | { type: 'SET_IS_SAVED'; payload: boolean }
+    | { type: 'SET_NEW_PERMISSION_NAME'; payload: string }
+    | { type: 'SET_NEW_ROLE_NAME'; payload: string }
+    | { type: 'SET_PERMISSION_DIALOG'; payload: boolean }
+    | { type: 'SET_ROLE_DIALOG'; payload: boolean }
+    | { type: 'SET_SHOW_INACTIVE_ROLES'; payload: boolean }
+    | { type: 'UPDATE_ROLE_PERMISSIONS'; payload: { roleId: string; permissionId: string } };
 
-        const fetchPermissions = async () => {
-            try {
-                const permissionsData = await permissionService.getPermissions();
-                setPermissions(permissionsData.data); 
-            } catch (error) {
-                if (toast.current) {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: 'Failed to fetch permissions' });
-                }
-            }
-        };
+const initialState: State = {
+    roles: [],
+    permissions: [],
+    filteredPermissions: [],
+    selectedPermissions: {},
+    searchQuery: '',
+    isSaved: false,
+    newPermissionName: '',
+    newRoleName: '',
+    permissionDialog: false,
+    roleDialog: false,
+    showInactiveRoles: false
+};
 
-        fetchRoles();
-        fetchPermissions();
-    }, []);
-
-    useEffect(() => {
-        const initializeSelectedPermissions = () => {
-            const initialSelectedPermissions: Base.Permissions = {};
-            roles.forEach(role => {
-                if (role && role._id) {
-                    // Ensure permissions is an array
-                    const rolePermissions = role.permissions || [];
-                    permissions.forEach(permission => {
-                        const key = `${role._id}-${permission._id}`;
-                        initialSelectedPermissions[key] = role.grantAll || 
-                            (Array.isArray(rolePermissions) && rolePermissions.includes(permission._id));
-                    });
-                }
-            });
-            setSelectedPermissions(initialSelectedPermissions);
-        };
-    
-        if (roles && roles.length > 0 && permissions && permissions.length > 0) {
-            initializeSelectedPermissions();
-        }
-    }, [roles, permissions]);
-
-    const handlePermissionChange = (roleId: string, permissionId: string) => {
-        setRoles(prevRoles =>
-            prevRoles.map(role => {
+const reducer = (state: State, action: Action): State => {
+    switch (action.type) {
+        case 'SET_ROLES':
+            return { ...state, roles: action.payload };
+        case 'SET_PERMISSIONS':
+            return { ...state, permissions: action.payload };
+        case 'SET_FILTERED_PERMISSIONS':
+            return { ...state, filteredPermissions: action.payload };
+        case 'SET_SELECTED_PERMISSIONS':
+            return { ...state, selectedPermissions: action.payload };
+        case 'SET_SEARCH_QUERY':
+            return { ...state, searchQuery: action.payload };
+        case 'SET_IS_SAVED':
+            return { ...state, isSaved: action.payload };
+        case 'SET_NEW_PERMISSION_NAME':
+            return { ...state, newPermissionName: action.payload };
+        case 'SET_NEW_ROLE_NAME':
+            return { ...state, newRoleName: action.payload };
+        case 'SET_PERMISSION_DIALOG':
+            return { ...state, permissionDialog: action.payload };
+        case 'SET_ROLE_DIALOG':
+            return { ...state, roleDialog: action.payload };
+        case 'SET_SHOW_INACTIVE_ROLES':
+            return { ...state, showInactiveRoles: action.payload };
+        case 'UPDATE_ROLE_PERMISSIONS':
+            const { roleId, permissionId } = action.payload;
+            const updatedRoles = state.roles.map(role => {
                 if (role._id === roleId) {
                     const currentPermissions = Array.isArray(role.permissions) ? role.permissions : [];
                     return {
                         ...role,
-                        permissions: currentPermissions.includes(permissionId)
-                            ? currentPermissions.filter(p => p !== permissionId)
+                        permissions: currentPermissions.includes(permissionId) 
+                            ? currentPermissions.filter(p => p !== permissionId) 
                             : [...currentPermissions, permissionId],
-                        grantAll: false
+                        grant_all: false
                     };
                 }
                 return role;
-            })
-        );
-    
-        setSelectedPermissions(prevSelectedPermissions => {
-            const key = `${roleId}-${permissionId}`;
-            return {
-                ...prevSelectedPermissions,
-                [key]: !prevSelectedPermissions[key]
-            };
-        });
-    };
+            });
+            return { ...state, roles: updatedRoles };
+        default:
+            return state;
+    }
+};
 
-    const hideDialog = () => {
-        setPermissionDialog(false);
-        setRoleDialog(false);
-    };
+const RolePermissionTable = () => {
+    const [state, dispatch] = useReducer(reducer, initialState);
+    const toast = React.useRef<Toast>(null);
+    const breadcrumbHome = { icon: 'pi pi-home', to: '/' };
+    const breadcrumbItems = [{ label: 'Manage roles' }];
+    const roleService = new RoleService();
+    const permissionService = new PermissionService();
+    const isInitialMount = React.useRef(true);
+    const lastFetchTime = React.useRef(0);
+    const FETCH_INTERVAL = 5000; // 5 giây
 
-    const savePermission = async () => {
-        try {
-            const response = await permissionService.createPermission(newPermissionName);
-            setPermissions([...permissions, response.data]);
-            setPermissionDialog(false);
-            showToast('success', 'Successful', 'Permission Created');
-        } catch (error) {
-            showToast('error', 'Error', 'Failed to create permission');
-        }
-    };
-
-    const saveRole = async () => {
-        try {
-            const response = await roleService.createRole(newRoleName);
-            const createdRole = response.data;
-
-            // Lấy danh sách vai trò mới nhất
-            const updatedRolesResponse = await roleService.getRoles(1, 30);
-            const updatedRoles = updatedRolesResponse.data
-                .filter((role: { status: boolean; }) => role.status !== false)
-                .map((role: { grantAll: any; permissions: any; }) => ({
-                    ...role,
-                    permissions: role.grantAll ? permissions.map(p => p.name) : role.permissions,
-                }));
-
-            // Cập nhật danh sách vai trò
-            setRoles(updatedRoles);
-
-            setRoleDialog(false);
-            showToast('success', 'Successful', `Role "${createdRole.name}" created and updated successfully.`);
-        } catch (error) {
-            showToast('error', 'Error', 'Failed to create or update role.');
-        }
-    };
-
-    const openNewPermissionDialog = () => {
-        setNewPermissionName('');
-        setPermissionDialog(true);
-    };
-
-    const openNewRoleDialog = () => {
-        setNewRoleName('');
-        setRoleDialog(true);
-    };
-
-    const showToast = (severity: 'success' | 'info' | 'warn' | 'error', summary: string, detail: string) => {
+    const showToast = useCallback((severity: 'success' | 'info' | 'warn' | 'error', summary: string, detail: string) => {
         if (toast.current) {
             toast.current.show({ severity, summary, detail });
         }
-    };
+    }, []);
 
-    const onEditRole = (roleName: string) => {
-        showToast('info', 'Edit Role', `Editing role ${roleName}`);
-    };
+    const isAdminRole = useCallback((role: Base.Role) => {
+        return role.name === 'Admin';
+    }, []);
 
-    const onDeleteRole = (roleId: string) => {
+    const isLockedRole = useCallback((role: Base.Role) => {
+        return role.status === false;
+    }, []);
+
+    const handlePermissionChange = useCallback((roleId: string, permissionId: string) => {
+        const role = state.roles.find((r) => r._id === roleId);
+
+        if (role && (isAdminRole(role) || isLockedRole(role))) {
+            showToast('warn', 'Not allowed', `Cannot change permission of ${isAdminRole(role) ? 'Admin' : 'locked role'}`);
+            return;
+        }
+
+        dispatch({ type: 'UPDATE_ROLE_PERMISSIONS', payload: { roleId, permissionId } });
+        dispatch({ 
+            type: 'SET_SELECTED_PERMISSIONS', 
+            payload: {
+                ...state.selectedPermissions,
+                [`${roleId}-${permissionId}`]: !state.selectedPermissions[`${roleId}-${permissionId}`]
+            }
+        });
+    }, [state.roles, state.selectedPermissions, isAdminRole, isLockedRole, showToast]);
+
+    const hideDialog = useCallback(() => {
+        dispatch({ type: 'SET_PERMISSION_DIALOG', payload: false });
+        dispatch({ type: 'SET_ROLE_DIALOG', payload: false });
+    }, []);
+
+    const savePermission = useCallback(async () => {
+        try {
+            const response = await permissionService.createPermission(state.newPermissionName);
+            dispatch({ type: 'SET_PERMISSIONS', payload: [...state.permissions, response.data] });
+            dispatch({ type: 'SET_FILTERED_PERMISSIONS', payload: [...state.permissions, response.data] });
+            dispatch({ type: 'SET_PERMISSION_DIALOG', payload: false });
+            showToast('success', 'Success', 'Permission has been created');
+        } catch (error) {
+            showToast('error', 'Error', 'Cannot create permission');
+        }
+    }, [state.newPermissionName, state.permissions, showToast]);
+
+    const fetchRoles = useCallback(async () => {
+        try {
+            const response = await roleService.getRoles(1, 30);
+            const rolesData = response.data
+                .filter((role: any) => (state.showInactiveRoles ? true : role.status !== false))
+                .map((role: any) => {
+                    const rolePermissions = role.grant_all ? state.permissions.map((p) => p.name) : role.permissions;
+                    return { ...role, permissions: rolePermissions };
+                });
+            dispatch({ type: 'SET_ROLES', payload: rolesData });
+        } catch (error: any) {
+            showToast('error', 'Error', error.response?.data?.message || 'Cannot get roles list');
+        }
+    }, [state.showInactiveRoles, state.permissions, showToast]);
+
+    const fetchPermissions = useCallback(async () => {
+        try {
+            const permissionsData = await permissionService.getPermissions();
+            dispatch({ type: 'SET_PERMISSIONS', payload: permissionsData });
+            dispatch({ type: 'SET_FILTERED_PERMISSIONS', payload: permissionsData });
+            // Sau khi có permissions, fetch lại roles để cập nhật permissions
+            await fetchRoles();
+        } catch (error: any) {
+            showToast('error', 'Error', error.response?.data?.message || 'Cannot get permission list');
+        }
+    }, [showToast, fetchRoles]);
+
+    // Fetch dữ liệu khi component mount
+    useEffect(() => {
+        fetchPermissions();
+    }, []);
+
+    // Fetch roles khi showInactiveRoles thay đổi
+    useEffect(() => {
+        if (state.permissions.length > 0) {
+            fetchRoles();
+        }
+    }, [state.showInactiveRoles]);
+
+    // Tối ưu hóa việc lọc quyền
+    const filteredPermissions = useMemo(() => {
+        if (state.searchQuery.trim() === '') {
+            return state.permissions;
+        }
+        return state.permissions.filter((permission) => 
+            permission.description && 
+            permission.description.toLowerCase().includes(state.searchQuery.toLowerCase())
+        );
+    }, [state.searchQuery, state.permissions]);
+
+    // Cập nhật filteredPermissions khi có thay đổi
+    useEffect(() => {
+        dispatch({ type: 'SET_FILTERED_PERMISSIONS', payload: filteredPermissions });
+    }, [filteredPermissions]);
+
+    // Tối ưu hóa việc khởi tạo quyền đã chọn
+    const initializeSelectedPermissions = useCallback(() => {
+        if (state.roles.length === 0 || state.permissions.length === 0) return;
+
+        const initialSelectedPermissions: Base.Permissions = {};
+        state.roles.forEach((role) => {
+            if (role && role._id) {
+                const rolePermissions = role.permissions || [];
+                state.permissions.forEach((permission) => {
+                    const key = `${role._id}-${permission._id}`;
+                    initialSelectedPermissions[key] = role.grant_all || 
+                        (Array.isArray(rolePermissions) && rolePermissions.includes(permission._id));
+                });
+            }
+        });
+        dispatch({ type: 'SET_SELECTED_PERMISSIONS', payload: initialSelectedPermissions });
+    }, [state.roles, state.permissions]);
+
+    useEffect(() => {
+        initializeSelectedPermissions();
+    }, [initializeSelectedPermissions]);
+
+    const onEditRole = useCallback((role: Base.Role) => {
+        if (isAdminRole(role)) {
+            showToast('warn', 'Not allowed', 'Cannot edit Admin role');
+            return;
+        }
+        showToast('info', 'Edit Role', `Editing role ${role.name}`);
+    }, [isAdminRole, showToast]);
+
+    const onLockRole = useCallback((role: Base.Role) => {
+        if (isAdminRole(role)) {
+            showToast('warn', 'Not allowed', 'Cannot lock Admin role');
+            return;
+        }
+
         confirmDialog({
-            message: `Are you sure you want to deactivate the role?`,
-            header: 'Confirmation',
-            icon: 'pi pi-exclamation-triangle',
+            message: `Are you sure you want to lock role "${role.name}"?`,
+            header: 'Confirm lock role',
+            icon: 'pi pi-lock',
             accept: async () => {
                 try {
-                    const response = await roleService.changeRoleStatus(roleId, false);
-                    setRoles(roles.filter(role => role._id !== roleId));
-                    showToast('warn', 'Role Deactivated', `Role ${response.data.name} deactivated successfully`);
+                    await roleService.changeRoleStatus(role._id, false);
+                    await fetchRoles();
+                    showToast('success', 'Role has been locked', `Role "${role.name}" has been locked successfully`);
                 } catch (error) {
-                    showToast('error', 'Error', 'Failed to deactivate role');
+                    showToast('error', 'Error', 'Cannot lock role');
                 }
-            },
+            }
         });
-    };
+    }, [isAdminRole, fetchRoles, showToast]);
 
-    const onEditPermission = (permissionName: string) => {
-        showToast('info', 'Edit Permission', `Editing permission ${permissionName}`);
-    };
-
-    const onDeletePermission = (permissionName: string) => {
+    const onUnlockRole = useCallback((role: Base.Role) => {
         confirmDialog({
-            message: `Are you sure you want to delete the permission ${permissionName}?`,
-            header: 'Confirmation',
-            icon: 'pi pi-exclamation-triangle',
-            accept: () => showToast('warn', 'Delete Permission', `Permission ${permissionName} deleted`),
+            message: `Are you sure you want to unlock role "${role.name}"?`,
+            header: 'Confirm unlock role',
+            icon: 'pi pi-unlock',
+            accept: async () => {
+                try {
+                    await roleService.changeRoleStatus(role._id, true);
+                    await fetchRoles();
+                    showToast('success', 'Role has been unlocked', `Role "${role.name}" has been unlocked successfully`);
+                } catch (error) {
+                    showToast('error', 'Error', 'Cannot unlock role');
+                }
+            }
         });
-    };
+    }, [fetchRoles, showToast]);
 
-    const handleSaveClick = () => {
-        confirmDialog({
-            message: 'Do you want to save the changes?',
-            header: 'Confirmation',
-            icon: 'pi pi-exclamation-triangle',
-            accept: () => setIsSaved(true),
-        });
-    };
+    const renderCheckbox = useCallback((permission: any, role: Base.Role) => {
+        const isDisabled = isAdminRole(role) || isLockedRole(role);
+        return <Checkbox 
+            checked={!!state.selectedPermissions[`${role._id}-${permission._id}`]} 
+            onChange={() => handlePermissionChange(role._id, permission._id)} 
+            disabled={isDisabled} 
+        />;
+    }, [state.selectedPermissions, handlePermissionChange, isAdminRole, isLockedRole]);
 
-    const saveChanges = async () => {
+    const renderRoleHeader = useCallback((role: Base.Role) => {
+        const isAdmin = isAdminRole(role);
+        const isLocked = isLockedRole(role);
+
+        return (
+            <div className="role-header-container flex flex-column align-items-center">
+                <span className={`role-name ${isLocked ? 'locked-role' : ''}`}>
+                    {role.name} {isLocked && <i className="pi pi-lock" style={{ marginLeft: '5px', color: 'red' }}></i>}
+                </span>
+                {!isAdmin && (
+                    <div className="role-actions">
+                        <GenericButton 
+                            icon="pi pi-pencil" 
+                            className="p-button-rounded p-button-text p-button-secondary" 
+                            onClick={() => onEditRole(role)} 
+                        />
+                        {isLocked ? 
+                            <GenericButton icon="pi pi-unlock" onClick={() => onUnlockRole(role)} /> : 
+                            <GenericButton 
+                                icon="pi pi-lock" 
+                                className="p-button-rounded p-button-text p-button-warning" 
+                                onClick={() => onLockRole(role)} 
+                            />
+                        }
+                    </div>
+                )}
+            </div>
+        );
+    }, [isAdminRole, isLockedRole, onEditRole, onLockRole, onUnlockRole]);
+
+    // Tối ưu hóa việc render danh sách vai trò
+    const roleColumns = useMemo(() => 
+        state.roles.map((role) => (
+            <Column 
+                key={role._id} 
+                header={renderRoleHeader(role)} 
+                body={(permission) => renderCheckbox(permission, role)} 
+            />
+        )), 
+        [state.roles, renderRoleHeader, renderCheckbox]
+    );
+
+    const saveChanges = useCallback(async () => {
         try {
-            for (const role of roles) {
-                const updatedData: { name?: string; permissions?: string[]; grantAll?: boolean } = {};
+            for (const role of state.roles) {
+                if (isAdminRole(role) || isLockedRole(role)) continue;
+
+                const updatedData: { name?: string; permissions?: string[]; grant_all?: boolean } = {};
                 if (role.name) updatedData.name = role.name;
                 if (role.permissions) updatedData.permissions = role.permissions;
-                if (role.grantAll !== undefined) updatedData.grantAll = role.grantAll;
+                if (role.grant_all !== undefined) updatedData.grant_all = role.grant_all;
 
                 await roleService.updateRole(role._id, updatedData);
             }
-            if (toast.current) {
-                toast.current.show({ severity: 'success', summary: 'Success', detail: 'Changes saved successfully' });
-            }
+            showToast('success', 'Success', 'Changes saved successfully');
         } catch (error) {
-            if (toast.current) {
-                toast.current.show({ severity: 'error', summary: 'Error', detail: 'Failed to save changes' });
-            }
+            showToast('error', 'Error', 'Failed to save changes');
         }
-    };
+    }, [state.roles, isAdminRole, isLockedRole, showToast]);
+
+    const openNewPermissionDialog = useCallback(() => {
+        dispatch({ type: 'SET_NEW_PERMISSION_NAME', payload: '' });
+        dispatch({ type: 'SET_PERMISSION_DIALOG', payload: true });
+    }, []);
+
+    const openNewRoleDialog = useCallback(() => {
+        dispatch({ type: 'SET_NEW_ROLE_NAME', payload: '' });
+        dispatch({ type: 'SET_ROLE_DIALOG', payload: true });
+    }, []);
+
+    const saveRole = useCallback(async () => {
+        try {
+            const response = await roleService.createRole(state.newRoleName);
+            const createdRole = response.data;
+            await fetchRoles();
+            dispatch({ type: 'SET_ROLE_DIALOG', payload: false });
+            showToast('success', 'Success', `Role "${createdRole.name}" has been created successfully.`);
+        } catch (error) {
+            showToast('error', 'Error', 'Cannot create role.');
+        }
+    }, [state.newRoleName, fetchRoles, showToast]);
 
     return (
         <div className="layout-main">
             <div className="col-12">
                 <BreadCrumb home={breadcrumbHome} model={breadcrumbItems} />
-                <div className="card">
+                <div className="card role-permission-table">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                        <div className="pi pi-users" style={{ fontSize: '2rem' }}></div>
+                        <span style={{ fontSize: '2rem', fontWeight: '600' }}>Manage roles and permissions</span>
+                    </div>
                     <Toast ref={toast} />
-                    <div className="button-container">
-                        {/* <GenericButton label="Thêm quyền" icon="pi pi-plus" className="p-button-primary" onClick={openNewPermissionDialog} /> */}
-                        <GenericButton label="Thêm vai trò" icon="pi pi-plus" className="p-button-primary" onClick={openNewRoleDialog} />
+                    <div className="button-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <div className="p-input-icon-left search-container" style={{ width: '30%' }}>
+                            <i className="pi pi-search" />
+                            <InputText 
+                                placeholder="Search by permission description" 
+                                value={state.searchQuery} 
+                                onChange={(e) => dispatch({ type: 'SET_SEARCH_QUERY', payload: e.target.value })} 
+                                className="search-input" 
+                                style={{ width: '100%' }} 
+                            />
+                        </div>
+
+                        <div className="flex align-items-center">
+                            <Checkbox 
+                                inputId="showInactive" 
+                                checked={state.showInactiveRoles} 
+                                onChange={(e) => dispatch({ type: 'SET_SHOW_INACTIVE_ROLES', payload: e.checked as boolean })} 
+                                className="mr-2" 
+                            />
+                            <label htmlFor="showInactive" className="mr-4">
+                                Show locked roles
+                            </label>
+                            <GenericButton 
+                                label="Add role" 
+                                icon="pi pi-plus" 
+                                className="p-button-primary" 
+                                onClick={openNewRoleDialog} 
+                            />
+                        </div>
                     </div>
 
-                    {/* Sử dụng DataTable */}
-                    <DataTable value={permissions} className="p-datatable-sm">
-                        {/* Cột quyền */}
-                        <Column field="name" header="Tên quyền" />
-                        <Column field="description" header="Mô tả quyền" />
-
-                        {/* Các cột vai trò */}
-                        {roles.map((role) => (
-                            <Column
-                                key={role._id}
-                                header={
-                                    <>
-                                        {role.name}
-                                        <GenericButton icon="pi pi-pencil" className="p-button-rounded p-button-text p-button-secondary" onClick={() => onEditRole(role.name)} />
-                                        <GenericButton icon="pi pi-trash" className="p-button-rounded p-button-text p-button-secondary" onClick={() => onDeleteRole(role._id)} />
-                                    </>
-                                }
-                                body={(permission) => (
-                                    <Checkbox
-                                        checked={!!selectedPermissions[`${role._id}-${permission._id}`]}
-                                        onChange={() => handlePermissionChange(role._id, permission._id)}
-                                    />
-                                )}
-                            />
-                        ))}
+                    <DataTable value={state.filteredPermissions} className="p-datatable-sm">
+                        <Column field="name" header="Permission name" />
+                        <Column field="description" header="Permission description" />
+                        {roleColumns}
                     </DataTable>
 
-                    <div className="save-button-container">
-                        <GenericButton
-                            label="Lưu"
-                            className={`${isSaved ? 'p-button-success' : 'p-button-primary'} p-mt-3`}
-                            onClick={saveChanges}
+                    <div className="save-button-container" style={{ marginTop: '1rem' }}>
+                        <GenericButton 
+                            label="Save" 
+                            className={`${state.isSaved ? 'p-button-success' : 'p-button-primary'} p-mt-3`} 
+                            onClick={saveChanges} 
                         />
                     </div>
                     <ConfirmDialog />
 
-                    <Dialog visible={roleDialog} style={{ width: '450px' }} header="Thêm vai trò" modal className="p-fluid" footer={<>
-                        <GenericButton label="Hủy" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
-                        <GenericButton label="Lưu" icon="pi pi-check" className="p-button-text" onClick={saveRole} />
-                    </>} onHide={hideDialog}>
+                    <Dialog
+                        visible={state.roleDialog}
+                        style={{ width: '450px' }}
+                        header="Add role"
+                        modal
+                        className="p-fluid"
+                        footer={
+                            <>
+                                <GenericButton 
+                                    label="Cancel" 
+                                    icon="pi pi-times" 
+                                    className="p-button" 
+                                    onClick={hideDialog} 
+                                    severity="danger"
+                                />
+                                <GenericButton 
+                                    label="Save" 
+                                    icon="pi pi-check" 
+                                    className="p-button" 
+                                    onClick={saveRole} 
+                                    severity="success"
+                                />
+                            </>
+                        }
+                        onHide={hideDialog}
+                    >
                         <div className="field">
-                            <label htmlFor="roleName">Tên vai trò</label>
-                            <InputText id="roleName" value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} required autoFocus />
+                            <label htmlFor="roleName">Role name</label>
+                            <InputText 
+                                id="roleName"
+                                value={state.newRoleName} 
+                                onChange={(e) => dispatch({ type: 'SET_NEW_ROLE_NAME', payload: e.target.value })} 
+                                required 
+                                autoFocus 
+                            />
                         </div>
                     </Dialog>
-                    {/* Các dialog vẫn giữ nguyên */}
                 </div>
             </div>
         </div>

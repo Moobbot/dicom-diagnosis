@@ -145,7 +145,7 @@ const LCRD = () => {
                         predictedImagesURL,
                         gifDownloadURL,
                         predictions: folder.predictions || [],
-                        attention_info: folder.attention_info,
+                        attention_info: folder.attention_info || { attention_scores: [] },
                         from_server: true
                     };
                 });
@@ -403,10 +403,11 @@ const LCRD = () => {
             const dicomFiles: File[] = [];
 
             await Promise.all(
-                Object.keys(zipData.files).map(async (filename) => {
-                    if (filename.toLowerCase().endsWith('.dcm')) {
-                        const fileData = await zipData.files[filename].async('blob');
-                        const file = new File([fileData], filename, { type: 'application/dicom' });
+                Object.keys(zipData.files).map(async (filepath) => {
+                    if (filepath.toLowerCase().endsWith('.dcm')) {
+                        const fileData = await zipData.files[filepath].async('blob');
+                        const extractedFileName = filepath.split('/').pop() || filepath;
+                        const file = new File([fileData], extractedFileName, { type: 'application/dicom' });
                         dicomFiles.push(file);
                     }
                 })
@@ -417,18 +418,16 @@ const LCRD = () => {
                 return;
             }
 
-            // Sắp xếp file theo thứ tự tự nhiên
-            dicomFiles.sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name));
+            // Sử dụng hàm processFiles để xử lý các file DICOM
+            const folderName = zipFile.name.replace('.zip', '');
+            const newFolder = processFiles(dicomFiles, folderName);
 
-            const newFolder: FolderType = {
-                id: Date.now().toString(),
-                name: zipFile.name.replace('.zip', ''),
-                files: dicomFiles,
-                imageIds: dicomFiles.map((file) => window.cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
-            };
+            if (!newFolder) {
+                showToast('error', 'Error', 'Failed to process DICOM files');
+                return;
+            }
 
             setFolders((prev) => [newFolder, ...prev]);
-
             showToast('success', 'Success', `Successfully extracted and uploaded ${dicomFiles.length} files`);
 
             // Reset input
@@ -650,7 +649,6 @@ const LCRD = () => {
                         from_server: true
                     };
                 });
-
 
             // Kết hợp folders từ server với folders local
             setFolders([...localFolders, ...processedFolders]);

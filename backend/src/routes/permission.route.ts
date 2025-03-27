@@ -3,55 +3,70 @@ import { PermissionController } from "../controllers/permission.controller";
 import asyncHandler from "express-async-handler";
 import { permissionMiddleware } from "../middleware/permission.middleware";
 import { Permissions } from "../enums/permissions.enum";
-import { authMiddleware } from "../middleware/auth.middleware";
+import authMiddleware from "../middleware/auth.middleware";
 import accessHistoryMiddleware from "../middleware/access_log.middleware";
 
-const permissionRouter: Router = Router();
-const permissionController = new PermissionController();
+class PermissionRouter {
+    private readonly permissionController: PermissionController;
+    public router: Router;
 
-permissionRouter.get(
-    "/:id",
-    [
-        authMiddleware, accessHistoryMiddleware,
-        permissionMiddleware([Permissions.GET_PERMISSION]),
-    ],
-    asyncHandler(permissionController.getPermissionById)
-);
+    constructor() {
+        this.permissionController = new PermissionController();
+        this.router = Router();
+        this.initRoutes();
+    }
 
-permissionRouter.get(
-    "/",
-    [
-        authMiddleware, accessHistoryMiddleware,
-        permissionMiddleware([Permissions.LIST_ALL_PERMISSIONS]),
-    ],
-    asyncHandler(permissionController.listAllPermissions)
-);
+    private initRoutes() {
+        this.router.get(
+            "/:id",
+            [
+                authMiddleware,
+                permissionMiddleware([Permissions.GET_PERMISSION]),
+                accessHistoryMiddleware,
+            ],
+            asyncHandler(this.permissionController.getPermissionById)
+        );
 
-permissionRouter.post(
-    "/",
-    [
-        authMiddleware, accessHistoryMiddleware,
-        permissionMiddleware([Permissions.ADD_PERMISSION]),
-    ],
-    asyncHandler(permissionController.createPermission)
-);
+        this.router.get(
+            "/",
+            [
+                authMiddleware,
+                permissionMiddleware([Permissions.LIST_ALL_PERMISSIONS]),
+                accessHistoryMiddleware,
+            ],
+            asyncHandler(this.permissionController.listAllPermissions)
+        );
 
-permissionRouter.put(
-    "/:id",
-    [
-        authMiddleware, accessHistoryMiddleware,
-        permissionMiddleware([Permissions.EDIT_PERMISSION]),
-    ],
-    asyncHandler(permissionController.updatePermission)
-);
+        this.router.post(
+            "/",
+            [
+                authMiddleware,
+                permissionMiddleware([Permissions.ADD_PERMISSION]),
+                accessHistoryMiddleware,
+            ],
+            asyncHandler(this.permissionController.createPermission)
+        );
 
-permissionRouter.put(
-    "/:id/change-status",
-    [
-        authMiddleware, accessHistoryMiddleware,
-        permissionMiddleware([Permissions.CHANGE_STATUS_PERMISSION]),
-    ],
-    asyncHandler(permissionController.changePermissionStatus)
-);
+        this.router.put(
+            "/:id",
+            [
+                authMiddleware,
+                permissionMiddleware([Permissions.EDIT_PERMISSION]),
+                accessHistoryMiddleware,
+            ],
+            asyncHandler(this.permissionController.updatePermission)
+        );
 
-export default permissionRouter;
+        this.router.put(
+            "/:id/change-status",
+            [
+                authMiddleware,
+                permissionMiddleware([Permissions.CHANGE_STATUS_PERMISSION]),
+                accessHistoryMiddleware,
+            ],
+            asyncHandler(this.permissionController.changePermissionStatus)
+        );
+    }
+}
+
+export default new PermissionRouter().router;

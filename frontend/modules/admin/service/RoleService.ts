@@ -1,5 +1,4 @@
-import { getCookie } from 'cookies-next';
-import { api } from './api';
+import { api } from '../api/api';
 
 class RoleService {
     private baseUrl: string;
@@ -7,7 +6,7 @@ class RoleService {
         this.baseUrl = '/roles';
     }
 
-    async getRoles(page?: number, limit?: number): Promise<any> {
+    async getRoles(page: number, limit: number): Promise<any> {
         const response = await api.get(this.baseUrl, {
             params: { page, limit }
         });

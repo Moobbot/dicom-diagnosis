@@ -6,9 +6,9 @@ const detailSchema = new Schema<IDetailUser>(
     {
         user_code: { type: String, required: [true, "User code is required"] },
         name: { type: String, required: [true, "Name is required"] },
-        avatar: { type: String, default: null },
-        birth_date: { type: Date, required: [true, "Birth date is required"] },
-        address: { type: String, required: [true, "Address is required"] },
+        avatar: { type: String },
+        dob: { type: Date },
+        address: { type: String },
         gender: {
             type: Number,
             enum: Object.values(Gender),
@@ -31,13 +31,18 @@ const userSchema = new Schema<IUser>(
             select: false,
         },
         roles: [{ type: Schema.Types.ObjectId, ref: "Role" }],
-        createdBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
-        updatedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+        created_by: { type: Schema.Types.ObjectId, ref: "User" },
+        updated_by: { type: Schema.Types.ObjectId, ref: "User" },
         status: { type: Boolean, default: true },
-        refreshToken: { type: String, default: null, select: false },
+        refresh_token: { type: String, default: null, select: false },
         detail_user: { type: detailSchema, required: true },
     },
-    { timestamps: true }
+    {
+        timestamps: {
+            createdAt: "created_at",
+            updatedAt: "updated_at",
+        },
+    }
 );
 
 export const UserModel = model<IUser>("User", userSchema);

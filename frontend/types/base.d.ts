@@ -48,13 +48,14 @@ declare namespace Base {
     interface Role {
         status: boolean;
         permissions: any;
-        grantAll: any;
+        grant_all: any;
         _id: string;
         name: string;
     }
 
     interface Permission {
         _id(_id: any): boolean;
+        description: string;
         name: string;
     }
 
@@ -73,31 +74,31 @@ declare namespace Base {
     }
 
     // Định nghĩa kiểu Document cho detail_user
-    interface DetailUser {
+    export interface DetailUser {
         user_code: string;
         name: string;
-        avatar: string | null;
-        birth_date: string; // ISODate hoặc string (tùy cách sử dụng)
-        address: string;
-        gender: number; // Có thể là "male", "female", hoặc giá trị khác
+        avatar?: string | null;
+        dob: string;
+        address?: string;
+        gender: Gender; // Use the Gender enum
     }
     export interface User {
         _id: string;
         username: string;
         password: string; // Mã hóa
         roles: Role[];
+        status: boolean;
+        detail_user: DetailUser;
         createdBy: CreatedBy | null;
         updatedBy: UpdatedBy | null;
-        status: boolean;
         createdAt: string; // ISODate
         updatedAt: string; // ISODate
-        detail_user: DetailUser;
     }
 
     export interface LoggedInUser {
         _id: string;
         username: string;
-        grantAll: boolean;
+        grant_all: boolean;
         permissions: string[];
         detail_user: DetailUser;
     }

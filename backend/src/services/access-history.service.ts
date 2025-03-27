@@ -1,8 +1,12 @@
 import { z } from "zod";
+
 import { IAccessHistory } from "../interfaces/access-history.interface";
+
 import { AccessHistoryRepository } from "../repositories/access-history.repository";
-import { FindQuerySchema } from "../validation/find-query.validation";
+
 import { buildSearchFilter, buildSortQuery } from "../utils/util";
+
+import { FindQuerySchema } from "../validation/find-query.validation";
 
 export class AccessHistoryService {
     private readonly accessHistoryRepository: AccessHistoryRepository;
@@ -25,7 +29,9 @@ export class AccessHistoryService {
     // Liệt kê tất cả lịch sử truy cập với phân trang và bộ lọc
     async listAllAccessHistory(query: z.infer<typeof FindQuerySchema>) {
         const { search, sort, page, limit } = query;
-        const filter = buildSearchFilter(search);
+        const filter = buildSearchFilter(
+            search,
+        );
 
         const sortOptions = buildSortQuery(sort);
 

@@ -1,25 +1,25 @@
 import { Types } from "mongoose";
-import { IRole } from "./role.interface";
 
 export interface IDetailUser {
     user_code: string;
     name: string;
     avatar?: string;
-    birth_date: Date;
-    address: string;
+    dob?: Date;
+    address?: string;
     gender: number;
 }
 
 export interface IUser {
+    // _id: Types.ObjectId;
     username: string;
     password: string;
     name: string;
     roles: Types.ObjectId[];
-    createdAt: Date;
-    createdBy?: string;
-    updatedAt: Date;
-    updatedBy?: string;
+    created_at: Date;
+    created_by?: Types.ObjectId;
+    updated_at: Date;
+    updated_by?: Types.ObjectId;
     status: boolean;
-    refreshToken?: string;
+    refresh_token: string | null;
     detail_user: IDetailUser;
 }

@@ -17,6 +17,7 @@ import {
 import ConflictError from "../errors/conflict.error";
 import { z } from "zod";
 import { buildSearchFilter, buildSortQuery } from "../utils/util";
+import { dot } from "dot-object";
 
 export class UserService {
     private readonly userRepository: UserRepository;
@@ -56,7 +57,7 @@ export class UserService {
             password: hashedPassword,
             detail_user: data.detail_user,
             roles: roles.map((role) => role._id),
-            createdBy: userId,
+            created_by: userId,
         });
     };
 
@@ -115,8 +116,8 @@ export class UserService {
         }
 
         const updatedUser = await this.userRepository.updateById(id, {
-            ...data,
-            updatedBy: userId,
+            ...dot(data),
+            updated_by: userId,
         });
 
         if (!updatedUser) {
@@ -129,7 +130,7 @@ export class UserService {
     changeUserStatus = async (userId: any, id: string, status: boolean) => {
         const updatedUser = await this.userRepository.updateById(id, {
             status,
-            updatedBy: userId,
+            updated_by: userId,
         });
 
         if (!updatedUser) {
@@ -146,7 +147,7 @@ export class UserService {
     ) => {
         return await this.userRepository.updateByIds(ids, {
             status,
-            updatedBy: userId,
+            updated_by: userId,
         });
     };
 }

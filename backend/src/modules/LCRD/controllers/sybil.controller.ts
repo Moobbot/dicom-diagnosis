@@ -11,7 +11,7 @@ import BadGatewayError from "../../../errors/bad-gateway.error";
 import { SybilService } from "../services/sybil.service";
 import { fillTemplate } from "../../../utils/fillTemplate";
 
-class SybilController {
+export class SybilController {
     private readonly sybilService: SybilService;
 
     public constructor() {
@@ -64,7 +64,7 @@ class SybilController {
             folderUUID,
             zipFilePath
         );
-
+        console.log(result);
         res.status(200).json({
             message: "Prediction completed",
             session_id: folderUUID,
@@ -198,5 +198,3 @@ class SybilController {
         }
     }
 }
-
-export default new SybilController();
