@@ -4,8 +4,8 @@ export interface IDetailUser {
     user_code: string;
     name: string;
     avatar?: string;
-    dob: Date;
-    address: string;
+    dob?: Date;
+    address?: string;
     gender: number;
 }
 

@@ -7,8 +7,8 @@ const detailSchema = new Schema<IDetailUser>(
         user_code: { type: String, required: [true, "User code is required"] },
         name: { type: String, required: [true, "Name is required"] },
         avatar: { type: String },
-        dob: { type: Date, required: [true, "Birth date is required"] },
-        address: { type: String, required: [true, "Address is required"] },
+        dob: { type: Date },
+        address: { type: String },
         gender: {
             type: Number,
             enum: Object.values(Gender),
