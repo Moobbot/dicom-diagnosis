@@ -264,7 +264,7 @@ const PatientForm: React.FC<{
                                 onClick={handleGenerateReport}
                                 icon="pi pi-file"
                                 className="p-button-success"
-                                disabled={loading || !patientData.file_name?.length}
+                                disabled={loading}
                                 label="Generate Report"
                                 aria-label="Generate Report"
                                 data-pr-tooltip="Generate Report"
