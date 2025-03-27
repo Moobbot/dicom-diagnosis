@@ -27,7 +27,7 @@ export const CreateUserSchema = object({
     detail_user: object({
         user_code: string({ required_error: "User code is required" }),
         name: string({ required_error: "Name is required" }),
-        birth_date: coerce.date({ required_error: "Birth date is required" }),
+        dob: coerce.date({ required_error: "Birth date is required" }),
         address: string({ required_error: "Address is required" }),
         gender: nativeEnum(Gender, { required_error: "Gender is required" }),
     }),
@@ -41,7 +41,7 @@ export const UpdateUserSchema = object({
     detail_user: object({
         user_code: string().optional(),
         name: string().optional(),
-        birth_date: coerce.date().optional(),
+        dob: coerce.date().optional(),
         address: string().optional(),
         gender: nativeEnum(Gender).optional(),
     }).optional(),

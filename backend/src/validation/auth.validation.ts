@@ -24,7 +24,7 @@ export const UpdateProfileSchema = z.object({
     detail_user: z
         .object({
             name: z.string().optional(),
-            birth_date: z.coerce.date().optional(),
+            dob: z.coerce.date().optional(),
             address: z.string().optional(),
             gender: z.nativeEnum(Gender).optional(),
         })
