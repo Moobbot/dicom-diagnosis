@@ -64,7 +64,7 @@ export class SybilController {
             folderUUID,
             zipFilePath
         );
-
+        console.log(result);
         res.status(200).json({
             message: "Prediction completed",
             session_id: folderUUID,

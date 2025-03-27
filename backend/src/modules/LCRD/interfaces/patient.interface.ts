@@ -1,15 +1,7 @@
 import { Types } from "mongoose";
+import { AttentionInfo } from "./sybil.interface";
 
-export interface AttentionScore {
-    file_name_original: string;
-    file_name_pred: string;
-    rank: number;
-    attention_score: number;
-}
 
-export interface AttentionInfo {
-    attention_scores: AttentionScore[];
-}
 
 export interface IPatient {
     patient_id: string;

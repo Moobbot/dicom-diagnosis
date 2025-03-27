@@ -74,7 +74,7 @@ export class SybilService {
                 console.error(`Sybil model responded with status: ${response.status}`);
                 const errorText = await response.text();
                 console.error(`Error response: ${errorText}`);
-                throw new BadRequestError("Sybil model failed to predict");
+                throw new BadRequestError(`${errorText}` || "Sybil model failed to predict");
             }
 
             const data = (await response.json()) as ISybilPredictionResponse;

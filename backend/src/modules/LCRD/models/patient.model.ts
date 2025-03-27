@@ -2,7 +2,6 @@ import { Schema, model } from "mongoose";
 import { IPatient } from "../interfaces/patient.interface";
 
 const attentionScoreSchema = new Schema({
-    file_name_original: { type: String, required: true },
     file_name_pred: { type: String, required: true },
     rank: { type: Number, required: true },
     attention_score: { type: Number, required: true }

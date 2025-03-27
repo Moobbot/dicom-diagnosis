@@ -540,9 +540,10 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder, reloadFolders }) 
                 .sort((a, b) => b.attention_score - a.attention_score)
                 .slice(0, 6)
                 .map(score => score.file_name_pred);
+            console.log(topSixImages);
             setSelectedImages(topSixImages);
         }
-    }, [selectedFolder?.id]); // Thêm selectedFolder?.id vào dependencies
+    }, [selectedFolder?.id, selectedFolder?.attention_info?.attention_scores]); // Thêm selectedFolder?.id vào dependencies
 
     return (
         <div className="w-full h-full">
