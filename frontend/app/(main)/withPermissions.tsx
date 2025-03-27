@@ -9,7 +9,7 @@ export const withPermissions = (WrappedComponent: any, requiredPermissions: stri
 
         useEffect(() => {
             if (!isLoading) {
-                const hasPermission = user && (user.grantAll || requiredPermissions.every((permission) => user.permissions.includes(permission)));
+                const hasPermission = user && (user.grant_all || requiredPermissions.every((permission) => user.permissions.includes(permission)));
 
                 if (!hasPermission) {
                     router.push('/auth/access');
@@ -17,7 +17,7 @@ export const withPermissions = (WrappedComponent: any, requiredPermissions: stri
             }
         }, [user, requiredPermissions, router]);
         
-        const hasPermission = user && (user.grantAll || requiredPermissions.every((permission) => user.permissions.includes(permission)));
+        const hasPermission = user && (user.grant_all || requiredPermissions.every((permission) => user.permissions.includes(permission)));
 
         if (!hasPermission) {
             return null;

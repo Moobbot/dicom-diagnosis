@@ -11,7 +11,7 @@ import BadGatewayError from "../../../errors/bad-gateway.error";
 import { SybilService } from "../services/sybil.service";
 import { fillTemplate } from "../../../utils/fillTemplate";
 
-class SybilController {
+export class SybilController {
     private readonly sybilService: SybilService;
 
     public constructor() {
@@ -58,14 +58,13 @@ class SybilController {
         }
 
         const folderUUID = (req as any).uploadFolder as string;
-
         const zipFilePath = path.join(req.file.destination, req.file.filename);
 
         const result = await this.sybilService.predictSybil(
             folderUUID,
             zipFilePath
         );
-
+        console.log(result);
         res.status(200).json({
             message: "Prediction completed",
             session_id: folderUUID,
@@ -89,9 +88,6 @@ class SybilController {
 
         if (!session_id) {
             throw new BadRequestError("Missing session_id");
-        }
-        if (!file_name.length) {
-            throw new BadRequestError("No chosen diagnostic photography!");
         }
 
         console.log("Start creating report...");
@@ -202,5 +198,3 @@ class SybilController {
         }
     }
 }
-
-export default new SybilController();

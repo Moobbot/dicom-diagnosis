@@ -74,7 +74,7 @@ export class SybilService {
                 console.error(`Sybil model responded with status: ${response.status}`);
                 const errorText = await response.text();
                 console.error(`Error response: ${errorText}`);
-                throw new BadRequestError("Sybil model failed to predict");
+                throw new BadRequestError(`${errorText}` || "Sybil model failed to predict");
             }
 
             const data = (await response.json()) as ISybilPredictionResponse;
@@ -88,6 +88,7 @@ export class SybilService {
             await this.predictionRepository.create({
                 session_id: folderUUID,
                 predictions: data.predictions,
+                attention_info: data.attention_info,
             });
 
             // Tải file zip
@@ -116,6 +117,7 @@ export class SybilService {
                 predictions: data.predictions,
                 overlay_images: dicomFiles,
                 gif: gifFile,
+                attention_info: data.attention_info
             };
         } catch (error) {
             console.log(error);

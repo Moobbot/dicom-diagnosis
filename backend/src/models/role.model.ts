@@ -10,12 +10,17 @@ const roleSchema = new Schema<IRole>(
         },
         permissions: [{ type: Schema.Types.ObjectId, ref: "Permission" }],
         description: { type: String, default: "" },
-        grantAll: { type: Boolean, default: false },
-        createdBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
-        updatedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+        grant_all: { type: Boolean, default: false },
+        created_by: { type: Schema.Types.ObjectId, ref: "User" },
+        updated_by: { type: Schema.Types.ObjectId, ref: "User" },
         status: { type: Boolean, default: true },
     },
-    { timestamps: true }
+    {
+        timestamps: {
+            createdAt: "created_at",
+            updatedAt: "updated_at",
+        },
+    }
 );
 
 export const RoleModel = model<IRole>("Role", roleSchema);

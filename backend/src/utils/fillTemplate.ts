@@ -7,7 +7,10 @@ import axios from "axios";
 import FormData from "form-data";
 
 // Đường dẫn file template DOCX
-const TEMPLATE_PATH = path.join(validateEnv().linkTemplateReport, "report-hospital.docx");
+const TEMPLATE_PATH = path.join(
+    validateEnv().linkTemplateReport,
+    "report-hospital.docx"
+);
 
 /**
  * Điền dữ liệu vào mẫu DOCX
@@ -30,10 +33,12 @@ interface DataForm {
  */
 async function imageToBase64(imagePath: string): Promise<string> {
     try {
-        if (!fs.existsSync(imagePath)) throw new Error(`❌ File không tồn tại: ${imagePath}`);
+        if (!fs.existsSync(imagePath))
+            throw new Error(`❌ File not found: ${imagePath}`);
 
         const buffer = await fs.promises.readFile(imagePath);
-        if (buffer.length === 0) throw new Error(`❌ File PNG rỗng: ${imagePath}`);
+        if (buffer.length === 0)
+            throw new Error(`❌ Empty PNG file: ${imagePath}`);
 
         return buffer.toString("base64");
     } catch (error) {
@@ -58,10 +63,12 @@ function ensureDirectoryExistence(dir: string) {
  */
 export async function fillTemplate({
     dicomPaths,
-    dataForm
+    dataForm,
+    template_name = TEMPLATE_PATH,
 }: {
     dicomPaths: string[];
     dataForm: DataForm;
+    template_name?: string;
 }): Promise<string | null> {
     try {
         // 1️⃣ Tạo session_id và thư mục lưu báo cáo
@@ -73,50 +80,55 @@ export async function fillTemplate({
         console.log(`📂 Processing report for session: ${session_id}`);
 
         // 2️⃣ Chuyển đổi tất cả ảnh DICOM sang PNG bằng API Flask
+        const images_predict_rows = [];
         const formData = new FormData();
-        dicomPaths.forEach((dicomPath) => {
-            formData.append("files", fs.createReadStream(dicomPath));
-        });
+        if (dicomPaths.length > 0) {
+            dicomPaths.forEach((dicomPath) => { formData.append("files", fs.createReadStream(dicomPath)); });
+            const response = await axios.post(
+                `${validateEnv().sybilModelBaseUrl}/convert-list`,
+                formData,
+                {
+                    headers: { "Content-Type": "multipart/form-data" },
+                }
+            );
 
-        const response = await axios.post(`${validateEnv().sybilModelBaseUrl}/convert-list`, formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-        });
+            const { images } = response.data;
+            if (!images || images.length === 0) {
+                throw new Error("❌ Did not receive images from API");
+            }
 
-        const { images } = response.data;
-        if (!images || images.length === 0) {
-            throw new Error("❌ Did not receive images from API");
+            console.log(`✅ Images created from API:`, images.map((img: { filename: string }) => img.filename)
+            );
+            const columns = 2; // Number of images per row
+            // 5️⃣ Convert multiple PNG images to Base64 list
+            const images_predict = images.map(
+                (image: { image_base64: string }) => ({
+                    width: 7, // cm
+                    height: 7, // cm
+                    data: image.image_base64, // ✅ Use image_base64 instead of object image
+                    extension: ".png",
+                })
+            );
+
+            // Divide the list of images into 2D arrays, each line contains `columns` images'
+            for (let i = 0; i < images_predict.length; i += columns) {
+                images_predict_rows.push(images_predict.slice(i, i + columns));
+            }
         }
 
-        console.log(`✅ Images created from API:`, images.map((img: { filename: string }) => img.filename));
-
         // 3️⃣ Read DOCX template
-        const templateBuffer = fs.readFileSync(TEMPLATE_PATH);
+        const templateBuffer = fs.readFileSync(template_name);
 
         // 4️⃣ Prepare data
         const forecastData = dataForm.forecast.map((value, index) =>
             value ? `${(value * 100).toFixed(2)}%` : "N/A"
         );
 
-        const columns = 2; // Number of images per row
-        // 5️⃣ Convert multiple PNG images to Base64 list
-        const images_predict = images.map((image: { image_base64: string }) => ({
-            width: 7, // cm  
-            height: 7, // cm
-            data: image.image_base64, // ✅ Use image_base64 instead of object image
-            extension: ".png",
-        }));
-
-        // Divide the list of images into 2D arrays, each line contains `columns` images'
-        const images_predict_rows = [];
-        for (let i = 0; i < images_predict.length; i += columns) {
-            images_predict_rows.push(images_predict.slice(i, i + columns));
-        }
-
         const reportData = {
             patient_id: dataForm.patient_id,
             name: dataForm.name,
-            age: dataForm.age,
-            sex: dataForm.sex,
+            age: Number.parseInt(dataForm.age),
+            sex: dataForm.sex.toLowerCase(),
             address: dataForm.address,
             diagnosis: dataForm.diagnosis,
             general_conclusion: dataForm.general_conclusion,
@@ -126,7 +138,7 @@ export async function fillTemplate({
             id_3: forecastData[3],
             id_4: forecastData[4],
             id_5: forecastData[5],
-            images_predict_rows
+            images_predict_rows,
         };
 
         // 6️⃣ Create DOCX file from template
@@ -151,7 +163,7 @@ export async function fillTemplate({
  */
 export async function fillTemplate_v0({
     dicomPaths,
-    dataForm
+    dataForm,
 }: {
     dicomPaths: string[];
     dataForm: DataForm;
@@ -174,8 +186,13 @@ export async function fillTemplate_v0({
             // Check PNG file again (wait if not created)
             let retryCount = 0;
             while (!fs.existsSync(pngPath) || fs.statSync(pngPath).size === 0) {
-                if (retryCount >= 5) throw new Error(`❌ PNG file ${index + 1} was not created: ${pngPath}`);
-                console.log(`🔄 Waiting for PNG file ${index + 1} to be created...`);
+                if (retryCount >= 5)
+                    throw new Error(
+                        `❌ PNG file ${index + 1} was not created: ${pngPath}`
+                    );
+                console.log(
+                    `🔄 Waiting for PNG file ${index + 1} to be created...`
+                );
                 await new Promise((resolve) => setTimeout(resolve, 500)); // Wait 500ms
                 retryCount++;
             }
@@ -198,7 +215,7 @@ export async function fillTemplate_v0({
         // 5️⃣ Convert multiple PNG images to Base64 list
         const images_predict = await Promise.all(
             pngPaths.map(async (pngPath) => ({
-                width: 7, // cm  
+                width: 7, // cm
                 height: 7, // cm
                 data: await imageToBase64(pngPath),
                 extension: ".png",
@@ -224,7 +241,7 @@ export async function fillTemplate_v0({
             id_3: forecastData[3],
             id_4: forecastData[4],
             id_5: forecastData[5],
-            images_predict_rows
+            images_predict_rows,
         };
 
         // 6️⃣ Create DOCX file from template

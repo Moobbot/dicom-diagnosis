@@ -18,8 +18,15 @@ export const bootstrap = async (app: Express) => {
         // Log the completion of bootstrap
         logger.info("Express app initiated.");
     } catch (error) {
+        // Phân loại và xử lý lỗi cụ thể
+        if (error instanceof Error) {
+            if (error.message.includes('ECONNREFUSED') || error.message.includes('ETIMEDOUT')) {
+                logger.error("Can't connect to the database:", error);
+                throw new Error('DATABASE_CONNECTION_ERROR');
+            }
+        }
         // Log the error and terminate the application
         logger.error("Error during bootstrap:", error);
-        process.exit(1); // Ensure the application does not run in an unstable state
+        throw error; // Chuyển lỗi lên để server.ts xử lý
     }
-};;
+};

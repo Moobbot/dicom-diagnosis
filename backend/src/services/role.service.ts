@@ -1,18 +1,20 @@
-import { Request, Response } from "express";
+import { z } from "zod";
+
 import BadRequestError from "../errors/bad-request.error";
+import ConflictError from "../errors/conflict.error";
 import NotFoundError from "../errors/not-found.error";
+
 import { RoleRepository } from "../repositories/role.repository";
 import { PermissionRepository } from "../repositories/permission.repository";
+
+import { buildSearchFilter, buildSortQuery } from "../utils/util";
+
 import {
     ChangeRoleStatusSchema,
     CreateRoleSchema,
     UpdateRoleSchema,
 } from "../validation/role.validation";
-import ConflictError from "../errors/conflict.error";
-import { IRole } from "../interfaces/role.interface";
-import { z } from "zod";
 import { FindQuerySchema } from "../validation/find-query.validation";
-import { buildSearchFilter, buildSortQuery } from "../utils/util";
 
 export class RoleService {
     private readonly roleRepository: RoleRepository;
@@ -27,7 +29,7 @@ export class RoleService {
         userId: any,
         data: z.infer<typeof CreateRoleSchema>
     ) => {
-        const { name, grantAll, description } = data;
+        const { name, grant_all, description } = data;
 
         const existingRole = await this.roleRepository.findRoleByName(name);
 
@@ -37,7 +39,7 @@ export class RoleService {
 
         return await this.roleRepository.create({
             ...data,
-            createdBy: userId,
+            created_by: userId,
         });
     };
 
@@ -80,7 +82,7 @@ export class RoleService {
 
         const updatedRole = await this.roleRepository.updateById(id, {
             ...data,
-            updatedBy: userId,
+            updated_by: userId,
         });
 
         if (!updatedRole) {
@@ -93,7 +95,7 @@ export class RoleService {
     changeRoleStatus = async (userId: any, id: string, status: boolean) => {
         const updatedRole = await this.roleRepository.updateById(id, {
             status: status,
-            updatedBy: userId,
+            updated_by: userId,
         });
 
         if (!updatedRole) {

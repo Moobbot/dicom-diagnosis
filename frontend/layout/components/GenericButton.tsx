@@ -36,7 +36,7 @@ const GenericButton = ({
 
     // Kiểm tra quyền
     const hasPermission =
-        !permissions.length || (user && (user.grantAll || permissions.every((permission) => user.permissions.includes(permission))));
+        !permissions.length || (user && (user.grant_all || permissions.every((permission) => user.permissions.includes(permission))));
 
     if (!hasPermission) {
         return null;

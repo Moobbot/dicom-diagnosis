@@ -3,18 +3,30 @@ import asyncHandler from "express-async-handler";
 import { AccessHistoryController } from "../controllers/access-history.controller";
 import { permissionMiddleware } from "../middleware/permission.middleware";
 import { Permissions } from "../enums/permissions.enum";
-import { authMiddleware } from "../middleware/auth.middleware";
+import authMiddleware from "../middleware/auth.middleware";
 import accessHistoryMiddleware from "../middleware/access_log.middleware";
 
-const accessHistoryRouter: Router = Router();
-const accessHistoryController = new AccessHistoryController();
+class AccessHistoryRouter {
+    private readonly accessHistoryController: AccessHistoryController;
+    public router: Router;
 
-accessHistoryRouter.get(
-    "/",
-    [
-        authMiddleware, accessHistoryMiddleware,
-        permissionMiddleware([Permissions.LIST_ALL_ACCESS_HISTORY])],
-    asyncHandler(accessHistoryController.listAllAccessHistory)
-);
+    constructor() {
+        this.accessHistoryController = new AccessHistoryController();
+        this.router = Router();
+        this.initRoutes();
+    }
 
-export default accessHistoryRouter;
+    private initRoutes() {
+        this.router.get(
+            "/",
+            [
+                authMiddleware,
+                permissionMiddleware([Permissions.LIST_ALL_ACCESS_HISTORY]),
+                accessHistoryMiddleware,
+            ],
+            asyncHandler(this.accessHistoryController.listAllAccessHistory)
+        );
+    }
+}
+
+export default new AccessHistoryRouter().router;

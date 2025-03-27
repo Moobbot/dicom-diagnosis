@@ -124,7 +124,7 @@ const addUsers = async () => {
             detail_user: {
                 user_code: "ADMIN001",
                 name: "Admin",
-                birth_date: new Date("1980-01-01"),
+                dob: new Date("1980-01-01"),
                 address: "Admin Address",
                 gender: 1,
             },
@@ -136,7 +136,7 @@ const addUsers = async () => {
             detail_user: {
                 user_code: "user01",
                 name: "Demo User",
-                birth_date: new Date("1985-02-02"),
+                dob: new Date("1985-02-02"),
                 address: "Demo User Address",
                 gender: 2,
             },

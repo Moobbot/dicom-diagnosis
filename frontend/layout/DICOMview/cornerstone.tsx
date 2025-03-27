@@ -29,7 +29,7 @@ import { Messages } from 'primereact/messages';
 import { DCMViewerProps } from '@/types/lcrd';
 import { PatientData } from '@/types/lcrd';
 
-const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
+const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder, reloadFolders }) => {
     const [selectedImageIdIndex, setSelectedImageIdIndex] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState(0); // 0: Original, 1: Predicted
     const [activeTool, setActiveTool] = useState<string | null>(null);
@@ -509,11 +509,12 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
             age: selectedFolder?.patient_info?.age || '',
             sex: selectedFolder?.patient_info?.sex || '',
             address: selectedFolder?.patient_info?.address || null,
-            diagnosis: selectedFolder?.patient_info?.diagnosis || null,
+            diagnosis: selectedFolder?.patient_info?.diagnosis || 'N/A',
             general_conclusion: selectedFolder?.patient_info?.general_conclusion || null,
             file_name: selectedImages,
             session_id: selectedFolder?.session_id || '',
-            forecast: selectedFolder?.predictions ? selectedFolder.predictions[0] : []
+            forecast: selectedFolder?.predictions ? selectedFolder.predictions[0] : [],
+            attention_info: selectedFolder?.attention_info || { attention_scores: [] }
         }));
 
         setExportDialog(true);
@@ -527,6 +528,22 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
             setShowOverlay(true);
         }
     }, [selectedFolder]);
+
+    // Thêm useEffect để reset selectedImages khi thay đổi folder
+    useEffect(() => {
+        // Reset selectedImages khi thay đổi folder
+        setSelectedImages([]);
+        
+        // Sau đó mới chọn top 6 ảnh của folder mới nếu có
+        if (selectedFolder?.predictedImagesURL && selectedFolder.attention_info?.attention_scores) {
+            const topSixImages = selectedFolder.attention_info.attention_scores
+                .sort((a, b) => b.attention_score - a.attention_score)
+                .slice(0, 6)
+                .map(score => score.file_name_pred);
+            console.log(topSixImages);
+            setSelectedImages(topSixImages);
+        }
+    }, [selectedFolder?.id, selectedFolder?.attention_info?.attention_scores]); // Thêm selectedFolder?.id vào dependencies
 
     return (
         <div className="w-full h-full">
@@ -650,7 +667,13 @@ const DCMViewer: React.FC<DCMViewerProps> = ({ selectedFolder }) => {
                 </div>
             </Dialog>
             <Dialog header="Export Preview" visible={ExportDialog} style={{ width: '50vw' }} onHide={() => setExportDialog(false)}>
-                <PatientForm patientData={patientData} setPatientData={setPatientData} toastRef={toast} />
+                <PatientForm 
+                    patientData={patientData} 
+                    setPatientData={setPatientData} 
+                    toastRef={toast} 
+                    reloadFolders={reloadFolders}
+                    onClose={() => setExportDialog(false)}
+                />
             </Dialog>
         </div>
     );

@@ -1,57 +1,72 @@
 import { Router } from "express";
 import { RoleController } from "../controllers/role.controller";
 import asyncHandler from "express-async-handler";
-import { authMiddleware } from "../middleware/auth.middleware";
+import authMiddleware from "../middleware/auth.middleware";
 import { permissionMiddleware } from "../middleware/permission.middleware";
 import { Permissions } from "../enums/permissions.enum";
 import accessHistoryMiddleware from "../middleware/access_log.middleware";
 
-const roleRouter: Router = Router();
-const roleController = new RoleController();
+class RoleRouter {
+    private readonly roleController: RoleController;
+    public router: Router;
 
-roleRouter.get(
-    "/",
-    [
-        authMiddleware, accessHistoryMiddleware,
-        permissionMiddleware([Permissions.LIST_ALL_ROLES]),
-    ],
-    asyncHandler(roleController.listAllRoles)
-);
+    constructor() {
+        this.roleController = new RoleController();
+        this.router = Router();
+        this.initRoutes();
+    }
 
-roleRouter.get(
-    "/:id",
-    [
-        authMiddleware, accessHistoryMiddleware,
-        permissionMiddleware([Permissions.GET_ROLE]),
-    ],
-    asyncHandler(roleController.getRoleById)
-);
+    private initRoutes() {
+        this.router.get(
+            "/",
+            [
+                authMiddleware,
+                permissionMiddleware([Permissions.LIST_ALL_ROLES]),
+                accessHistoryMiddleware,
+            ],
+            asyncHandler(this.roleController.listAllRoles)
+        );
 
-roleRouter.post(
-    "/",
-    [
-        authMiddleware, accessHistoryMiddleware,
-        permissionMiddleware([Permissions.ADD_ROLE]),
-    ],
-    asyncHandler(roleController.createRole)
-);
+        this.router.get(
+            "/:id",
+            [
+                authMiddleware,
+                permissionMiddleware([Permissions.GET_ROLE]),
+                accessHistoryMiddleware,
+            ],
+            asyncHandler(this.roleController.getRoleById)
+        );
 
-roleRouter.put(
-    "/:id",
-    [
-        authMiddleware, accessHistoryMiddleware,
-        permissionMiddleware([Permissions.EDIT_ROLE]),
-    ],
-    asyncHandler(roleController.updateRole)
-);
+        this.router.post(
+            "/",
+            [
+                authMiddleware,
+                permissionMiddleware([Permissions.ADD_ROLE]),
+                accessHistoryMiddleware,
+            ],
+            asyncHandler(this.roleController.createRole)
+        );
 
-roleRouter.put(
-    "/:id/change-status",
-    [
-        authMiddleware, accessHistoryMiddleware,
-        permissionMiddleware([Permissions.CHANGE_STATUS_ROLE]),
-    ],
-    asyncHandler(roleController.changeRoleStatus)
-);
+        this.router.put(
+            "/:id",
+            [
+                authMiddleware,
+                permissionMiddleware([Permissions.EDIT_ROLE]),
+                accessHistoryMiddleware,
+            ],
+            asyncHandler(this.roleController.updateRole)
+        );
 
-export default roleRouter;
+        this.router.put(
+            "/:id/change-status",
+            [
+                authMiddleware,
+                permissionMiddleware([Permissions.CHANGE_STATUS_ROLE]),
+                accessHistoryMiddleware,
+            ],
+            asyncHandler(this.roleController.changeRoleStatus)
+        );
+    }
+}
+
+export default new RoleRouter().router;

@@ -1,14 +1,14 @@
 import { Request, Response } from "express";
-import NotFoundError from "../errors/not-found.error";
+
 import { PermissionService } from "../services/permission.service";
-import BadRequestError from "../errors/bad-request.error";
+
 import {
     ChangePermissionStatusSchema,
     CreatePermissionSchema,
     UpdatePermissionSchema,
 } from "../validation/permission.validation";
-import { idSchema } from "../validation/objectid.validation";
 import { FindQuerySchema } from "../validation/find-query.validation";
+import { idSchema } from "../validation/objectid.validation";
 
 export class PermissionController {
     private readonly permissionService: PermissionService;
@@ -57,8 +57,7 @@ export class PermissionController {
     listAllPermissions = async (req: Request, res: Response) => {
         const validatedQuery = FindQuerySchema.parse(req.query);
 
-        const {total, permissions} = await this.permissionService.listAllPermissions(validatedQuery);
-
+        const { total, permissions } = await this.permissionService.listAllPermissions(validatedQuery);
 
         const { page, limit } = validatedQuery;
 
@@ -100,9 +99,8 @@ export class PermissionController {
             );
 
         res.status(200).json({
-            message: `Permission ${
-                status ? "activated" : "deactivated"
-            } successfully`,
+            message: `Permission ${status ? "activated" : "deactivated"
+                } successfully`,
             success: true,
             data: updatedPermission,
         });

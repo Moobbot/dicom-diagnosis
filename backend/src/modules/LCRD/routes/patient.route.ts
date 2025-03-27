@@ -1,30 +1,42 @@
 import { Router } from "express";
 import asyncHandler from "express-async-handler";
-import patientController from "../controllers/patient.controller";
-import { authMiddleware } from "../../../middleware/auth.middleware";
+
+import authMiddleware from "../../../middleware/auth.middleware";
 import accessHistoryMiddleware from "../../../middleware/access_log.middleware";
+import { PatientController } from "../controllers/patient.controller";
 
-const patientRouter: Router = Router();
+class PatientRouter {
+    private readonly patientController: PatientController;
+    public router: Router;
 
-patientRouter.get(
-    "/",
-    [authMiddleware, accessHistoryMiddleware],
-    asyncHandler(patientController.listAllPatients)
-);
-patientRouter.post(
-    "/",
-    [authMiddleware, accessHistoryMiddleware],
-    asyncHandler(patientController.createPatient)
-);
-patientRouter.put(
-    "/:id",
-    [authMiddleware, accessHistoryMiddleware],
-    asyncHandler(patientController.updatePatient)
-);
-patientRouter.delete(
-    "/:id",
-    [authMiddleware, accessHistoryMiddleware],
-    asyncHandler(patientController.deletePatientById)
-);
+    constructor() {
+        this.patientController = new PatientController();
+        this.router = Router();
+        this.initRoutes();
+    }
 
-export default patientRouter;
+    private initRoutes() {
+        this.router.get(
+            "/",
+            [authMiddleware, accessHistoryMiddleware],
+            asyncHandler(this.patientController.listAllPatients)
+        );
+        this.router.post(
+            "/",
+            [authMiddleware, accessHistoryMiddleware],
+            asyncHandler(this.patientController.createPatient)
+        );
+        this.router.put(
+            "/:id",
+            [authMiddleware, accessHistoryMiddleware],
+            asyncHandler(this.patientController.updatePatient)
+        );
+        this.router.delete(
+            "/:id",
+            [authMiddleware, accessHistoryMiddleware],
+            asyncHandler(this.patientController.deletePatientById)
+        );
+    }
+}
+
+export default new PatientRouter().router;
