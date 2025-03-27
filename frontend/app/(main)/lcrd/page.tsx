@@ -418,18 +418,16 @@ const LCRD = () => {
                 return;
             }
 
-            // Sắp xếp file theo thứ tự tự nhiên
-            dicomFiles.sort((a, b) => new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' }).compare(a.name, b.name));
+            // Sử dụng hàm processFiles để xử lý các file DICOM
+            const folderName = zipFile.name.replace('.zip', '');
+            const newFolder = processFiles(dicomFiles, folderName);
 
-            const newFolder: FolderType = {
-                id: Date.now().toString(),
-                name: zipFile.name.replace('.zip', ''),
-                files: dicomFiles,
-                imageIds: dicomFiles.map((file) => window.cornerstoneDICOMImageLoader.wadouri.fileManager.add(file))
-            };
+            if (!newFolder) {
+                showToast('error', 'Error', 'Failed to process DICOM files');
+                return;
+            }
 
             setFolders((prev) => [newFolder, ...prev]);
-
             showToast('success', 'Success', `Successfully extracted and uploaded ${dicomFiles.length} files`);
 
             // Reset input
